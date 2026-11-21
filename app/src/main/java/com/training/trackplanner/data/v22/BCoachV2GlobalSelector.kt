@@ -573,7 +573,7 @@ internal object BCoachV2GlobalSelector {
                 selectionReason = "B_COACH_GLOBAL_ROSTER_RESELECTED",
                 weightSource = "B_COACH_RESELECT_USER_CALIBRATION_REQUIRED",
                 trainingSlot = "FULL_BODY_BADMINTON_SUPPORT",
-                selectionRole = if (badmintonCatalog.relations(exercise.stableKey).isNotEmpty())
+                selectionRole = if (badmintonCatalog.relations(exercise.stableKey).any { it.transferLevel.coefficient > 0.0 })
                     "SPORT_SUPPORT_RESELECTED" else "ACCESSORY_RESELECTED",
                 movementFamily = exercise.movementPattern,
                 movementSubtype = "", metadataProgramSlot = "", redundancyGroup = "",
@@ -602,7 +602,7 @@ internal object BCoachV2GlobalSelector {
         }
         for (key in mutableKeys.take(4)) {
             val original = exercises[key] ?: continue
-            val isSport = badmintonCatalog.relations(key).isNotEmpty()
+            val isSport = badmintonCatalog.relations(key).any { it.transferLevel.coefficient > 0.0 }
             val alternatives = eligible.asSequence().filter { candidate ->
                 candidate.category == original.category &&
                     candidate.progressMetricType == original.progressMetricType &&
@@ -611,7 +611,7 @@ internal object BCoachV2GlobalSelector {
                     ) || plan.items.filter { it.exerciseStableKey == key }.all {
                         knownSeconds(it) > 0
                     }) &&
-                    (if (isSport) badmintonCatalog.relations(candidate.stableKey).isNotEmpty()
+                    (if (isSport) badmintonCatalog.relations(candidate.stableKey).any { it.transferLevel.coefficient > 0.0 }
                     else candidate.movementPattern.isNotBlank() &&
                         candidate.movementPattern == original.movementPattern)
             }.sortedWith(rank).take(3).toList()
