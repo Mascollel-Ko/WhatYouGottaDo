@@ -129,6 +129,20 @@ class BCoachSquatShadowProgramBridgeTest {
             )
         })
         assertNull(BCoachSquatShadowProgramBridge.inspect(manual, result()))
+        val easierTarget = plan.copy(items = plan.items.mapIndexed { index, item ->
+            if (index != 0) item else item.copy(
+                setPrescriptions = item.setPrescriptions.map { it.copy(targetRpeMin = 6.0) }
+            )
+        })
+        assertNull(BCoachSquatShadowProgramBridge.inspect(easierTarget, result()))
+        val differentPlannedLoad = plan.copy(items = plan.items.mapIndexed { index, item ->
+            if (index != 0) item else item.copy(
+                setPrescriptions = item.setPrescriptions.map {
+                    it.copy(estimatedLoadKg = 100.0)
+                }
+            )
+        })
+        assertNull(BCoachSquatShadowProgramBridge.inspect(differentPlannedLoad, result()))
         val first = requireNotNull(BCoachSquatShadowProgramBridge.inspect(plan, result()))
         assertNull(BCoachSquatShadowProgramBridge.apply(
             plan, result(action = "REPS_UP_ONE", kg = 130.0, reps = 7), first
