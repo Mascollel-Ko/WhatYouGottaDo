@@ -106,7 +106,7 @@ internal object BBalanced12WeekEngine {
             exercise != null && exercise.isActive && !exercise.needsReview &&
                 exercise.activityKind != "SPORT_SESSION" &&
                 !BCoachV2Policy.isTestOnlyExercise(exercise) &&
-                exercise.planningEligibility != "HISTORY_ONLY"
+                exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY")
         }
         // Do not destroy sets to satisfy the old under-counting timer. Preserve the roster,
         // evaluate three versus four days only when explicitly authorized, and surface
@@ -487,7 +487,7 @@ internal object BBalanced12WeekEngine {
         }
         val eligible = exercises.values.filter {
             it.isActive && it.activityKind != "SPORT_SESSION" &&
-                it.planningEligibility != "HISTORY_ONLY" &&
+                it.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
                 !BCoachV2Policy.isTestOnlyExercise(it) && permitted(it)
         }
             .sortedBy(Exercise::stableKey)
@@ -1051,7 +1051,7 @@ internal object BBalanced12WeekEngine {
         val eligible = contributions.keys.filter { key ->
             val exercise = exercises[key]
             exercise != null && exercise.isActive && !exercise.needsReview &&
-                !exercise.isCustom && exercise.planningEligibility != "HISTORY_ONLY"
+                !exercise.isCustom && exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY")
         }.sorted()
 
         fun score(key: String): Double {
