@@ -89,6 +89,7 @@ import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
 import com.training.trackplanner.data.v22.BCoachSquatShadowProgramBridge
+import com.training.trackplanner.data.v22.BCoachAdditionalLiftShadow
 import com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageRow
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
 import com.training.trackplanner.data.v22.BCoachPlanAlternative
@@ -156,7 +157,8 @@ internal fun BCoachProductionReviewDialog(
     onOpenSportShadow: () -> Unit = {},
     onSelectCandidate: (String) -> Unit = {},
     squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
-    onApply: (Boolean) -> Unit,
+    additionalLiftShadows: Map<String, BCoachAdditionalLiftShadow.Evidence> = emptyMap(),
+    onApply: (Boolean, Set<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val selectedAlternative = alternatives.firstOrNull { it.candidateId == selectedCandidateId }
@@ -165,6 +167,15 @@ internal fun BCoachProductionReviewDialog(
         BCoachSquatShadowProgramBridge.inspect(it, squatShadowComparison)
     }
     var useSquatShadow by remember(selectedCandidateId) { mutableStateOf(false) }
+    var selectedOtherLiftKeys by remember(selectedCandidateId) {
+        mutableStateOf<Set<String>>(emptySet())
+    }
+    val relevantAdditionalLifts = additionalLiftShadows.values.filter { evidence ->
+        selectedPlan?.items?.any { it.exerciseStableKey == evidence.stableKey } == true
+    }
+    val otherLiftReviews = relevantAdditionalLifts.mapNotNull { evidence ->
+        selectedPlan?.let { plan -> BCoachAdditionalLiftShadow.inspect(plan, evidence) }
+    }.associateBy(BCoachAdditionalLiftShadow.Review::stableKey)
     val recommendedPlan = alternatives.firstOrNull { it.recommended }?.candidateId
         ?.let(candidateForReview)
     fun comparedToRecommended(candidateId: String): String {
@@ -316,6 +327,43 @@ internal fun BCoachProductionReviewDialog(
                         }
                     }
                 }
+                if (relevantAdditionalLifts.isNotEmpty()) item {
+                    Text("데드리프트·벤치프레스 Shadow 첫 세트 선택",
+                        style = MaterialTheme.typography.titleMedium)
+                    Text("선택한 운동만 첫 세트에 반영합니다. 실험적 참고이며 후속 세트와 주차는 유지합니다.",
+                        style = MaterialTheme.typography.bodySmall)
+                    relevantAdditionalLifts.forEach { evidence ->
+                        val review = otherLiftReviews[evidence.stableKey]
+                        if (review == null) {
+                            Text(evidence.label + " · 적용 불가: " +
+                                (if (evidence.status == "READY_FOR_EXPLICIT_REVIEW")
+                                    "이 후보의 첫 세트와 확인기록·목표강도가 일치하지 않습니다."
+                                else evidence.reason),
+                                style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = evidence.stableKey in selectedOtherLiftKeys,
+                                    onCheckedChange = { checked ->
+                                        selectedOtherLiftKeys =
+                                            if (checked) selectedOtherLiftKeys + evidence.stableKey
+                                            else selectedOtherLiftKeys - evidence.stableKey
+                                    },
+                                    modifier = Modifier.testTag("b_coach_other_lift_shadow_" +
+                                        evidence.stableKey)
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(review.display)
+                                    Text("선택: ${review.action} · 동일 운동의 실제 확인 기록 기반",
+                                        style = MaterialTheme.typography.bodySmall)
+                                    if (evidence.stableKey == BCoachAdditionalLiftShadow.DUMBBELL_BENCH)
+                                        Text("표시 중량은 한 손이 아닌 양손 덤벨 합계입니다.",
+                                            style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
                 selectedPlan?.let { plan ->
                     item {
                         val weeklySets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
@@ -412,7 +460,10 @@ internal fun BCoachProductionReviewDialog(
                         Text("검토 취소 · 이전 초안 유지")
                     }
                     Button(
-                        onClick = { onApply(useSquatShadow && squatShadowReview != null) },
+                        onClick = {
+                            onApply(useSquatShadow && squatShadowReview != null,
+                                selectedOtherLiftKeys.intersect(otherLiftReviews.keys))
+                        },
                         modifier = Modifier.fillMaxWidth().testTag("b_coach_review_apply"),
                         enabled = alternatives.isEmpty() || selectedCandidateId != null
                     ) {
@@ -890,6 +941,9 @@ private fun ProgramEditorScreen(
         mutableStateOf<BCoachSquatShadowProgramComparison?>(null)
     }
     var showSquatShadowComparison by remember { mutableStateOf(false) }
+    var additionalLiftShadows by remember(program?.id, draftId) {
+        mutableStateOf<Map<String, BCoachAdditionalLiftShadow.Evidence>>(emptyMap())
+    }
     var otherExerciseShadowCoverage by remember(program?.id, draftId) {
         mutableStateOf<List<BCoachExerciseShadowCoverageRow>>(emptyList())
     }
@@ -997,6 +1051,7 @@ private fun ProgramEditorScreen(
         lastGenerationWasV22 = false
         v22SkeletonCreated = false
         squatShadowComparison = null
+        additionalLiftShadows = emptyMap()
         otherExerciseShadowCoverage = emptyList()
         pendingBProductionProposal = null
         pendingBSelectedCandidateId = null
@@ -1012,6 +1067,7 @@ private fun ProgramEditorScreen(
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         lastGenerationWasV22 = true
         squatShadowComparison = null
+        additionalLiftShadows = emptyMap()
         otherExerciseShadowCoverage = emptyList()
         pendingConservativeBBlock = null
         pendingBReview = null
@@ -1055,6 +1111,7 @@ private fun ProgramEditorScreen(
             )
         ) { generated ->
             squatShadowComparison = generated.squatShadowComparison
+            additionalLiftShadows = generated.additionalLiftShadows
             otherExerciseShadowCoverage = generated.otherExerciseShadowCoverage
             val proposed = generated.skeleton.withResolvedWeekDaySchedule()
             val review = generated.balanced12WeekPlan?.let {
@@ -1115,6 +1172,7 @@ private fun ProgramEditorScreen(
             onOpenSportShadow = { showSportShadow = true },
             onSelectCandidate = { pendingBSelectedCandidateId = it },
             squatShadowComparison = squatShadowComparison,
+            additionalLiftShadows = additionalLiftShadows,
             onDismiss = {
                 personalizedDraft = pendingBPreviousDraft
                 pendingBProductionProposal = null
@@ -1125,24 +1183,23 @@ private fun ProgramEditorScreen(
                 lastSportShadowProposal = null
                 showSportShadow = false
             },
-            onApply = { useSquatShadow ->
+            onApply = { useSquatShadow, selectedOtherLifts ->
                 val current = personalizedDraft
                 val fingerprint = decision.proposalFingerprint
                 val chosen = pendingBSelectedCandidateId ?: decision.recommendedCandidateId.orEmpty()
                 val acceptance = if (current == null || fingerprint == null) null
-                    else if (useSquatShadow && squatShadowComparison != null)
-                        proposal.acceptWithSquatShadow(
-                            fingerprint, current, chosen, checkNotNull(squatShadowComparison)
-                        )
-                    else proposal.accept(fingerprint, current, chosen)
+                    else proposal.acceptWithStrengthShadows(
+                        fingerprint, current, chosen,
+                        useSquatShadow, squatShadowComparison,
+                        additionalLiftShadows, selectedOtherLifts
+                    )
                 if (acceptance?.accepted == true && acceptance.skeleton != null) {
                     personalizedDraft = acceptance.skeleton.withResolvedWeekDaySchedule()
-                    if (useSquatShadow) {
-                        // The previous compare dialog describes the unmodified B candidate.
-                        // Never keep displaying it as the current accepted prescription.
+                    if (useSquatShadow || selectedOtherLifts.isNotEmpty()) {
                         squatShadowComparison = null
+                        additionalLiftShadows = emptyMap()
                         Toast.makeText(context,
-                            "백스쿼트 Shadow는 최초 1세트에만 반영됐습니다. 다른 세트·주차는 유지됩니다.",
+                            "선택한 근력 Shadow 운동의 첫 세트만 적용했습니다. 다른 세트·주차는 유지됩니다.",
                             Toast.LENGTH_LONG).show()
                     }
                     pendingBProductionProposal = null

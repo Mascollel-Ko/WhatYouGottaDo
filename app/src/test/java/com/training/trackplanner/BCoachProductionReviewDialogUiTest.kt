@@ -112,7 +112,7 @@ class BCoachProductionReviewDialogUiTest {
                         selectedCandidateId = "C01",
                         candidateForReview = { if (it == "C01") plan else plan.copy(suggestedName = "대안") },
                         onSelectCandidate = { selected = it },
-                        onApply = { applied = true },
+                        onApply = { _, _ -> applied = true },
                         onDismiss = { kept = true }
                     )
                 }

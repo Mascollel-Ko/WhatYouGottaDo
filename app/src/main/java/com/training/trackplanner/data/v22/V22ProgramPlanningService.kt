@@ -18,6 +18,7 @@ import com.training.trackplanner.data.WorkoutDao
 import com.training.trackplanner.data.ProgramProgressionDao
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.personalized.BBalancedTaskCatalog
 
 internal class V22ProgramPlanningService(
@@ -30,7 +31,8 @@ internal class V22ProgramPlanningService(
     private val squatShadowReader: BCoachSquatShadowEvidenceReader? = null,
     private val v2LoadEvidenceReader: BCoachV2LoadEvidenceReader? = null,
     private val rirPolicy: RpeRirPolicy? = null,
-    private val strengthRegistry: StrengthPerformanceRegistry? = null
+    private val strengthRegistry: StrengthPerformanceRegistry? = null,
+    private val repetitionCurves: RepetitionCurveRegistry? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
         val effectiveRequest = if (request.mode == V22Mode.B && request.blockProgram == null) {
@@ -204,6 +206,11 @@ internal class V22ProgramPlanningService(
                 increments = increments
             )
         }.getOrDefault(emptyList())
+        val additionalLifts = if (production != null) BCoachAdditionalLiftShadow.examine(
+            coachRequest.asOf, recordedWorkouts, rirPolicy, repetitionCurves,
+            coachRequest.bShadowPlateOneSideKg,
+            coachRequest.bShadowDumbbellIncrementKg
+        ) else emptyMap()
         return V22GeneratedProgram(
             comparator,
             skeleton,
@@ -211,7 +218,8 @@ internal class V22ProgramPlanningService(
             shadow,
             otherCoverage,
             production?.decision,
-            production?.proposal
+            production?.proposal,
+            additionalLifts
         )
     }
 
