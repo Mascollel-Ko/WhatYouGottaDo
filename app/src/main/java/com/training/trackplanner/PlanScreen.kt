@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +88,7 @@ import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
+import com.training.trackplanner.data.v22.BCoachSquatShadowProgramBridge
 import com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageRow
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
 import com.training.trackplanner.data.v22.BCoachPlanAlternative
@@ -153,11 +155,16 @@ internal fun BCoachProductionReviewDialog(
     sportShadowAvailable: Boolean = false,
     onOpenSportShadow: () -> Unit = {},
     onSelectCandidate: (String) -> Unit = {},
-    onApply: () -> Unit,
+    squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
+    onApply: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val selectedAlternative = alternatives.firstOrNull { it.candidateId == selectedCandidateId }
     val selectedPlan = selectedCandidateId?.let(candidateForReview)
+    val squatShadowReview = selectedPlan?.let {
+        BCoachSquatShadowProgramBridge.inspect(it, squatShadowComparison)
+    }
+    var useSquatShadow by remember(selectedCandidateId) { mutableStateOf(false) }
     val recommendedPlan = alternatives.firstOrNull { it.recommended }?.candidateId
         ?.let(candidateForReview)
     fun comparedToRecommended(candidateId: String): String {
@@ -285,6 +292,30 @@ internal fun BCoachProductionReviewDialog(
                     }
                     }
                 }
+                if (squatShadowComparison != null) item {
+                    if (squatShadowReview == null) {
+                        Text("백스쿼트 Shadow: 이 후보의 첫 운동과 확인 기록이 일치하지 않거나 " +
+                            "검증 조건을 통과하지 않아 자동 반영할 수 없습니다.",
+                            style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        Row(Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = useSquatShadow,
+                                onCheckedChange = { useSquatShadow = it },
+                                modifier = Modifier.testTag("b_coach_squat_shadow_opt_in")
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text("백스쿼트 Shadow 첫 세트 처방을 선택해서 적용")
+                                Text(squatShadowReview.description,
+                                    style = MaterialTheme.typography.bodySmall)
+                                Text("직전 확인 기록 기반 단기 실험입니다. 첫 세트만 변경하며, " +
+                                    "후속 세트·다음 주차·기존 기록은 변경하지 않습니다.",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
                 selectedPlan?.let { plan ->
                     item {
                         val weeklySets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
@@ -380,8 +411,11 @@ internal fun BCoachProductionReviewDialog(
                     OutlinedButton(onDismiss, Modifier.fillMaxWidth().testTag("b_coach_review_keep")) {
                         Text("검토 취소 · 이전 초안 유지")
                     }
-                    Button(onApply, Modifier.fillMaxWidth().testTag("b_coach_review_apply"),
-                        enabled = alternatives.isEmpty() || selectedCandidateId != null) {
+                    Button(
+                        onClick = { onApply(useSquatShadow && squatShadowReview != null) },
+                        modifier = Modifier.fillMaxWidth().testTag("b_coach_review_apply"),
+                        enabled = alternatives.isEmpty() || selectedCandidateId != null
+                    ) {
                         Text("선택 후보 적용")
                     }
                 }
@@ -1080,6 +1114,7 @@ private fun ProgramEditorScreen(
             sportShadowAvailable = activeSportShadow?.available == true,
             onOpenSportShadow = { showSportShadow = true },
             onSelectCandidate = { pendingBSelectedCandidateId = it },
+            squatShadowComparison = squatShadowComparison,
             onDismiss = {
                 personalizedDraft = pendingBPreviousDraft
                 pendingBProductionProposal = null
@@ -1090,15 +1125,16 @@ private fun ProgramEditorScreen(
                 lastSportShadowProposal = null
                 showSportShadow = false
             },
-            onApply = {
+            onApply = { useSquatShadow ->
                 val current = personalizedDraft
                 val fingerprint = decision.proposalFingerprint
+                val chosen = pendingBSelectedCandidateId ?: decision.recommendedCandidateId.orEmpty()
                 val acceptance = if (current == null || fingerprint == null) null
-                    else proposal.accept(
-                        fingerprint,
-                        current,
-                        pendingBSelectedCandidateId ?: decision.recommendedCandidateId.orEmpty()
-                    )
+                    else if (useSquatShadow && squatShadowComparison != null)
+                        proposal.acceptWithSquatShadow(
+                            fingerprint, current, chosen, checkNotNull(squatShadowComparison)
+                        )
+                    else proposal.accept(fingerprint, current, chosen)
                 if (acceptance?.accepted == true && acceptance.skeleton != null) {
                     personalizedDraft = acceptance.skeleton.withResolvedWeekDaySchedule()
                     pendingBProductionProposal = null
@@ -1111,6 +1147,9 @@ private fun ProgramEditorScreen(
                         "STALE_INPUT_REGENERATE_REQUIRED" -> "검토하는 동안 초안의 처방이 변경되었습니다. 다시 생성해 주세요."
                         "UNKNOWN_CANDIDATE" -> "선택한 후보를 찾을 수 없습니다. 다른 후보를 선택하거나 다시 생성해 주세요."
                         "PROPOSAL_CONTENT_MISMATCH" -> "후보 내용 검증에 실패했습니다. 다시 생성해 주세요."
+                        "SQUAT_SHADOW_NOT_ELIGIBLE", "SQUAT_SHADOW_PROPOSAL_CHANGED",
+                        "SQUAT_SHADOW_EVIDENCE_STALE" ->
+                            "백스쿼트 Shadow 기록이나 계획이 바뀌었습니다. 다시 생성하거나 일반 후보를 적용해 주세요."
                         else -> "후보를 적용하지 못했습니다. 다시 생성해 주세요."
                     }
                     Toast.makeText(
