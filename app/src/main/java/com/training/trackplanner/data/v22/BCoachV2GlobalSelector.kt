@@ -834,6 +834,22 @@ internal object BCoachV2GlobalSelector {
             add("REPS_PLUS_ONE_$key" to mutateReps(plan, key, +1))
             add("REPS_MINUS_ONE_$key" to mutateReps(plan, key, -1))
         }
+        // A fixed weekly dose can have lower per-session burden when shared by
+        // two training days. Offer the choice; never force it into the program.
+        val splitKeys = (accessories.filter {
+            coreCatalog.resolve(it)?.coreClass == CoreClass.DIRECT
+        } + accessories.sortedWith(ranked)).distinct().take(5)
+        val activeDays = plan.items.map(ProgramSkeletonItem::dayOfWeek).distinct().sorted()
+        splitKeys.forEach { key ->
+            activeDays.forEach { targetDay ->
+                val candidate = splitAccessorySetsAcrossDays(
+                    plan, key, targetDay, mainExerciseKeys
+                )
+                if (candidate !== plan) {
+                    add("SPLIT_WEEKLY_SETS_${key}_TO_DAY_${targetDay}" to candidate)
+                }
+            }
+        }
         // A coach may redistribute an existing set instead of increasing total load.
         // The ordinary evaluator still enforces recovery, duration and manual locks.
         val receiver = keys.filter { (priorities[it]?.first ?: 0.0) > 0.0 }
@@ -880,6 +896,63 @@ internal object BCoachV2GlobalSelector {
                     .mapIndexed { index, item -> item.copy(orderIndex = index + 1) }
             }
         return candidate.copy(items = normalized)
+    }
+
+    /**
+     * Search a true same-exercise frequency redistribution: e.g. 4 dead-bug
+     * sets on one day -> 2 + 2 on two existing training days. Weekly set count
+     * and each original set prescription remain unchanged. Locked/main/test
+     * exercises are never split; hard feasibility is checked by evaluate().
+     */
+    internal fun splitAccessorySetsAcrossDays(
+        plan: GeneratedProgramSkeleton,
+        key: String,
+        targetDay: Int,
+        mainExerciseKeys: Set<String> = emptySet()
+    ): GeneratedProgramSkeleton {
+        if (key in mainExerciseKeys || targetDay !in 1..7) return plan
+        val replacements = mutableMapOf<String, ProgramSkeletonItem>()
+        val inserted = mutableListOf<ProgramSkeletonItem>()
+        for ((_, weekItems) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
+            val source = weekItems.filter { it.exerciseStableKey == key }.singleOrNull() ?: continue
+            if (source.dayOfWeek == targetDay || "MAIN" in source.selectionRole.uppercase() ||
+                "PEAK" in source.selectionRole.uppercase() || source.directSportSession ||
+                BCoachV2DoseEvaluator.isExplicitUserExerciseLock(source.selectionReason)
+            ) continue
+            val targetItems = weekItems.filter { it.dayOfWeek == targetDay }
+            if (targetItems.isEmpty() || targetItems.any { it.exerciseStableKey == key }) continue
+            val all = ProgramSetPrescriptionResolver.resolve(source)
+            if (all.size < 4 || all.any {
+                BCoachV2LoadCandidateResolver.isSetUserFixed(it, source.weightSource)
+            }) continue
+            val movedCount = all.size / 2
+            val remaining = all.dropLast(movedCount)
+                .mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+            val moved = all.takeLast(movedCount)
+                .mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+            fun withSets(item: ProgramSkeletonItem, sets: List<ProgramSetPrescription>) =
+                item.copy(
+                    setCount = sets.size,
+                    reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0,
+                    seconds = sets.map { it.seconds }.distinct().singleOrNull() ?: 0,
+                    weightKg = sets.map { it.weightKg }.distinct().singleOrNull() ?: 0.0,
+                    setPrescriptions = sets
+                )
+            replacements[source.localId] = withSets(source, remaining)
+            inserted += withSets(
+                source.copy(
+                    localId = source.localId + "_B_SPLIT_D" + targetDay,
+                    dayOfWeek = targetDay,
+                    orderIndex = targetItems.maxOf(ProgramSkeletonItem::orderIndex) + 1,
+                    selectionReason = "B_COACH_SPLIT_ACCESSORY_USER_REVIEW",
+                    progressionBinding = null,
+                    progressionAnchorSetIndex = null
+                ), moved
+            )
+        }
+        return if (inserted.isEmpty()) plan else plan.copy(
+            items = plan.items.map { replacements[it.localId] ?: it } + inserted
+        )
     }
 
     internal fun mutateSets(
