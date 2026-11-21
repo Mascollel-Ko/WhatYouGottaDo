@@ -23,6 +23,8 @@ internal object BCoachSquatShadowProgramBridge {
     private const val SQUAT = "barbell_back_squat"
     private const val EPS = 1e-6
     private const val MAX_RELATIVE_LOAD_STEP = 0.02
+    /** A Shadow anchor far from the B-Coach planned load indicates incompatible intent. */
+    private const val MAX_DIFFERENCE_FROM_PLANNED_LOAD = 0.05
     private const val MAX_EVIDENCE_AGE_DAYS = 56L
     const val EVIDENCE_VERSION = "B_COACH_SQUAT_GATE_F_EXPLICIT_USER_APPROVAL_V1"
 
@@ -96,6 +98,13 @@ internal object BCoachSquatShadowProgramBridge {
         val previous = first.weightKg.takeIf {
             first.loadState == ProgramLoadState.EXPLICIT_LOAD && it > 0.0
         } ?: first.estimatedLoadKg?.takeIf { it.isFinite() && it > 0.0 }
+        if (previous != null && abs(chosen.loadKg - previous) / previous >
+            MAX_DIFFERENCE_FROM_PLANNED_LOAD + EPS
+        ) return null
+        // Gate F targets RIR 1–3. Never silently override a deliberately
+        // easier B-Coach working-set target with a more demanding Shadow set.
+        val plannedRir = first.targetRpeMin?.let { 10.0 - it }
+        if (plannedRir != null && plannedRir !in 1.0..3.0) return null
         return Review(
             localId = item.localId, week = item.weekNumber, day = item.dayOfWeek,
             action = chosen.action, previousLoadKg = previous,
