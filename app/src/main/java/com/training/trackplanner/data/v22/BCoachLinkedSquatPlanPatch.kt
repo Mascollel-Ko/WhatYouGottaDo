@@ -30,6 +30,10 @@ internal object BCoachLinkedSquatPlanPatch {
         ) return null
         val byIndex = originalTargets.associateBy { it.plannedSetIndex }
         if (byIndex.size != count || byIndex.containsKey(null)) return null
+        val affected = proposal.affectedSetIndices.ifEmpty { currentSets.map { it.setIndex } }
+            .distinct()
+        if (affected.isEmpty() || affected.any { it !in currentSets.map(WorkoutSet::setIndex) })
+            return null
         val next = currentSets.sortedBy { it.setIndex }.map { set ->
             val target = byIndex[set.setIndex] ?: return null
             if (!target.originalExists || set.entryId != proposal.targetEntryId ||
@@ -43,16 +47,20 @@ internal object BCoachLinkedSquatPlanPatch {
                 set.seconds != target.plannedSeconds ||
                 set.loadState != target.plannedLoadState
             ) return null
-            val nextSet = set.copy(
-                reps = reps, weightKg = kg,
-                loadState = ProgramLoadState.EXPLICIT_LOAD,
-                manualWeight = true
-            )
-            val nextTarget = target.copy(
-                plannedReps = reps, plannedKg = kg,
-                plannedLoadState = ProgramLoadState.EXPLICIT_LOAD
-            )
-            nextSet to nextTarget
+            if (set.setIndex !in affected) {
+                set to target
+            } else {
+                val nextSet = set.copy(
+                    reps = reps, weightKg = kg,
+                    loadState = ProgramLoadState.EXPLICIT_LOAD,
+                    manualWeight = true
+                )
+                val nextTarget = target.copy(
+                    plannedReps = reps, plannedKg = kg,
+                    plannedLoadState = ProgramLoadState.EXPLICIT_LOAD
+                )
+                nextSet to nextTarget
+            }
         }
         return Patch(
             nextSets = next.map { it.first },

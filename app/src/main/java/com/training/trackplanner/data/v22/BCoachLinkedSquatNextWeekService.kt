@@ -127,9 +127,13 @@ internal class BCoachLinkedSquatNextWeekService(
         val proposedKg = checkNotNull(proposal.proposedLoadKg)
         val proposedReps = checkNotNull(proposal.proposedReps)
         val originalKg = sets.first().weightKg
-        // All validation above this point; nothing written on a failed/edited target.
-        patch.nextSets.forEach { workoutDao.updateSet(it) }
-        patch.nextPrescriptions.forEach { dao.putPrescription(it) }
+        // Write only explicitly approved set indices. A mixed-set Shadow first
+        // set must never rewrite untouched follow-up set rows or their provenance.
+        val affected = proposal.affectedSetIndices.ifEmpty { sets.map { it.setIndex } }.toSet()
+        patch.nextSets.filter { it.setIndex in affected }
+            .forEach { workoutDao.updateSet(it) }
+        patch.nextPrescriptions.filter { it.plannedSetIndex in affected }
+            .forEach { dao.putPrescription(it) }
         // A legacy progression suggestion may have been created before the B-Coach
         // decision. Mark it stale in the same transaction so it cannot conflict with
         // the newly applied Gate H prescription on the record screen.

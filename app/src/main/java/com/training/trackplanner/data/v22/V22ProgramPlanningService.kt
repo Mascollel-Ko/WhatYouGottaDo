@@ -169,7 +169,9 @@ internal class V22ProgramPlanningService(
                         asOf = coachRequest.asOf,
                         plannedItems = skeleton.items,
                         pipeline = pipeline,
-                        userConfirmedEquipmentStep = true
+                        // Entering a plate size is not confirmation that historical
+                        // recorded increments matched that grid. Fail closed on mismatch.
+                        userConfirmedEquipmentStep = false
                     )
                 }.getOrElse {
                     BCoachSquatShadowProgramComparison(

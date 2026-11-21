@@ -86,7 +86,9 @@ internal object BCoachObservedSquatProgression {
             }) return null
         val load = done.first().weightKg
         val reps = done.first().reps
-        if (done.any { abs(it.weightKg - load) > EPS || it.reps != reps }) return null
+        val uniformCompleted = done.all {
+            abs(it.weightKg - load) <= EPS && it.reps == reps
+        }
         // A changed/reduced original goal never manufactures a completed program.
         if (sourceOriginal.any { p ->
             !p.originalExists || p.plannedSetIndex == null ||
@@ -97,12 +99,21 @@ internal object BCoachObservedSquatProgression {
                 } != false
         }) return null
 
-        // Only a comparable repetition scheme is automatically eligible.
-        // Deliberate heavy/volume switches require a separate policy.
-        if (targetOriginal.any { !it.originalExists || it.originalReps != reps } ||
-            planned.any { it.reps != reps || it.confirmed } ||
+        // A mixed-load/rep source has one comparable anchor: the first set.
+        // Do not flatten later volume sets or claim their fatigue is modeled.
+        val firstTargetIndex = planned.first().setIndex
+        val firstTarget = targetOriginal.singleOrNull {
+            it.plannedSetIndex == firstTargetIndex
+        } ?: return null
+        val uniformTarget = planned.all { it.reps == planned.first().reps }
+        if (firstTarget.originalReps != reps ||
+            targetOriginal.any { !it.originalExists } ||
+            planned.any { it.confirmed } ||
             targetOriginal.mapNotNull { it.plannedSetIndex }.distinct().size != planned.size
         ) return null
+        val firstOnly = !uniformCompleted || !uniformTarget
+        val affectedIndices = if (firstOnly) listOf(firstTargetIndex)
+            else planned.map { it.setIndex }
 
         val maxRpe = done.maxOf { it.rpe ?: source.entry.rpe!! }
         val rirDistribution = rirPolicy.resolve(maxRpe)
@@ -178,8 +189,9 @@ internal object BCoachObservedSquatProgression {
             worstCaseRegret = null,
             weightedCost = chosen?.averageSquaredRirError,
             targetRirMixtureMass = chosen?.targetRirMixtureMass,
-            volumeLoadChange = (kg * reps * planned.size).toDouble() /
-                (load * reps * done.size).toDouble() - 1.0,
+            volumeLoadChange = if (firstOnly) kg / load - 1.0
+                else (kg * reps * planned.size).toDouble() /
+                    (load * reps * done.size).toDouble() - 1.0,
             eligible = true,
             reason = when {
                 increase -> "LINKED_E1RM_CURVE_RIR_ONE_STEP"
@@ -197,9 +209,12 @@ internal object BCoachObservedSquatProgression {
                 historicalE1rmKg = chosen?.expectedE1rmKg,
                 targetRir = TARGET_RIR, doseTargetSets = planned.size,
                 ranked = listOf(candidate),
+                targetSetIndices = affectedIndices,
                 notes = listOf(
                     "확정된 연결 세트, 기존 RPE→RIR 분포, 비선형 반복곡선으로 e1RM 시나리오를 계산했습니다.",
                     "다음 중량은 목표 RIR과 위험 구간을 비교해 결정합니다. 미래 성공률이 아닙니다.",
+                    if (firstOnly) "세트별 중량·반복이 다른 운동이므로 연결된 다음 첫 세트만 검토합니다."
+                        else "동일 중량·반복 세트의 다음 미완료 처방을 검토합니다.",
                     "후속 세트의 누적피로는 별도로 예측하지 않습니다."
                 )
             )
