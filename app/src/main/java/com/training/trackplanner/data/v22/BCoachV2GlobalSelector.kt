@@ -478,7 +478,7 @@ internal object BCoachV2GlobalSelector {
         }
         fun reviewed(exercise: Exercise): Boolean =
             exercise.isActive && !exercise.needsReview && !exercise.isCustom &&
-                exercise.planningEligibility != "HISTORY_ONLY" &&
+                exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
                 exercise.metadataConfidence.uppercase() !in
                     setOf("", "UNKNOWN", "UNREVIEWED", "REVIEW_REQUIRED") &&
                 !BCoachV2Policy.isTestOnlyExercise(exercise) &&
