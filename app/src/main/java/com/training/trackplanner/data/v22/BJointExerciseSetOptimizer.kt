@@ -106,7 +106,7 @@ internal object BJointExerciseSetOptimizer {
                 CanonicalStrengthExposureCapability.movementAnchor(key)?.name,
                 exercise != null && exercise.isActive && !exercise.needsReview &&
                     !exercise.isCustom && exercise.activityKind != "SPORT_SESSION" &&
-                    exercise.planningEligibility != "HISTORY_ONLY" &&
+                    exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
                     (primary[key]?.isNotEmpty() == true || directCore || sport.isNotEmpty()))
         }
         // MAIN_STRENGTH_SLOT is a capability, not a user lock. Protect explicit mains
