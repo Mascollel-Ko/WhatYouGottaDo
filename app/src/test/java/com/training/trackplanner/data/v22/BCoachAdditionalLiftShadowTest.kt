@@ -169,6 +169,15 @@ class BCoachAdditionalLiftShadowTest {
     }
 
     @Test
+    fun newerUnfinishedSessionDoesNotAllowEarlierCompletedAnchorToReplaceIt() {
+        val finished = entry(keys[0], 1L, 180.0)
+        val unfinished = entry(keys[0], 2L, 180.0, confirmed = false)
+        val evidence = reports(listOf(finished, unfinished)).getValue(keys[0])
+        assertEquals("REVIEW_ONLY", evidence.status)
+        assertNull(BCoachAdditionalLiftShadow.inspect(plan(), evidence))
+    }
+
+    @Test
     fun manualFirstSetAndMismatchedRepOrLoadNeverGetOverwritten() {
         val evidence = reports().getValue(keys[2])
         val baseline = plan()
