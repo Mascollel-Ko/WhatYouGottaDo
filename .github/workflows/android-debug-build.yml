@@ -10,6 +10,7 @@ on:
       - fix/progression-orphan-cleanup-on-start-and-backup-20261114
       - feat/b-coach-v2-global-optimizer
       - fix/b-coach-20261121-review-quality
+      - feat/b-coach-squat-shadow-production-bridge-20261121
     tags:
       - 'v*'
   pull_request:
