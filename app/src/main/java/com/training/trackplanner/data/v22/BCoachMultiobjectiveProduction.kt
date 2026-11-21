@@ -212,6 +212,66 @@ class BCoachMultiobjectiveProposal internal constructor(
         return BCoachProposalAcceptance(true, signed, "SQUAT_SHADOW_FIRST_SET_APPROVED")
     }
 
+    /**
+     * Explicitly approved SHORT-HORIZON first-set changes. The base B-Coach
+     * candidate passes the ordinary stale-input acceptance checks first.
+     * Every selected lift is required to remain compatible with that exact
+     * candidate; a single failure rejects all changes without writing data.
+     */
+    fun acceptWithStrengthShadows(
+        expectedProposalFingerprint: String,
+        currentSkeleton: GeneratedProgramSkeleton,
+        candidateId: String,
+        applySquat: Boolean,
+        squatComparison: BCoachSquatShadowProgramComparison?,
+        additionalLiftEvidence: Map<String, BCoachAdditionalLiftShadow.Evidence>,
+        selectedLiftKeys: Set<String>
+    ): BCoachProposalAcceptance {
+        if (!applySquat && selectedLiftKeys.isEmpty())
+            return accept(expectedProposalFingerprint, currentSkeleton, candidateId)
+        if (applySquat && squatComparison?.snapshotDate?.toString() != decision.evidenceCutoff)
+            return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_EVIDENCE_STALE")
+        if (selectedLiftKeys.any {
+                additionalLiftEvidence[it]?.asOf?.toString() != decision.evidenceCutoff
+            }) return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_EVIDENCE_STALE")
+        val ordinary = accept(expectedProposalFingerprint, currentSkeleton, candidateId)
+        if (!ordinary.accepted || ordinary.skeleton == null) return ordinary
+        var candidate = ordinary.skeleton
+        val approvedInstructions = linkedMapOf<String, String>()
+        if (applySquat) {
+            val report = squatComparison
+                ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_MISSING")
+            val inspected = BCoachSquatShadowProgramBridge.inspect(candidate, report)
+                ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_NOT_ELIGIBLE")
+            candidate = BCoachSquatShadowProgramBridge.apply(candidate, report, inspected)
+                ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_PROPOSAL_CHANGED")
+            approvedInstructions[BCoachV2LoadCandidateResolver.setId(inspected.localId, 1)] =
+                "EXPLICIT_GATE_F_SQUAT:${inspected.approvedLoadKg}kg:${inspected.approvedReps}reps"
+        }
+        for (key in selectedLiftKeys.sorted()) {
+            val evidence = additionalLiftEvidence[key]
+                ?: return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_MISSING")
+            val inspected = BCoachAdditionalLiftShadow.inspect(candidate, evidence)
+                ?: return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_NOT_ELIGIBLE:$key")
+            candidate = BCoachAdditionalLiftShadow.apply(candidate, evidence, inspected)
+                ?: return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_PROPOSAL_CHANGED:$key")
+            approvedInstructions[BCoachV2LoadCandidateResolver.setId(inspected.localId, 1)] =
+                "EXPLICIT_EXACT_LIFT_SHADOW:${inspected.kg}kg:${inspected.reps}reps"
+        }
+        val signed = BCoachMultiobjectiveProduction.withDecisionMetadata(
+            candidate, decision, "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW",
+            acceptedStructureFingerprint =
+                BCoachMultiobjectiveProduction.persistenceStructureFingerprint(candidate),
+            // The original optimizer score predates optional per-set Shadow edits.
+            acceptedCandidateFingerprint =
+                BCoachMultiobjectiveProduction.fingerprint(ordinary.skeleton),
+            chosenAlternativeId = candidateId,
+            chosenLoadInstructions =
+                loadInstructionsByCandidateId[candidateId].orEmpty() + approvedInstructions
+        )
+        return BCoachProposalAcceptance(true, signed, "EXPLICIT_STRENGTH_SHADOW_FIRST_SETS_APPROVED")
+    }
+
     /** Revalidates the displayed fallback and the selected candidate before applying it. */
     fun accept(
         expectedProposalFingerprint: String,
