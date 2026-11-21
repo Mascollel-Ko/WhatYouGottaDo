@@ -170,7 +170,10 @@ internal fun BCoachProductionReviewDialog(
     var selectedOtherLiftKeys by remember(selectedCandidateId) {
         mutableStateOf<Set<String>>(emptySet())
     }
-    val otherLiftReviews = additionalLiftShadows.values.mapNotNull { evidence ->
+    val relevantAdditionalLifts = additionalLiftShadows.values.filter { evidence ->
+        selectedPlan?.items?.any { it.exerciseStableKey == evidence.stableKey } == true
+    }
+    val otherLiftReviews = relevantAdditionalLifts.mapNotNull { evidence ->
         selectedPlan?.let { plan -> BCoachAdditionalLiftShadow.inspect(plan, evidence) }
     }.associateBy(BCoachAdditionalLiftShadow.Review::stableKey)
     val recommendedPlan = alternatives.firstOrNull { it.recommended }?.candidateId
@@ -324,12 +327,12 @@ internal fun BCoachProductionReviewDialog(
                         }
                     }
                 }
-                if (additionalLiftShadows.isNotEmpty()) item {
+                if (relevantAdditionalLifts.isNotEmpty()) item {
                     Text("데드리프트·벤치프레스 Shadow 첫 세트 선택",
                         style = MaterialTheme.typography.titleMedium)
                     Text("선택한 운동만 첫 세트에 반영합니다. 실험적 참고이며 후속 세트와 주차는 유지합니다.",
                         style = MaterialTheme.typography.bodySmall)
-                    additionalLiftShadows.values.forEach { evidence ->
+                    relevantAdditionalLifts.forEach { evidence ->
                         val review = otherLiftReviews[evidence.stableKey]
                         if (review == null) {
                             Text(evidence.label + " · 적용 불가: " +
