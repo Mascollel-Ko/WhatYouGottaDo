@@ -170,6 +170,8 @@ internal fun BCoachProductionReviewDialog(
                 ProgramSetPrescriptionResolver.resolve(exercise).joinToString(";") { set ->
                     "${set.reps}/${set.seconds}/${set.loadState}/" +
                         "${(set.weightKg * 10).toInt()}/" +
+                        "${set.estimatedLoadKg?.let { (it * 10).toInt() }}/" +
+                        "${set.targetRpeMin?.let { (it * 10).toInt() }}/" +
                         "${set.expectedRir?.let { (it * 10).toInt() }}"
                 }
         } ?: "없음"
@@ -178,11 +180,20 @@ internal fun BCoachProductionReviewDialog(
         }
         val prior = slots(reference)
         val later = slots(plan)
-        val different = (prior.keys + later.keys).toSet().count { key ->
-            visible(prior[key]) != visible(later[key])
+        val differences = (prior.keys + later.keys).toSet()
+            .filter { key -> visible(prior[key]) != visible(later[key]) }
+            .sortedWith(compareBy<Triple<Int, Int, String>> { it.first }
+                .thenBy { it.second }.thenBy { it.third })
+        val first = differences.firstOrNull()
+        return if (first == null) "추천안과 실제 운동 처방 동일" else {
+            val oldItem = prior[first]
+            val newItem = later[first]
+            val label = newItem?.exerciseName ?: oldItem?.exerciseName ?: "운동"
+            val change = if (oldItem?.setCount != newItem?.setCount)
+                "${oldItem?.setCount ?: 0}→${newItem?.setCount ?: 0}세트"
+            else "세트별 반복·중량·휴식 변경"
+            "추천안 대비 ${differences.size}곳 차이 · ${first.first}주 ${first.second}요일 $label $change"
         }
-        return if (different == 0) "추천안과 실제 운동 처방 동일"
-            else "추천안과 다른 운동·처방 ${different}곳 (전체 주차 기준)"
     }
     val weeks = selectedPlan?.items.orEmpty().map(ProgramSkeletonItem::weekNumber).distinct().sorted()
     var selectedWeek by remember(selectedCandidateId, weeks) { mutableStateOf(weeks.firstOrNull()) }
