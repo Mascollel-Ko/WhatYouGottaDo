@@ -190,6 +190,7 @@ internal object BCoachJointBlockOptimizer {
             Profile(primary, secondary, core, sport,
                 CanonicalStrengthExposureCapability.movementAnchor(key)?.name,
                 e != null && e.isActive && !e.needsReview && !e.isCustom &&
+                    e.activityKind != "SPORT_SESSION" &&
                     e.planningEligibility != "HISTORY_ONLY" &&
                     (primary.isNotEmpty() || core || sport > 0.0))
         }
@@ -683,7 +684,8 @@ internal object BCoachJointBlockOptimizer {
             return recruited.map { key ->
                 val exercise = exercises[key]
                 val active = exercise?.isActive == true
-                val selectable = exercise != null && exercise.planningEligibility != "HISTORY_ONLY" &&
+                val selectable = exercise != null && exercise.activityKind != "SPORT_SESSION" &&
+                    exercise.planningEligibility != "HISTORY_ONLY" &&
                     !exercise.needsReview && !exercise.isCustom
                 val equipment = when {
                     exercise == null -> "NOT_EVALUATED"
