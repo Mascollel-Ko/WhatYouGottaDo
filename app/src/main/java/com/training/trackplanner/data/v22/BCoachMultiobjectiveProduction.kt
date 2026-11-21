@@ -201,7 +201,11 @@ class BCoachMultiobjectiveProposal internal constructor(
             "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW",
             acceptedStructureFingerprint =
                 BCoachMultiobjectiveProduction.persistenceStructureFingerprint(changed),
-            acceptedCandidateFingerprint = BCoachMultiobjectiveProduction.fingerprint(changed),
+            // The objective scores were computed for the original reviewed B candidate,
+            // not this optional first-set experiment. Keep the source fingerprint
+            // so persisted diagnostics correctly mark the final prescription as adjusted.
+            acceptedCandidateFingerprint =
+                BCoachMultiobjectiveProduction.fingerprint(regular.skeleton),
             chosenAlternativeId = candidateId,
             chosenLoadInstructions = instructions
         )
