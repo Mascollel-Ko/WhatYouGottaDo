@@ -158,6 +158,43 @@ internal fun BCoachProductionReviewDialog(
 ) {
     val selectedAlternative = alternatives.firstOrNull { it.candidateId == selectedCandidateId }
     val selectedPlan = selectedCandidateId?.let(candidateForReview)
+    val recommendedPlan = alternatives.firstOrNull { it.recommended }?.candidateId
+        ?.let(candidateForReview)
+    fun comparedToRecommended(candidateId: String): String {
+        val plan = candidateForReview(candidateId) ?: return "후보 세부 정보 없음"
+        if (candidateId == alternatives.firstOrNull { it.recommended }?.candidateId)
+            return "현재 추천안"
+        val reference = recommendedPlan ?: return "추천안 비교 불가"
+        fun visible(item: ProgramSkeletonItem?): String = item?.let { exercise ->
+            exercise.orderIndex.toString() + "/" + exercise.restSeconds + ":" +
+                ProgramSetPrescriptionResolver.resolve(exercise).joinToString(";") { set ->
+                    "${set.reps}/${set.seconds}/${set.loadState}/" +
+                        "${(set.weightKg * 10).toInt()}/" +
+                        "${set.estimatedLoadKg?.let { (it * 10).toInt() }}/" +
+                        "${set.targetRpeMin?.let { (it * 10).toInt() }}/" +
+                        "${set.expectedRir?.let { (it * 10).toInt() }}"
+                }
+        } ?: "없음"
+        fun slots(skeleton: GeneratedProgramSkeleton) = skeleton.items.associateBy {
+            Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey)
+        }
+        val prior = slots(reference)
+        val later = slots(plan)
+        val differences = (prior.keys + later.keys).toSet()
+            .filter { key -> visible(prior[key]) != visible(later[key]) }
+            .sortedWith(compareBy<Triple<Int, Int, String>> { it.first }
+                .thenBy { it.second }.thenBy { it.third })
+        val first = differences.firstOrNull()
+        return if (first == null) "추천안과 실제 운동 처방 동일" else {
+            val oldItem = prior[first]
+            val newItem = later[first]
+            val label = newItem?.exerciseName ?: oldItem?.exerciseName ?: "운동"
+            val change = if (oldItem?.setCount != newItem?.setCount)
+                "${oldItem?.setCount ?: 0}→${newItem?.setCount ?: 0}세트"
+            else "세트별 반복·중량·휴식 변경"
+            "추천안 대비 ${differences.size}곳 차이 · ${first.first}주 ${first.second}요일 $label $change"
+        }
+    }
     val weeks = selectedPlan?.items.orEmpty().map(ProgramSkeletonItem::weekNumber).distinct().sorted()
     var selectedWeek by remember(selectedCandidateId, weeks) { mutableStateOf(weeks.firstOrNull()) }
     val days = selectedPlan?.items.orEmpty().filter { it.weekNumber == selectedWeek }
@@ -191,7 +228,7 @@ internal fun BCoachProductionReviewDialog(
     }
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)
     ) {
         Surface(Modifier.fillMaxSize().testTag("b_coach_review_dialog")) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
@@ -221,6 +258,10 @@ internal fun BCoachProductionReviewDialog(
                 if (alternatives.isNotEmpty()) item {
                     Text("계획 선택", modifier = Modifier.padding(top = 12.dp))
                     Column(Modifier.fillMaxWidth()) {
+                    if (alternatives.size == 1) {
+                        Text("검증된 후보 중 실질적으로 다른 처방이 없어 추천안만 표시합니다.",
+                            style = MaterialTheme.typography.bodySmall)
+                    }
                     alternatives.forEachIndexed { index, alternative ->
                         val selected = alternative.candidateId == selectedCandidateId
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -229,9 +270,17 @@ internal fun BCoachProductionReviewDialog(
                                     onClick = { onSelectCandidate(alternative.candidateId) },
                                     modifier = Modifier.testTag("b_coach_candidate_${alternative.candidateId}")
                                 )
-                                Text(
-                                    if (alternative.recommended) "추천안 A" else "대안 ${('A'.code + index).toChar()}"
-                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        if (alternative.recommended) "추천안 A"
+                                        else "대안 ${('A'.code + index).toChar()}"
+                                    )
+                                    Text(
+                                        comparedToRecommended(alternative.candidateId) +
+                                            " · 주당 평균 ${"%.1f".format(alternative.weeklySetAverage)}세트",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                         }
                     }
                     }

@@ -82,7 +82,16 @@ internal object BBalanced12WeekEngine {
             badmintonCatalog,
             taskCatalog
         )
-        val incumbent = legacy?.weeks?.firstOrNull()?.sessions
+        // Ordinary recorded court sessions are recovery/load context, not exercises
+        // for an auto-generated strength/support prescription. Keep structured drills.
+        // A legacy-only court day cannot remain empty: use a fresh B baseline instead.
+        val legacyWithoutCourt = legacy?.weeks?.firstOrNull()?.sessions?.map { session ->
+            val items = session.items.filterNot { item ->
+                exercises[item.stableKey]?.activityKind == "SPORT_SESSION"
+            }
+            session.copy(items = items, nominalSets = items.sumOf(V22ExercisePlan::setCount))
+        }?.takeIf { sessions -> sessions.all { it.items.isNotEmpty() } }
+        val incumbent = legacyWithoutCourt
             ?: coldStartBaseline(request, exercises, contributionCatalog, badmintonCatalog, mainExerciseKeys)
         val recentKeys = rows.asSequence().filter { it.date in request.asOf.minusDays(55)..request.asOf }
             .map(V22HistoryRow::stableKey).toSet()
@@ -95,8 +104,9 @@ internal object BBalanced12WeekEngine {
         } else contributionCatalog.filterKeys { key ->
             val exercise = exercises[key]
             exercise != null && exercise.isActive && !exercise.needsReview &&
+                exercise.activityKind != "SPORT_SESSION" &&
                 !BCoachV2Policy.isTestOnlyExercise(exercise) &&
-                exercise.planningEligibility != "HISTORY_ONLY"
+                exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY")
         }
         // Do not destroy sets to satisfy the old under-counting timer. Preserve the roster,
         // evaluate three versus four days only when explicitly authorized, and surface
@@ -475,8 +485,11 @@ internal object BBalanced12WeekEngine {
             return required.isEmpty() || required.all { it == "BODYWEIGHT" || it == "맨몸" } ||
                 (availableEquipment != null && required.all { it in availableEquipment })
         }
-        val eligible = exercises.values.filter { it.isActive && it.planningEligibility != "HISTORY_ONLY" &&
-            !BCoachV2Policy.isTestOnlyExercise(it) && permitted(it) }
+        val eligible = exercises.values.filter {
+            it.isActive && it.activityKind != "SPORT_SESSION" &&
+                it.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
+                !BCoachV2Policy.isTestOnlyExercise(it) && permitted(it)
+        }
             .sortedBy(Exercise::stableKey)
         val chosen = linkedSetOf<String>()
         val selectedStrengthAnchors = linkedSetOf<String>()
@@ -1038,7 +1051,7 @@ internal object BBalanced12WeekEngine {
         val eligible = contributions.keys.filter { key ->
             val exercise = exercises[key]
             exercise != null && exercise.isActive && !exercise.needsReview &&
-                !exercise.isCustom && exercise.planningEligibility != "HISTORY_ONLY"
+                !exercise.isCustom && exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY")
         }.sorted()
 
         fun score(key: String): Double {

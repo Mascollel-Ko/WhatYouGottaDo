@@ -1691,6 +1691,45 @@ class BCoachMultiobjectiveProductionTest {
         }
     )
 
+    @Test
+    fun `accessory sets can split two plus two across existing training days without increasing dose`() {
+        val deadBug = "ex_d5bdffe1"
+        val existing = skeleton(3, everyWeek = true)
+        val plan = existing.copy(
+            request = existing.request.copy(weeklyTrainingDays = 2),
+            items = (1..2).flatMap { week ->
+                listOf(
+                    item(squat.stableKey, week, 1, 3, 5, 100.0),
+                    item(deadBug, week, 1, 4, 10, exerciseName = "Dead bug"),
+                    item("dumbbell_row", week, 3, 2, 10)
+                )
+            },
+            weekDaySchedule = (1..2).associateWith { setOf(1, 3) }
+        )
+        val before = BCoachMultiobjectiveProduction.fingerprint(plan)
+        val split = BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(
+            plan, deadBug, targetDay = 3, mainExerciseKeys = setOf(squat.stableKey)
+        )
+        assertNotEquals(before, BCoachMultiobjectiveProduction.fingerprint(split))
+        (1..2).forEach { week ->
+            val occurrences = split.items.filter {
+                it.weekNumber == week && it.exerciseStableKey == deadBug
+            }.sortedBy(ProgramSkeletonItem::dayOfWeek)
+            assertEquals(listOf(1, 3), occurrences.map(ProgramSkeletonItem::dayOfWeek))
+            assertEquals(listOf(2, 2), occurrences.map(ProgramSkeletonItem::setCount))
+            assertEquals(listOf(1, 2), occurrences[0].setPrescriptions.map(ProgramSetPrescription::setIndex))
+            assertEquals(listOf(1, 2), occurrences[1].setPrescriptions.map(ProgramSetPrescription::setIndex))
+            assertEquals(4, occurrences.sumOf(ProgramSkeletonItem::setCount))
+        }
+        assertEquals(2, plan.items.count { it.exerciseStableKey == squat.stableKey })
+        assertEquals(plan, BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(
+            plan, squat.stableKey, targetDay = 3, mainExerciseKeys = setOf(squat.stableKey)
+        ))
+        assertEquals(plan, BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(
+            plan, deadBug, targetDay = 1, mainExerciseKeys = setOf(squat.stableKey)
+        ))
+    }
+
     private fun history() = listOf(V22HistoryRow(
         LocalDate.of(2026, 11, 10), "Back squat", squat.stableKey,
         "Strength", 1, 5.0, 100.0, null, 8.0

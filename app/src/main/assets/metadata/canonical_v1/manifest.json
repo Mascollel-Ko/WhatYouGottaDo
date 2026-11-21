@@ -20,7 +20,7 @@
       ],
       "rowCount": 281,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "b78517c0e423f0ca19d2acf8f1d6fe24038298145136320cf70723822e0c4eca"
+      "sha256": "3050594b91ce8958e3654576dea761976c8dedf0ed427b8456bf30adae55eaa8"
     },
     {
       "path": "badminton_relations.csv",
@@ -29,7 +29,7 @@
       ],
       "rowCount": 1872,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "0a1d38aa766a8271e5513678ed9e6903bc207b5baf55792da2bb8f3694fdf77a"
+      "sha256": "146f49434993a0e495d0fddf757f93b1fbb7f6dee1584cbd19a0222b10f3465f"
     },
     {
       "path": "core_relations.csv",
@@ -58,7 +58,7 @@
       ],
       "rowCount": 254,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "195b488ec153769093427f6aabaf5de12c92f23f7864f191e0593baa1b150608"
+      "sha256": "184b7472306ee07c502d80889fce08583c2323b1d9af1e5c5d83f20f046061bc"
     },
     {
       "path": "history_identity.csv",
@@ -188,7 +188,7 @@
       ],
       "rowCount": 254,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "c097b366cba89e7c8bf16e89ba1c68f755e4ca92a8a36418ca33199ba219fd3d"
+      "sha256": "f12a941821fa085d4ad4e8339584036717e45502531cffe6e4dac163ca271b85"
     },
     {
       "path": "strength_proxy_relations.csv",

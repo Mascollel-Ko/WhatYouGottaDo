@@ -238,6 +238,23 @@ class CanonicalExerciseMetadataRepositoryTest {
     }
 
     @Test
+    fun deadBugIsCoreAntiExtensionNotBadmintonFootworkOrDeceleration() {
+        val key = "ex_d5bdffe1"
+        val exercise = repository.exercises().single { it.stableKey == key }
+        assertEquals("데드버그", exercise.familyId)
+        assertEquals("NONE", exercise.badmintonTransferStrength)
+        assertFalse(exercise.badmintonSkillTargets.contains("FOOTWORK"))
+        assertFalse(exercise.badmintonSkillTargets.contains("DECELERATION"))
+        val runtime = repository.runtimeMetadataCatalog().all().single { it.stableKey == key }
+        assertEquals("NONE", runtime.badmintonTransferLevel)
+        assertEquals("NONE", runtime.badmintonSkillTargets)
+        assertEquals("DIRECT", repository.coreCatalog().resolve(key)?.coreClass?.name)
+        val objectives = repository.badmintonObjectiveCatalog().relations(key)
+        assertTrue(objectives.none { it.transferLevel.coefficient > 0.0 })
+        assertEquals(setOf("FOOTWORK", "DECELERATION"), objectives.map { it.objective.name }.toSet())
+    }
+
+    @Test
     fun protectedCanonicalMetadataCannotBeReplacedByPersistedOverride() {
         val exercise = repository.exercises().first()
         val canonical = repository.runtimeMetadataCatalog().resolve(exercise)!!
