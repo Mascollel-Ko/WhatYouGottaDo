@@ -21,7 +21,7 @@ import org.json.JSONObject
  * NO bench-to-dumbbell e1RM substitution; no four-week predictions or automatic writes.
  * The approximate curve/RPE comparison is experimental, never a success probability.
  */
-internal object BCoachAdditionalLiftShadow {
+object BCoachAdditionalLiftShadow {
     const val DEADLIFT = "barbell_deadlift"
     const val BENCH = "barbell_bench_press"
     const val DUMBBELL_BENCH = "ex_3a7d3eda"
@@ -104,7 +104,7 @@ internal object BCoachAdditionalLiftShadow {
         val date = source?.first
         val anchor = source?.second?.sets?.minByOrNull { it.setIndex }
         val observedRpe = source?.second?.sets?.maxOfOrNull {
-            it.rpe ?: source.second.entry.rpe ?: Double.NaN
+            it.rpe ?: source?.second?.entry?.rpe ?: Double.NaN
         }
         val fingerprint = listOf(key, asOf, date, source?.second?.entry?.id,
             source?.second?.sets?.sortedBy { it.setIndex },
@@ -202,7 +202,7 @@ internal object BCoachAdditionalLiftShadow {
                             Evidence(
                                 key, label, "READY_FOR_EXPLICIT_REVIEW",
                                 "운동별 확인 기록과 RPE/RIR·반복곡선에 따른 실험적 1세트 선택입니다. 미래 성공확률이 아닙니다.",
-                                asOf, date, source.second.entry.id, anchor.reps,
+                                asOf, date, source?.second?.entry?.id, anchor.reps,
                                 anchor.weightKg, observedRpe, step,
                                 curve.matchLevel.name, chosen.action, chosen.kg,
                                 chosen.reps, fingerprint
