@@ -85,6 +85,7 @@ import com.training.trackplanner.data.reconcileProgression
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
+import com.training.trackplanner.data.v22.BBalancedGoal
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
@@ -318,10 +319,8 @@ internal fun BCoachProductionReviewDialog(
                             .toDouble() / plan.request.durationWeeks.coerceAtLeast(1)
                         val trainingDays = plan.weekDaySchedule.values.flatten().distinct().sorted()
                         val restDays = (1..7).filterNot(trainingDays::contains)
-                        val estimatedMinutes = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values
-                            .map { session -> session.sumOf { item ->
-                                ProgramSetPrescriptionResolver.resolve(item).size * (item.restSeconds + 45)
-                            } / 60.0 }.average().toInt().coerceAtLeast(1)
+                        val day = selectedDay
+                        val time = selectedAlternative?.sessionTimes?.get(selectedWeek to day)
                         val weekStages = plan.weekPlans.groupBy { it.weekType }.entries.joinToString(" · ") {
                             (type, rows) -> "${rows.minOf { it.weekIndex }}~${rows.maxOf { it.weekIndex }}주 $type"
                         }
@@ -329,7 +328,24 @@ internal fun BCoachProductionReviewDialog(
                             "주당 평균 ${"%.1f".format(weeklySets)}세트")
                         Text("훈련 요일: ${trainingDays.joinToString(" · ") { "${it}요일" }}")
                         Text("휴식 요일: ${restDays.joinToString(" · ") { "${it}요일" }}")
-                        Text("세션 목표 ${plan.request.sessionMinutes}분 · 예상 약 ${estimatedMinutes}분(세트·휴식 기준)")
+                        Text("세션 가용 시간 ${plan.request.sessionMinutes}분")
+                        if (time != null && day != null) {
+                            Text("${selectedWeek}주 ${dayName(day)}요일 · 예상 %.1f분 · 여유 포함 상한 %.1f분"
+                                .format(time.expectedMinutes, time.upperMinutes))
+                            Text("준비운동 %.1f · 세팅·전환 %.1f · 본세트 %.1f · 세트 간 휴식 %.1f분"
+                                .format(time.warmupMinutes, time.setupAndTransitionMinutes, time.workMinutes, time.restMinutes),
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        selectedAlternative?.weeklyGoalGaps?.get(selectedWeek)?.let { goals ->
+                            val labels = goals.joinToString(" · ") { goal -> when (goal) {
+                                BBalancedGoal.STRENGTH -> "근력"
+                                BBalancedGoal.HYPERTROPHY -> "근비대"
+                                BBalancedGoal.CORE -> "코어"
+                                BBalancedGoal.SPORT_SUPPORT -> "스포츠 보조"
+                            } }
+                            Text("${selectedWeek}주 계획에서 추정 기준량에 못 미치는 항목이 있는 목표 · $labels",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
                         if (weekStages.isNotBlank()) Text("주차 단계: $weekStages")
                     }
                     Column {

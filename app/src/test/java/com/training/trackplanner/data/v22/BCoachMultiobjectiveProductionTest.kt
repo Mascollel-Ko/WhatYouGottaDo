@@ -1,5 +1,7 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
@@ -410,6 +412,23 @@ class BCoachMultiobjectiveProductionTest {
         val actual = BCoachV2ScheduleLoad.timeUpper(skeleton(2).items, mapOf(squat.stableKey to squat))
         val expected = 2.0 + 1.15 * (8.0 + 2.3 + 2 * 45.0 / 60.0 + 120.0 / 60.0 + 0.75)
         assertEquals(expected, actual, 1e-12)
+        val item = skeleton(2).items.single()
+        val intervals = item.copy(restSeconds = 20, setPrescriptions =
+            ProgramSetPrescriptionResolver.resolve(item).map { it.copy(seconds = 90) })
+        val time = BCoachV2ScheduleLoad.sessionTime(listOf(intervals), emptyMap())
+        assertEquals(3.0, time.workMinutes, 1e-12)
+        assertEquals(20.0 / 60, time.restMinutes, 1e-12)
+        assertEquals(8 + 4.75 + 3 + 20.0 / 60, time.expectedMinutes, 1e-12)
+        assertEquals(2 + 1.15 * (8 + 4.75 + 3 + 0.75), time.upperMinutes, 1e-12)
+    }
+
+    @Test fun `generic play and lesson cannot be prescribed even with stale exercise metadata`() {
+        for (key in com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys) {
+            assertEquals(BCoachConstraintStatus.FAIL, evaluate(skeleton(3, key = key)).hardConstraints
+                .single { it.id == "NO_RECREATIONAL_SPORT_SESSION" }.status)
+        }
+        assertEquals(BCoachConstraintStatus.PASS, evaluate(skeleton(3, key = "structured_drill")).hardConstraints
+            .single { it.id == "NO_RECREATIONAL_SPORT_SESSION" }.status)
     }
 
     @Test fun `T40 all eight objective scores are finite and three scenarios have unit regret normalizer`() {
@@ -1385,7 +1404,7 @@ class BCoachMultiobjectiveProductionTest {
             it.first.startsWith("INSERT_GOAL_${key}_")
         }).second
         val newItems = candidate.items.filter { it.exerciseStableKey == key }
-        assertEquals(2, newItems.size)
+        assertEquals(listOf(1), newItems.map { it.weekNumber })
         assertTrue(newItems.all { it.setCount == 2 &&
             it.setPrescriptions.all { set -> set.reps == 10 && set.weightKg == 0.0 } })
     }

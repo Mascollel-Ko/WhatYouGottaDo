@@ -187,7 +187,7 @@ internal fun BCoachSportShadowDialog(
                                     Text("주평균 " + sportShadowNumber(selected.meanWeeklySets) + "세트")
                                 }
                             }
-                            Text("최장 세션 예상 약 " +
+                            Text("최장 세션 여유 포함 상한 " +
                                 sportShadowNumber(selected.estimatedMaxDayMinutes) + "분" +
                                 " · 전체 목표 손실 " + sportShadowNumber(selected.productionBaseLoss))
                             Text("스포츠 지표는 낮을수록 목표 부족·초과가 적다는 뜻입니다. " +

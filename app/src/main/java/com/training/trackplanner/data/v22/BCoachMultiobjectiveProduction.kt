@@ -85,6 +85,16 @@ data class BCoachConstraintResult(
     val reasonCodes: List<String> = emptyList()
 )
 
+data class BCoachSessionTime(
+    val warmupMinutes: Double,
+    val setupAndTransitionMinutes: Double,
+    val workMinutes: Double,
+    val restMinutes: Double,
+    val upperMinutes: Double
+) {
+    val expectedMinutes: Double get() = warmupMinutes + setupAndTransitionMinutes + workMinutes + restMinutes
+}
+
 data class BCoachPlanAlternative(
     val status: BCoachProductionStatus,
     val label: String,
@@ -100,7 +110,9 @@ data class BCoachPlanAlternative(
     val reasonCodes: List<String> = emptyList(),
     val prescriptionSummary: List<String> = emptyList(),
     /** Structured review uses these codes without parsing the legacy summary text. */
-    val changeSummary: List<String> = emptyList()
+    val changeSummary: List<String> = emptyList(),
+    val sessionTimes: Map<Pair<Int, Int>, BCoachSessionTime> = emptyMap(),
+    val weeklyGoalGaps: Map<Int, List<BBalancedGoal>> = emptyMap()
 )
 
 data class BCoachMultiobjectiveDecision(

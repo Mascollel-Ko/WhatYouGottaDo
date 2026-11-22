@@ -47,6 +47,43 @@ class BCoachProductionQualityHarnessTest {
     )
 
     @Test
+    fun `cold start sixty minute review uses the scheduled work and the same time limit as search`() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build().also { database = it }
+        val repository = TrainingRepository(db, context)
+        repository.seedIfNeeded()
+        val request = newBBalancedGenerationRequest(
+            "Cold start", 4, LocalDate.of(2026, 11, 22), 60, false, BBalancedGoalImportance(),
+            availableEquipment = setOf("BODYWEIGHT", "맨몸", "BARBELL", "바벨", "플레이트", "랙", "벤치",
+                "DUMBBELL", "덤벨", "KETTLEBELL", "케틀벨", "MACHINE", "머신", "케이블", "케이블 머신",
+                "PULL-UP BAR", "철봉")
+        )
+        val result = repository.generateV22Program(request)
+        val proposal = requireNotNull(result.bCoachMultiobjectiveProposal)
+        val report = File("build/reports/b-coach/cold-start-time.tsv")
+        report.parentFile.mkdirs()
+        report.printWriter().use { writer ->
+            writer.println("Candidate\tWeek\tDay\tSets\tOld display minutes\tExpected minutes\tUpper minutes\tGoal deficit\tRecovery")
+            for (candidate in proposal.decision.alternatives) {
+                val plan = requireNotNull(proposal.candidateForReview(candidate.candidateId))
+                val days = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
+                assertEquals(days.keys, candidate.sessionTimes.keys)
+                for ((slot, items) in days) {
+                    val time = candidate.sessionTimes.getValue(slot)
+                    val sets = items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
+                    val legacy = items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size * (it.restSeconds + 45) } / 60.0
+                    assertTrue(time.expectedMinutes <= time.upperMinutes && time.upperMinutes <= 60)
+                    assertTrue(items.none { it.exerciseStableKey in
+                        com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys })
+                    writer.println(listOf(candidate.candidateId, slot.first, slot.second, sets, legacy,
+                        time.expectedMinutes, time.upperMinutes, candidate.axisScores[BCoachObjectiveAxis.GOAL_DEFICIT],
+                        candidate.axisScores[BCoachObjectiveAxis.RECOVERY_LOAD]).joinToString("\t"))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `six deterministic production fixtures expose full candidates and persist end to end`() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build().also { database = it }
@@ -142,6 +179,10 @@ class BCoachProductionQualityHarnessTest {
             ).skeleton)
             val selected = requireNotNull(proposal.candidateForReview(selectedId))
             val selectedAlternative = decision.alternatives.single { it.candidateId == selectedId }
+            val times = selectedAlternative.sessionTimes
+            assertEquals(selected.items.map { it.weekNumber to it.dayOfWeek }.toSet(), times.keys)
+            assertTrue(times.values.all { it.expectedMinutes > 0.0 && it.upperMinutes >= it.expectedMinutes &&
+                it.upperMinutes <= fixture.minutes + 1e-9 })
             val auditRoot = JSONObject(generated.skeleton.planningMetadataJson ?: "{}")
             val sportDiagnostics = buildList {
                 val audits = auditRoot.optJSONArray("coachWholeBlockAudit")
@@ -207,6 +248,7 @@ class BCoachProductionQualityHarnessTest {
                 appendLine("Weekdays: ${weeklyDays.entries.joinToString("; ") { "W${it.key}=${it.value}" }}  ")
                 appendLine("Longest cyclic run: ${weeklyDays.values.maxOfOrNull(BCoachV2DoseEvaluator::longestConsecutiveRun) ?: 0}; " +
                     "one-set items: $oneSetCount/${selected.items.size} (${"%.1f".format(100.0 * oneSetCount / totalItems)}%).  ")
+                appendLine("Session mean / peak upper minutes: ${"%.2f".format(times.values.map { it.expectedMinutes }.average())} / ${"%.2f".format(times.values.maxOf { it.upperMinutes })}.")
                 appendLine("Selected losses: goal deficit ${"%.4f".format(selectedAlternative.axisScores[BCoachObjectiveAxis.GOAL_DEFICIT])}, " +
                     "recovery ${"%.4f".format(selectedAlternative.axisScores[BCoachObjectiveAxis.RECOVERY_LOAD])}, " +
                     "robust regret ${"%.4f".format(selectedAlternative.robustRegret)}.")

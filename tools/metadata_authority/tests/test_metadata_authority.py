@@ -112,6 +112,8 @@ class MetadataAuthorityTest(unittest.TestCase):
         }
         self.assertEqual(224, len(legacy))
         self.assertEqual(set(legacy) - retired_current_identities, set(canonical).intersection(legacy))
+        reviewed_stability = {"ex_28347c1f", "ex_2a826c82", "ex_91f6958d", "ex_a44ae2ca",
+                              "ex_a8385c4a", "ex_f6d43398"}
         for stable_key, old in legacy.items():
             if stable_key in retired_current_identities:
                 continue
@@ -126,6 +128,10 @@ class MetadataAuthorityTest(unittest.TestCase):
                 }
                 if stable_key == "ex_d5bdffe1" and field in dead_bug_review:
                     self.assertEqual(dead_bug_review[field], current[field])
+                elif stable_key in reviewed_stability and field in {"badmintonTransferLevel", "badmintonTransferType", "badmintonSkillTargets"}:
+                    self.assertEqual("NONE", current[field])
+                elif stable_key in reviewed_stability and field == "analysisEligibility":
+                    self.assertEqual("|".join(t for t in old_value.split("|") if t != "BADMINTON_SUPPORTIVE"), current[field])
                 elif field == "currentPlanningEligibility" and stable_key in history:
                     self.assertEqual("HISTORY_ONLY", current[field])
                 else:

@@ -175,20 +175,32 @@ internal object BCoachV2ScheduleLoad {
     }
 
     fun timeUpper(items: List<ProgramSkeletonItem>, exercises: Map<String, Exercise>): Double {
-        val inner = BCoachV2Policy.ESTIMATED_WARMUP_MINUTES + items.sumOf { item ->
-            val exercise = exercises[item.exerciseStableKey]
-            val setup = if (exercise?.equipment.orEmpty().isNotBlank()) {
-                BCoachV2Policy.ESTIMATED_SETUP_KNOWN_MINUTES
-            } else BCoachV2Policy.ESTIMATED_SETUP_UNKNOWN_MINUTES
+        return sessionTime(items, exercises).upperMinutes
+    }
+
+    fun sessionTime(items: List<ProgramSkeletonItem>, exercises: Map<String, Exercise>): BCoachSessionTime {
+        if (items.isEmpty()) return BCoachSessionTime(0.0, 0.0, 0.0, 0.0, 0.0)
+        var active = 0.0
+        var rest = 0.0
+        var setup = 0.0
+        var restMargin = 0.0
+        for (item in items) {
             val sets = ProgramSetPrescriptionResolver.resolve(item)
-            val active = sets.sumOf { set ->
-                (set.seconds.takeIf { it > 0 }?.toDouble()
-                    ?: BCoachV2Policy.ESTIMATED_ACTIVE_SET_SECONDS) / 60.0
-            }
-            val rest = max(0, sets.size - 1) * item.restSeconds.coerceAtLeast(45) / 60.0
-            setup + active + rest + 0.75
+            setup += if (exercises[item.exerciseStableKey]?.equipment.orEmpty().isNotBlank())
+                BCoachV2Policy.ESTIMATED_SETUP_KNOWN_MINUTES else BCoachV2Policy.ESTIMATED_SETUP_UNKNOWN_MINUTES
+            setup += 0.75 // Transition allowance per station, including entry and exit.
+            active += sets.sumOf { set ->
+                set.seconds.takeIf { it > 0 }?.toDouble() ?: BCoachV2Policy.ESTIMATED_ACTIVE_SET_SECONDS
+            } / 60.0
+            val intervals = (sets.size - 1).coerceAtLeast(0)
+            val restSeconds = item.restSeconds.coerceAtLeast(0)
+            rest += intervals * restSeconds / 60.0
+            restMargin += intervals * (45 - restSeconds).coerceAtLeast(0) / 60.0
         }
-        return BCoachV2Policy.TIME_UPPER_EXTRA_MINUTES + BCoachV2Policy.TIME_UPPER_FACTOR * inner
+        val warmup = BCoachV2Policy.ESTIMATED_WARMUP_MINUTES
+        val upper = BCoachV2Policy.TIME_UPPER_EXTRA_MINUTES +
+            BCoachV2Policy.TIME_UPPER_FACTOR * (warmup + setup + active + rest + restMargin)
+        return BCoachSessionTime(warmup, setup, active, rest, upper)
     }
 
     private fun q75(values: List<Double>): Double {

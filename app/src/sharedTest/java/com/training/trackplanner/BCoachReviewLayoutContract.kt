@@ -62,6 +62,8 @@ abstract class BCoachReviewLayoutContract {
                 recommended = true,
                 axisScores = BCoachObjectiveAxis.entries.associateWith { 0.1 },
                 scenarioLosses = mapOf("LOW_STRESS" to 0.1, "BASE" to 0.2, "HIGH_STRESS" to 0.3),
+                sessionTimes = (1..12).associate { week -> (week to 1) to
+                    com.training.trackplanner.data.v22.BCoachSessionTime(8.0, 3.0, week.toDouble(), 2.0, 33.0) },
                 prescriptionSummary = listOf("legacy text must not drive review")
             ),
             BCoachPlanAlternative(
@@ -128,6 +130,8 @@ abstract class BCoachReviewLayoutContract {
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("12주").performScrollTo().performClick()
         compose.onNodeWithText(displayText("아주 긴 이름의 바벨 백 스쿼트 12주")).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("12주 월요일 · 예상", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(displayText("아주 긴 이름의 바벨 백 스쿼트 12주")).performScrollTo()
         captureReviewScreen("candidate-week12")
         compose.onNodeWithTag("b_coach_review_content").assert(hasScrollAction())
         listOf("b_coach_review_apply", "b_coach_review_keep").forEach { tag ->

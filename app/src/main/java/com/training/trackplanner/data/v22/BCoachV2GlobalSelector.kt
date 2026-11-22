@@ -264,7 +264,11 @@ internal object BCoachV2GlobalSelector {
                 prescriptionSummary = prescriptionSummary(
                     candidate.skeleton, candidate.loadData.instructionsBySetId
                 ),
-                changeSummary = candidate.changes
+                changeSummary = candidate.changes,
+                sessionTimes = candidate.skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }
+                    .mapValues { (_, items) -> BCoachV2ScheduleLoad.sessionTime(items, exercises) },
+                weeklyGoalGaps = candidate.evaluation.taskWeekDoses.filter { it.scored && it.lower > it.dose }
+                    .groupBy { it.week }.mapValues { (_, rows) -> rows.map { it.goal }.distinct() }
             )
         }
         val baselineEvaluation = evaluated.firstOrNull { it.label == "SAFE_BASELINE" }?.evaluation
@@ -493,7 +497,7 @@ internal object BCoachV2GlobalSelector {
         }.toSet()
         fun skillTags(exercise: Exercise): Set<String> =
             exercise.badmintonSkillTargets.split(Regex("[,|;]"))
-                .map(String::trim).filter(String::isNotEmpty).toSet()
+                .map(String::trim).filter { it.isNotEmpty() && it != "NONE" }.toSet()
         val skillCoverage = selected.flatMap { key ->
             exercises[key]?.let(::skillTags).orEmpty()
         }.toSet()
@@ -651,8 +655,8 @@ internal object BCoachV2GlobalSelector {
             }.thenBy { it.key })?.key
         if (day != null) {
             val additions = eligible.asSequence()
-                .filter { badmintonCatalog.relations(it.stableKey).isNotEmpty() &&
-                    it.progressMetricType == "QUALITY_BASED" }
+                .filter { exercise -> badmintonCatalog.relations(exercise.stableKey).any { it.transferLevel.coefficient > 0.0 } &&
+                    exercise.progressMetricType == "QUALITY_BASED" }
                 .sortedWith(rank).take(2).toList()
             for (candidate in additions) {
                 val next = plan.items.toMutableList()
@@ -677,14 +681,14 @@ internal object BCoachV2GlobalSelector {
         // A deficit cannot be improved by changing sets when its primary muscle or
         // direct core function has no exercise in the incumbent. Admit bounded,
         // reviewed whole-block accessory inserts instead of SPORT-only inserts.
-        // Do not treat missing personal records as proof of a weakness: only a
-        // user-explicit goal priority or a recorded per-task exposure permits
-        // this additional recruitment lane.
-        if (day != null && (explicitlyRequested.hypertrophy ?: 0) >= 4 ||
-            day != null && (explicitlyRequested.core ?: 0) >= 4 ||
-            day != null && taskWeekDoses.any { it.scored && it.lower > it.dose }) {
-            val need = taskWeekDoses.filter { it.scored && it.lower > it.dose }
-                .groupBy(BCoachV2TaskWeekDose::taskId)
+        // A policy-derived target can guide planning without observed personal weakness.
+        if (day != null && ((explicitlyRequested.hypertrophy ?: 0) >= 4 ||
+            (explicitlyRequested.core ?: 0) >= 4 || taskWeekDoses.any { it.scored && it.lower > it.dose })) {
+            val unmet = taskWeekDoses.filter { it.scored && it.lower > it.dose }
+            val weeklyGaps = unmet.groupBy { it.week }.mapValues { (_, rows) ->
+                rows.associate { it.taskId to (it.lower - it.dose) / it.lower.coerceAtLeast(1.0) }
+            }
+            val need = unmet.groupBy(BCoachV2TaskWeekDose::taskId)
                 .mapValues { (_, rows) ->
                     rows.map { row -> ((row.lower - row.dose) /
                         row.lower.coerceAtLeast(1.0)).coerceIn(0.0, 1.0) }.average()
@@ -694,36 +698,37 @@ internal object BCoachV2GlobalSelector {
                 it.domain == CanonicalRelationDomain.MUSCLE &&
                     it.relationType in setOf("PRIMARY", "SECONDARY")
             }.groupBy(CanonicalMetadataRelation::exerciseStableKey)
-            fun addedValue(exercise: Exercise): Double {
+            fun addedValue(exercise: Exercise, gaps: Map<String, Double>): Double {
                 val muscleGain = muscleCandidates[exercise.stableKey].orEmpty().sumOf { relation ->
                     val credit = if (relation.relationType == "PRIMARY") 1.0 else 0.5
-                    credit * (need["HYPERTROPHY:${relation.relationValue}"] ?: 0.0)
+                    credit * (gaps["HYPERTROPHY:${relation.relationValue}"] ?: 0.0)
                 }
                 val coreGain = if (coreCatalog.resolve(exercise.stableKey)?.coreClass == CoreClass.DIRECT)
-                    (need["CORE:DIRECT"] ?: 0.0) else 0.0
+                    (gaps["CORE:DIRECT"] ?: 0.0) else 0.0
                 return muscleGain * (importance[BBalancedGoal.HYPERTROPHY] ?: 0.0) +
                     coreGain * (importance[BBalancedGoal.CORE] ?: 0.0)
             }
             val candidates = eligible.asSequence()
                 .filter { it.stableKey !in CanonicalStrengthExposureCapability.approvedStableKeys &&
-                    badmintonCatalog.relations(it.stableKey).isEmpty() &&
                     listOf("DURATION", "TIME", "DISTANCE", "QUALITY", "SPEED", "JUMP")
                         .none { token -> token in it.progressMetricType.uppercase() } }
-                .map { it to addedValue(it) }
+                .map { it to addedValue(it, need) }
                 .filter { (_, gain) -> gain > 0.0 }
                 .sortedWith(compareByDescending<Pair<Exercise, Double>> { it.second }
                     .thenBy { it.first.stableKey })
                 .take(2).map { it.first }.toList()
             for (candidate in candidates) {
                 val proposed = mutableListOf<ProgramSkeletonItem>()
-                var possible = true
                 for ((week, weekItems) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
-                    val sameDay = weekItems.filter { it.dayOfWeek == day }
-                    val source = sameDay.firstOrNull()
-                    if (source == null) { possible = false; break }
+                    if (plan.weekPlans.any { it.weekIndex == week && (it.deloadFlag || "RECOVERY" in it.weekType ||
+                            "PEAK" in it.weekType) } || weekItems.any { "PEAK" in it.selectionRole }) continue
+                    if (addedValue(candidate, weeklyGaps[week].orEmpty()) <= 0.0) continue
+                    val sameDay = weekItems.groupBy { it.dayOfWeek }.values
+                        .minBy { BCoachV2ScheduleLoad.timeUpper(it, exercises) }
+                    val source = sameDay.first()
                     val added = reselectedItem(source, candidate, count = 2).let { item ->
                         item.copy(
-                            localId = "B_GOAL_W${week}_D${day}_${candidate.stableKey}",
+                            localId = "B_GOAL_W${week}_D${source.dayOfWeek}_${candidate.stableKey}",
                             orderIndex = (sameDay.maxOfOrNull(ProgramSkeletonItem::orderIndex) ?: 0) + 1,
                             reps = 10,
                             setPrescriptions = item.setPrescriptions.map { it.copy(reps = 10) },
@@ -732,12 +737,12 @@ internal object BCoachV2GlobalSelector {
                     }
                     if (BCoachV2ScheduleLoad.timeUpper(sameDay + added, exercises) >
                         (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES)) {
-                        possible = false; break
+                        continue
                     }
                     proposed += added
                 }
-                if (possible && proposed.isNotEmpty()) {
-                    changes += "INSERT_GOAL_${candidate.stableKey}_ON_DAY_$day" to
+                if (proposed.isNotEmpty()) {
+                    changes += "INSERT_GOAL_${candidate.stableKey}_ON_AVAILABLE_DAYS" to
                         plan.copy(items = plan.items + proposed)
                 }
             }

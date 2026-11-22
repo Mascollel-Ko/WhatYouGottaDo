@@ -147,13 +147,23 @@ internal object BCoachV2DoseEvaluator {
         // A fixed roster is a valid block prescription. Do not use arbitrary
         // weekly sport rotation as a proxy for progression or coaching quality.
 
+        // Fix the opportunity budget to the same baseline for every candidate. A
+        // longer rest or slower exercise cannot earn credit by consuming minutes.
+        val cap = (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES).toDouble()
+        val headroomByWeek = baseline.items.groupBy { it.weekNumber }.mapValues { (_, rows) ->
+            rows.groupBy { it.dayOfWeek }.values.map { day ->
+                (1.0 - BCoachV2ScheduleLoad.timeUpper(day, exercises) / cap).unitInterval()
+            }.average()
+        }
         BCoachV2Scenario.entries.forEach { scenario ->
+            var unmetOpportunity = 0.0
             var gapWeighted = 0.0
             var excessWeighted = 0.0
             var doseWeight = 0.0
             val rampValues = mutableListOf<Double>()
             val previous = mutableMapOf<String, Double>()
             weeks.forEach { week ->
+                val gapBeforeWeek = gapWeighted
                 val peak = isPeakWeek(plan, week)
                 val recovery = isRecoveryWeek(plan, week)
                 val multiplier = when {
@@ -227,6 +237,8 @@ internal object BCoachV2DoseEvaluator {
                         previous[task.id] = dose
                     }
                 }
+                if (!recovery && !peak) unmetOpportunity +=
+                    (gapWeighted - gapBeforeWeek) * (headroomByWeek[week] ?: 0.0)
             }
             val schedule = BCoachV2ScheduleLoad.evaluate(
                 plan, baseline, request, historyAtCutoff, exercises, scenario,
@@ -235,7 +247,9 @@ internal object BCoachV2DoseEvaluator {
                 intensityBySetId = intensityByScenarioAndSet[scenario] ?: baseIntensityBySetId
             )
             val progression = progressionByScenario.getValue(scenario)
-            val change = planChange(plan, baseline, historyAtCutoff)
+            // A first-time generator seed has never been approved or performed.
+            val change = if (historyAtCutoff.isEmpty() && request.sourceProgramStableKey == null &&
+                request.linkedEvidenceApplicationId == null) 0.0 else planChange(plan, baseline, historyAtCutoff)
             val totalSets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
             val calibrationSets = plan.items.sumOf { item ->
                 ProgramSetPrescriptionResolver.resolve(item).count {
@@ -256,12 +270,8 @@ internal object BCoachV2DoseEvaluator {
                     0.20 * calibrationSets.toDouble() / max(1, totalSets) +
                     0.10 * progressionSpread
                 ).unitInterval()
-            val cap = (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES).toDouble()
-            // The requested session time is a capacity, not a target that
-            // penalizes 45-60 minute sessions. Exceeding it is already a hard
-            // failure; do not incentivize dropping useful training sets.
-            val execution = (schedule.maximumDayMinutes / cap - 1.0)
-                .coerceIn(0.0, 1.0)
+            val execution = max(schedule.maximumDayMinutes / cap - 1.0,
+                unmetOpportunity / weeks.size).unitInterval()
             val axes = linkedMapOf(
                 BCoachObjectiveAxis.GOAL_DEFICIT to
                     if (doseWeight == 0.0) 0.0
@@ -632,6 +642,12 @@ internal object BCoachV2DoseEvaluator {
         add(constraint("SESSION_TIME_LIMIT", if (schedule.daysOverLimit == 0)
             BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL,
             if (schedule.daysOverLimit == 0) null else "DAYS_OVER=${schedule.daysOverLimit}"))
+        val sportSession = plan.items.firstOrNull {
+            it.exerciseStableKey in com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys ||
+                exercises[it.exerciseStableKey]?.activityKind == "SPORT_SESSION"
+        }
+        add(constraint("NO_RECREATIONAL_SPORT_SESSION", if (sportSession == null) BCoachConstraintStatus.PASS
+            else BCoachConstraintStatus.FAIL, sportSession?.exerciseStableKey))
         add(constraint("PROGRAM_BOUNDS", if (plan.items.all {
                 it.weekNumber in 1..plan.request.durationWeeks && it.dayOfWeek in 1..7
             }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))

@@ -21,6 +21,7 @@ from authority_common import (
     load_workbook,
     sheet_rows,
 )
+from analysis_cutover_authority import build_badminton_objective_relations
 from display_inventory import collect_inventory
 
 
@@ -61,6 +62,30 @@ def require_unique(rows: list[dict[str, str]], fields: tuple[str, ...], label: s
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def validate_reviewed_sport_transfers(workbook, bootstrap_by_key):
+    objectives = build_badminton_objective_relations()
+    corrected = {row["exerciseStableKey"] for row in objectives
+                 if row["provenance"].startswith("OBJECTIVE_SPECIFIC_SEMANTIC_CORRECTION")
+                 and row["objectiveId"] in {"FOOTWORK", "DECELERATION"}}
+    positive = {row["exerciseStableKey"] for row in objectives if row["transferLevel"] != "NONE"}
+    scalars = index_by(sheet_rows(workbook, "08_SCALAR_METADATA"), "stableKey")
+    relations = sheet_rows(workbook, "14_BADMINTON_REL")
+    for key in corrected:
+        rows = [row for row in relations if row["exerciseStableKey"] == key]
+        skill_claims = {row["relationValue"] for row in rows if row["relationType"] == "SKILL_TARGET"}
+        for record in (scalars[key], bootstrap_by_key[key]):
+            skill_claims.update(re.split(r"[|,]", record["badmintonSkillTargets"]))
+        require(not skill_claims.intersection({"CHANGE_OF_DIRECTION", "DEFENSIVE_COVERAGE"}),
+                f"Unsupported court skill in reviewed metadata: {key}")
+        legacy_support = set(re.split(r"[|,]", bootstrap_by_key[key]["sportTransferSupportive"]))
+        require(not legacy_support.intersection({"COD_SUPPORT", "DECELERATION_SUPPORT"}),
+                f"Unsupported direction-change support: {key}")
+        levels = {row["relationValue"] for row in rows if row["relationType"] == "TRANSFER_LEVEL"}
+        require(levels == {scalars[key]["badmintonTransferLevel"]} == {bootstrap_by_key[key]["badmintonTransferStrength"]},
+                f"Conflicting sport transfer levels: {key}")
+        require((levels != {"NONE"}) == (key in positive), f"Exercise-wide transfer disagrees with reviewed objectives: {key}")
 
 
 def validate(path: Path) -> dict[str, int]:
@@ -212,6 +237,19 @@ def validate(path: Path) -> dict[str, int]:
         require_unique(rows, primary_key, sheet_name)
         if "exerciseStableKey" in rows[0]:
             require(all(row["exerciseStableKey"] in identity_by_key for row in rows), f"Orphan relation in {sheet_name}")
+
+    validate_reviewed_sport_transfers(workbook, bootstrap_by_key)
+    summary = index_by(sheet_rows(workbook, "01_VALIDATION_SUMMARY"), "check")
+    counts = {"Identity rows": len(identities), "History-only generic identities": len(history),
+              "Exercise bootstrap rows": len(bootstrap), "Program timing profiles": len(selectable)}
+    for label, sheet in (("Runtime snapshot rows", "07_RUNTIME_SNAPSHOT"), ("Muscle relation rows", "10_MUSCLE_REL"),
+                         ("Tissue load relation rows", "11_TISSUE_LOAD_REL"), ("OFI/fatigue relation rows", "12_OFI_REL")):
+        counts[label] = len(sheet_rows(workbook, sheet))
+    for label, count in counts.items():
+        require(summary[label]["observed"] == str(count), f"Stale validation summary: {label} should be {count}")
+    for label in ("Identity rows", "Exercise bootstrap rows"):
+        require(summary[label]["notes"] == f"{len(selectable)} selectable + {len(history)} history-only",
+                f"Stale identity breakdown in validation summary: {label}")
 
     conflicts = sheet_rows(workbook, CONFLICT_SHEET)
     scope = [row for row in conflicts if row["recordType"] == "SCOPE_STATUS"]
