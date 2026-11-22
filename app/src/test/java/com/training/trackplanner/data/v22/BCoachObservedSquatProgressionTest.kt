@@ -151,6 +151,29 @@ class BCoachObservedSquatProgressionTest {
         assertFalse(patch.nextSets.first().confirmed)
     }
 
+    @Test fun integratedLinksRespectMixedSetsDifferentRepsAndUserEdits() {
+        val key = "ex_3a7d3eda"
+        val prior = source.copy(entry = source.entry.copy(exerciseStableKey = key),
+            sets = source.sets.map { it.copy(weightKg = 48.0, reps = 8, rpe = 9.5) })
+        val next = target.copy(entry = target.entry.copy(exerciseStableKey = key),
+            sets = target.sets.map { it.copy(weightKg = 48.0, reps = 8 + it.setIndex,
+                loadState = ProgramLoadState.EXPLICIT_LOAD) })
+        val rows = targets(prior) + targets(next).map { it.copy(
+            plannedLoadState = ProgramLoadState.EXPLICIT_LOAD, originalLoadState = ProgramLoadState.EXPLICIT_LOAD) }
+        val dbCurve = RepetitionCurveRegistry.fromContext(context).resolve(key)
+        fun inspect(prescriptions: List<ProgramPrescriptionSet>) = BCoachLinkedSquatWeekPlanner.inspect(
+            today, next.entry.id, listOf(prior, next), listOf(app),
+            listOf(link(1,1), link(2,2)), prescriptions, null, null
+        ) { from, to -> BCoachConfirmedLiftModel.nextLoads(from, to, dbCurve, rirPolicy, 2.0) }
+        val proposal = inspect(rows)
+        assertTrue(proposal.status, proposal.canApply)
+        val patch = requireNotNull(BCoachLinkedSquatPlanPatch.build(proposal, next.sets, rows.filter { it.entryId == 2L }))
+        assertEquals(next.sets.map { it.reps }, patch.nextSets.map { it.reps })
+        assertTrue(patch.nextSets.any { it.weightKg < 48.0 })
+        assertTrue(patch.nextSets.none { it.confirmed })
+        assertFalse(inspect(rows.map { if (it.entryId == 2L) it.copy(originalReps = 3) else it }).canApply)
+    }
+
     @Test fun `planned heavy versus volume rep scheme is never silently flattened`() {
         assertNull(evidence(target=record(2,"2026-11-22",false,reps=8)))
     }

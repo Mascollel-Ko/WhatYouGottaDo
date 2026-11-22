@@ -572,12 +572,20 @@ internal object BCoachV2DoseEvaluator {
         val mains = plan.items.filter { it.exerciseStableKey in mainExerciseKeys ||
             it.selectionRole.contains("MAIN", ignoreCase = true) }
         if (mains.isEmpty()) return 0.0
+        val sessions = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
         return mains.flatMap { item ->
+            val precedingAccessorySets = sessions.getValue(item.weekNumber to item.dayOfWeek).sumOf { prior ->
+                if (prior.orderIndex < item.orderIndex &&
+                    (prior.selectionRole.contains("ACCESSORY", true) || prior.selectionRole.contains("ASSIST", true)))
+                    prior.setCount else 0
+            }
+            // A bounded scheduling preference for fresh main lifts, measured in score units.
+            val orderCost = (precedingAccessorySets * 0.015).coerceAtMost(0.10)
             ProgramSetPrescriptionResolver.resolve(item).map { set ->
                 val setId = BCoachV2LoadCandidateResolver.setId(item.localId, set.setIndex)
                 val rir = rirBySetId[setId] ?: rirByLocalId[item.localId] ?: return@map 0.35
                 val bounds = if ("SPORT" in item.selectionRole) 2.0..4.0 else 1.0..3.0
-                val rirDistance = intervalDistance(rir, bounds.start, bounds.endInclusive) / 4.0
+                val rirDistance = intervalDistance(rir, bounds.start, bounds.endInclusive) / 4.0 + orderCost
                 val intensity = intensityBySetId[setId] ?: intensityByLocalId[item.localId]
                 if (intensity == null || "STRENGTH" !in item.selectionRole) rirDistance.unitInterval()
                 else (rirDistance + 0.5 * intervalDistance(intensity, 0.80, 1.0) / 0.20).unitInterval()

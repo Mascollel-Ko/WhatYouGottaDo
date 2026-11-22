@@ -119,7 +119,14 @@ class MetadataAuthorityTest(unittest.TestCase):
             for field, old_value in old.items():
                 if field == "exerciseName":
                     continue
-                if field == "currentPlanningEligibility" and stable_key in history:
+                dead_bug_review = {
+                    "analysisEligibility": "ACCESSORY_VOLUME|FATIGUE",
+                    "badmintonTransferLevel": "NONE", "badmintonTransferType": "NONE",
+                    "badmintonSkillTargets": "NONE", "badmintonPhysicalQualities": "CORE_BRACING|HIP_CONTROL",
+                }
+                if stable_key == "ex_d5bdffe1" and field in dead_bug_review:
+                    self.assertEqual(dead_bug_review[field], current[field])
+                elif field == "currentPlanningEligibility" and stable_key in history:
                     self.assertEqual("HISTORY_ONLY", current[field])
                 else:
                     self.assertEqual(old_value, current[field], f"{stable_key}.{field}")

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -117,18 +118,20 @@ abstract class BCoachReviewLayoutContract {
         compose.onAllNodesWithText(BCoachV2Policy.DISCLAIMER).assertCountEquals(1)
         compose.onAllNodesWithText("legacy text must not drive review", substring = true)
             .assertCountEquals(0)
-        compose.onNodeWithTag("b_coach_review_content").performScrollToNode(hasText("아주 긴 이름의 바벨 백 스쿼트 1주"))
+        compose.onNodeWithTag("b_coach_review_content").performScrollToKey("w1")
         compose.onNodeWithText("아주 긴 이름의 바벨 백 스쿼트 1주").assertIsDisplayed()
         compose.onNodeWithText("약 82.5kg · 장비 단위 확인 필요", substring = true)
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("b_coach_review_content").performScrollToNode(hasText("12주"))
         compose.onNodeWithText("12주").performClick()
+        compose.onNodeWithTag("b_coach_review_content").performScrollToKey("w12")
         compose.onNodeWithText("아주 긴 이름의 바벨 백 스쿼트 12주").assertIsDisplayed()
         compose.onNodeWithTag("b_coach_review_content").assert(hasScrollAction())
         listOf("b_coach_review_apply", "b_coach_review_keep").forEach { tag ->
             val bounds = compose.onNodeWithTag(tag).assertIsDisplayed().getUnclippedBoundsInRoot()
             assertTrue("$tag outside 320dp viewport: $bounds", bounds.left >= 0.dp && bounds.right <= 320.dp)
         }
+        compose.onNodeWithTag("b_coach_review_content").performScrollToNode(hasText("대안 B"))
         compose.onNodeWithTag("b_coach_candidate_C02").performScrollTo().performClick()
         compose.onNodeWithTag("b_coach_review_apply").performClick()
         compose.onNodeWithTag("b_coach_review_keep").performClick()
@@ -201,6 +204,7 @@ abstract class BCoachReviewLayoutContract {
         compose.onNodeWithTag("b_coach_sport_shadow_content")
             .performScrollToNode(hasText("12주"))
         compose.onNodeWithTag("b_coach_shadow_week_12").performClick()
+        compose.onNodeWithTag("b_coach_sport_shadow_content").performScrollToKey("shadow-w12")
         compose.onNodeWithText("앞뒤 랜덤 콕줍기 장문 이름 12주")
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("b_coach_sport_shadow_close").assertIsDisplayed()

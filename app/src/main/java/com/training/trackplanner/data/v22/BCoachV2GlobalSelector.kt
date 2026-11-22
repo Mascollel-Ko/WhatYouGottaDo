@@ -818,6 +818,23 @@ internal object BCoachV2GlobalSelector {
             mainExerciseKeys, evaluation.sportObjectiveWeeks,
             evaluation.taskWeekDoses, muscleRelations, coreCatalog, goalWeights,
             request.bGoalImportance))
+        // Compare a main-before-assistance order on the same days, with unchanged doses.
+        val reordered = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap { day ->
+            val ordered = day.sortedBy { it.orderIndex }
+            val editable = ordered.filter { item ->
+                !item.directSportSession && item.progressionBinding == null &&
+                    !BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) &&
+                    !item.selectionRole.contains("PEAK", true) &&
+                    (item.selectionRole.contains("MAIN", true) || item.selectionRole.contains("ACCESSORY", true) ||
+                        item.selectionRole.contains("ASSIST", true))
+            }
+            val byPriority = editable.sortedByDescending { it.exerciseStableKey in mainExerciseKeys ||
+                it.selectionRole.contains("MAIN", true) }.iterator()
+            ordered.map { item -> if (item in editable) byPriority.next().copy(orderIndex = item.orderIndex) else item }
+        }
+        val originalOrder = plan.items.associate { it.localId to it.orderIndex }
+        if (reordered.any { originalOrder[it.localId] != it.orderIndex })
+            add("PRIORITIZE_MAIN_LIFTS" to plan.copy(items = reordered))
         val priorities = mutationPriorities(plan, evaluation, muscleRelations,
             coreCatalog, badmintonCatalog, goalWeights)
         val uniqueKeys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()

@@ -61,7 +61,16 @@ class BCoachAdditionalLiftShadowTest {
             key to com.training.trackplanner.data.Exercise(stableKey = key, name = key, category = "Strength",
                 equipment = if (key == keys[2]) "DUMBBELL" else "BARBELL")
         }
-        val resolved = BCoachV2LoadCandidateResolver.resolve(plan(), request, emptyList(), exercises, snapshots)
+        val history = V22HistoryInput.fromWorkoutHistory(records)
+        val resolved = BCoachV2LoadCandidateResolver.resolve(plan(), request, history, exercises, snapshots, rirPolicy = policy)
+        val legacy = BCoachV2LoadCandidateResolver.resolve(plan(), request, history, exercises, rirPolicy = policy)
+        val comparison = java.io.File("build/reports/b-coach/confirmed-lift-comparison.txt")
+        comparison.parentFile.mkdirs()
+        comparison.writeText(resolved.skeleton.items.joinToString("\n") { item ->
+            val old = legacy.skeleton.items.single { it.localId == item.localId }
+            "W${item.weekNumber} ${item.exerciseStableKey} legacy=${old.setPrescriptions.map { it.weightKg }} " +
+                "curve=${item.setPrescriptions.map { it.weightKg }} reps=${item.setPrescriptions.map { it.reps }}"
+        })
         for (item in resolved.skeleton.items) {
             assertEquals(3, item.setPrescriptions.size)
             for (set in item.setPrescriptions) {

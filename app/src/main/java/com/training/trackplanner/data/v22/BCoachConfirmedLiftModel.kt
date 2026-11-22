@@ -25,7 +25,9 @@ internal object BCoachConfirmedLiftModel {
             if (!done.confirmed || planned.confirmed || done.reps !in 1..20 || planned.reps !in 1..20 ||
                 done.loadState != ProgramLoadState.EXPLICIT_LOAD || !done.weightKg.isFinite() || done.weightKg <= 0 ||
                 planned.loadSource == com.training.trackplanner.data.ProgramLoadSource.USER_FIXED) return null
-            val mixture = policy.resolve(done.rpe ?: source.entry.rpe ?: return null) ?: return null
+            val rpe = done.rpe ?: source.entry.rpe ?: return null
+            if (!rpe.isFinite() || rpe !in 6.0..10.0) return null
+            val mixture = policy.resolve(rpe) ?: return null
             val current = if (planned.loadState == ProgramLoadState.EXPLICIT_LOAD) planned.weightKg else done.weightKg
             if (!current.isFinite() || current <= 0.0) return null
             val goal = 10.0 - (planned.targetRpeMin ?: 8.0)
@@ -46,9 +48,11 @@ internal object BCoachConfirmedLiftModel {
                 }
             }
             val hold = loss(current)
-            val choices = if (step / current <= 0.07) listOf(current - step, current + step) else emptyList()
+            val maximumStep = if (target.entry.exerciseStableKey == "ex_3a7d3eda") 0.07 else 0.05
+            val choices = if (step / current <= maximumStep) listOf(current - step, current + step) else emptyList()
             val best = choices.minByOrNull(::loss)
-            val selected = if (best != null && hold.isFinite() && loss(best) + 0.05 < hold) best else current
+            if (!hold.isFinite()) return null
+            val selected = if (best != null && loss(best) + 0.05 < hold) best else current
             planned.setIndex to selected
         }
     }

@@ -75,7 +75,8 @@ internal class BCoachLinkedSquatNextWeekService(
         // and can evaluate the actual same-track confirmed sets.
         val curve = canonicalReport?.input?.curve
             ?: curves.resolve(key)
-        val evidenceForPlan = BCoachObservedSquatProgression.evaluate(
+        val integrated = metadata.optBoolean("bCoachIntegratedLifts")
+        val evidenceForPlan = if (integrated) null else BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
             links = links, records = records, prescriptions = prescriptions,
             plateOneSideKg = plate, displayedStepKg = step,
@@ -92,7 +93,10 @@ internal class BCoachLinkedSquatNextWeekService(
             links = links,
             prescriptions = prescriptions,
             anchor = evidenceForPlan?.anchor,
-            ranking = evidenceForPlan?.ranking
+            ranking = evidenceForPlan?.ranking,
+            resolveLoads = if (integrated) { source, target ->
+                BCoachConfirmedLiftModel.nextLoads(source, target, curve, rirPolicy, step)
+            } else null
         )
         if (report.canApply && dao.suggestions().any {
                 it.targetEntryId == targetEntryId &&
@@ -102,19 +106,7 @@ internal class BCoachLinkedSquatNextWeekService(
                         ProgressionResolution.MANUAL_OVERRIDE
                     )
             }) return report.copy(status = "PRIOR_EXPLICIT_PROGRESSION_DECISION", evidenceFingerprint = null)
-        if (!report.canApply || !metadata.optBoolean("bCoachIntegratedLifts")) return report
-        val source = records.single { it.entry.id == report.sourceEntryId }
-        val target = records.single { it.entry.id == targetEntryId }
-        val loads = BCoachConfirmedLiftModel.nextLoads(source, target, curve, rirPolicy, step)
-            ?: return report.copy(status = "SET_SCHEME_REVIEW", evidenceFingerprint = null)
-        val changed = target.sets.filter { it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
-            kotlin.math.abs(it.weightKg - loads.getValue(it.setIndex)) > 1e-8 }
-        if (changed.isEmpty()) return report.copy(status = "CURRENT_PLAN_FITS", evidenceFingerprint = null)
-        val first = changed.minBy { it.setIndex }
-        val changedLoads = changed.associate { it.setIndex to loads.getValue(it.setIndex) }.toSortedMap()
-        return report.copy(affectedSetIndices = changedLoads.keys.toList(), loadsBySetIndex = changedLoads,
-            proposedLoadKg = changedLoads.getValue(first.setIndex), proposedReps = first.reps,
-            selectedAction = "SET_SPECIFIC", evidenceFingerprint = "${report.evidenceFingerprint}|$changedLoads")
+        return report
     }
 
     /** User taps Apply. No stale previews or half-completed target entries can be written. */
@@ -141,7 +133,7 @@ internal class BCoachLinkedSquatNextWeekService(
             ?: return@withTransaction false
         val proposedKg = checkNotNull(proposal.proposedLoadKg)
         val proposedReps = checkNotNull(proposal.proposedReps)
-        val originalKg = sets.first().weightKg
+        val originalKg = sets.first { it.setIndex in proposal.affectedSetIndices || proposal.affectedSetIndices.isEmpty() }.weightKg
         // Write only explicitly approved set indices. A mixed-set Shadow first
         // set must never rewrite untouched follow-up set rows or their provenance.
         val affected = proposal.affectedSetIndices.ifEmpty { sets.map { it.setIndex } }.toSet()

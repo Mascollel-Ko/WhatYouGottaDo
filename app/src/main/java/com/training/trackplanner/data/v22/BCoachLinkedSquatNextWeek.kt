@@ -55,7 +55,8 @@ internal object BCoachLinkedSquatWeekPlanner {
         links: List<ProgramWorkoutLink>,
         prescriptions: List<ProgramPrescriptionSet>,
         anchor: BCoachSquatAnchorSession?,
-        ranking: BCoachSquatCurveProgressionReport?
+        ranking: BCoachSquatCurveProgressionReport?,
+        resolveLoads: ((WorkoutEntryWithSets, WorkoutEntryWithSets) -> Map<Int, Double>?)? = null
     ): BCoachLinkedSquatNextWeekProposal {
         val byEntry = workouts.associateBy { it.entry.id }
         val target = byEntry[targetEntryId] ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
@@ -127,6 +128,33 @@ internal object BCoachLinkedSquatWeekPlanner {
         }
         val sourceSets = sourceRecord.sets.sortedBy { it.setIndex }
         val sourceTargets = prescriptions.filter { it.entryId == sourceLink.entryId }
+        if (resolveLoads != null) {
+            val sourceIndices = sourceSets.map { it.setIndex }
+            if (sourceIndices.isEmpty() || sourceIndices.distinct().size != sourceIndices.size ||
+                sourceTargets.any { !it.originalExists } ||
+                sourceTargets.map { it.plannedSetIndex }.toSet() != sourceIndices.toSet() ||
+                sourceTargets.size != sourceIndices.size) return result("SOURCE_STRUCTURE_CHANGED")
+            if (targets.any { it.originalTargetRpeMin != it.plannedTargetRpeMin } ||
+                sets.any { set -> targets.single { it.plannedSetIndex == set.setIndex }.plannedTargetRpeMin != set.targetRpeMin })
+                return result("USER_EDIT_PROTECTED")
+            val loads = resolveLoads(sourceRecord, target) ?: return result("SET_SCHEME_REVIEW")
+            if (loads.keys != sets.map { it.setIndex }.toSet() ||
+                loads.values.any { !it.isFinite() || it <= 0 }) return result("SET_SCHEME_REVIEW")
+            val changed = sets.filter { it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
+                abs(it.weightKg - loads.getValue(it.setIndex)) > EPS }
+            if (changed.isEmpty()) return result("CURRENT_PLAN_FITS", sourceLink.entryId)
+            val first = changed.first()
+            val updated = changed.associate { it.setIndex to loads.getValue(it.setIndex) }.toSortedMap()
+            return result("READY_FOR_USER_APPROVAL", sourceLink.entryId).copy(
+                sourceWeek = sourceLink.weekNumber,
+                sourceText = sourceSets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
+                originalPlanText = sets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
+                proposedLoadKg = updated.getValue(first.setIndex), proposedReps = first.reps,
+                proposedSets = sets.size, selectedAction = "SET_SPECIFIC",
+                affectedSetIndices = updated.keys.toList(), loadsBySetIndex = updated,
+                evidenceFingerprint = fingerprint(asOf, application, sourceLink, sourceRecord,
+                    sourceTargets, targetLink, target, targets, null, updated.toString()))
+        }
         val session = ProgressionSession(sourceLink, sourceSets, sourceTargets)
         // Set edits made immediately before confirmation can change plannedReps/plannedKg.
         // They cannot turn a failed original B prescription into a synthetic success.
@@ -214,7 +242,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         sourceTargets: List<ProgramPrescriptionSet>,
         targetLink: ProgramWorkoutLink, target: WorkoutEntryWithSets,
         targetTargets: List<ProgramPrescriptionSet>,
-        ranking: BCoachSquatCurveProgressionReport,
+        ranking: BCoachSquatCurveProgressionReport?,
         action: String
     ): String {
         val raw = listOf(asOf, application, sourceLink, source.entry,

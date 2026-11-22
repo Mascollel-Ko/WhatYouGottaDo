@@ -162,7 +162,7 @@ internal fun BCoachProductionReviewDialog(
     fun comparedToRecommended(candidateId: String): String {
         val plan = candidateForReview(candidateId) ?: return "후보 세부 정보 없음"
         if (candidateId == alternatives.firstOrNull { it.recommended }?.candidateId)
-            return "현재 추천안"
+            return "목표 훈련량과 회복 부담을 함께 고려해 추천"
         val reference = recommendedPlan ?: return "추천안 비교 불가"
         fun visible(item: ProgramSkeletonItem?): String = item?.let { exercise ->
             exercise.orderIndex.toString() + "/" + exercise.restSeconds + ":" +
@@ -313,7 +313,9 @@ internal fun BCoachProductionReviewDialog(
                                 else OutlinedButton({ selectedWeek = week }) { Text("${week}주") }
                             }
                         }
-                        Text("요일", style = MaterialTheme.typography.titleMedium)
+                        val daySets = plan.items.filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
+                            .sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
+                        Text("요일 · 선택한 날 총 ${daySets}세트", style = MaterialTheme.typography.titleMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             days.forEach { day ->
@@ -341,7 +343,11 @@ internal fun BCoachProductionReviewDialog(
                                     val effort = set.expectedRir?.let { "예상 RIR ${"%.1f".format(it)}" }
                                         ?: set.targetRpeMin?.let { "목표 RPE ${"%.1f".format(it)}" }
                                         ?: "RIR/RPE 확인 필요"
-                                    val volume = if (set.seconds > 0) "${set.seconds}초" else "${set.reps}회"
+                                    val volume = when {
+                                        set.seconds > 0 -> "${set.seconds}초"
+                                        set.reps > 0 -> "${set.reps}회"
+                                        else -> "수행 시간·거리 확인 필요"
+                                    }
                                     Text("${set.setIndex}세트 · $volume · ${loadText(set)} · $effort · 휴식 ${exercise.restSeconds}초",
                                         style = MaterialTheme.typography.bodySmall)
                                 }

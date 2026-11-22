@@ -144,7 +144,7 @@ class BCoachMultiobjectiveProductionTest {
     }
 
     @Test
-    fun `squat Gate F explicit acceptance is fingerprinted and persists only first set`() {
+    fun `accept persists exactly the reviewed set plan for every exercise`() {
         val outcome = prepare(
             baseline = withTargetRpe(skeleton(2), 8.0),
             candidate = withTargetRpe(skeleton(3), 8.0)
@@ -152,64 +152,11 @@ class BCoachMultiobjectiveProductionTest {
         val proposal = requireNotNull(outcome.proposal)
         val candidateId = requireNotNull(outcome.decision.recommendedCandidateId)
         val candidate = requireNotNull(proposal.candidateForReview(candidateId))
-        val first = candidate.items.filter { it.exerciseStableKey == "barbell_back_squat" }
-            .minWithOrNull(compareBy<ProgramSkeletonItem> { it.weekNumber }
-                .thenBy { it.dayOfWeek }) ?: error("missing squat")
-        val original = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(first)
-        val reps = original.first().reps
-        val count = original.size
-        val chosenKg = original.first().weightKg.takeIf { it.isFinite() && it > 0.0 }
-            ?: original.first().estimatedLoadKg?.takeIf { it.isFinite() && it > 0.0 }
-            ?: 100.0
-        assertTrue(reps in 1..20 && count > 0)
-        val report = BCoachSquatShadowProgramComparison(
-            status = "STABLE_EXPERIMENT_ONLY",
-            snapshotDate = request().asOf,
-            observedReference = "${chosenKg}kg × ${reps}회 / RPE 7",
-            plannedSquatRows = emptyList(),
-            experimentCandidates = emptyList(), experiments = emptyList(),
-            notices = emptyList(),
-            curveRanking = BCoachSquatCurveProgressionReport(
-                status = "EXPERIMENTAL_RANKING_ONLY",
-                asOf = request().asOf,
-                referenceDate = request().asOf.minusDays(1),
-                selectedAction = "HOLD", historicalE1rmKg = 155.0,
-                targetRir = 2.0, doseTargetSets = count,
-                ranked = listOf(BCoachSquatCurveProgressionReport.Candidate(
-                    action = "HOLD", loadKg = chosenKg, reps = reps, sets = count,
-                    requiredE1rmKg = 155.0, historicalE1rmLogGap = 0.01,
-                    worstCaseRegret = 0.0, weightedCost = 0.1,
-                    targetRirMixtureMass = 0.95, volumeLoadChange = 0.0,
-                    eligible = true, reason = "OBSERVED_HOLD"
-                )), notes = emptyList()
-            )
-        )
-        val accepted = proposal.acceptWithSquatShadow(
-            requireNotNull(outcome.decision.proposalFingerprint),
-            outcome.skeleton, candidateId, report
-        )
-        assertTrue(accepted.reason, accepted.accepted)
-        val approved = requireNotNull(accepted.skeleton)
-        val edited = approved.items.single { it.localId == first.localId }
-        val all = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(edited)
-        assertEquals(chosenKg, all.first().weightKg, 0.0)
-        assertEquals(ProgramLoadSource.USER_FIXED, all.first().loadSource)
-        assertEquals(original.drop(1), all.drop(1))
-        assertTrue(approved.items.filter { it.localId != first.localId }
-            .map { it.localId to it.setPrescriptions } ==
-            candidate.items.filter { it.localId != first.localId }
-                .map { it.localId to it.setPrescriptions })
-        val audit = JSONObject(requireNotNull(approved.planningMetadataJson))
-            .getJSONObject("bCoachSquatShadowApprovedFirstSet")
-        assertEquals("HOLD", audit.getString("action"))
-        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
-            approved, history(), mapOf(squat.stableKey to squat),
-            BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
-        )
         val ordinary = proposal.accept(
             requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton, candidateId
         )
         assertTrue(ordinary.accepted)
+        assertEquals(candidate.items, requireNotNull(ordinary.skeleton).items)
         assertFalse(requireNotNull(ordinary.skeleton).planningMetadataJson.orEmpty()
             .contains("bCoachSquatShadowApprovedFirstSet"))
     }

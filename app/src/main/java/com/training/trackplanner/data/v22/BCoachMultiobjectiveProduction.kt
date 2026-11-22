@@ -169,48 +169,6 @@ class BCoachMultiobjectiveProposal internal constructor(
         "RECOMMENDED"
     )
 
-    /**
-     * Explicit opt-in: apply ONE Gate F first-squat-set change to the already
-     * fingerprint-approved B candidate. The original candidate is first
-     * accepted using the normal stale-input and proposal checks; any missing
-     * shadow evidence rejects without mutating a draft.
-     */
-    fun acceptWithSquatShadow(
-        expectedProposalFingerprint: String,
-        currentSkeleton: GeneratedProgramSkeleton,
-        candidateId: String,
-        comparison: BCoachSquatShadowProgramComparison
-    ): BCoachProposalAcceptance {
-        if (comparison.snapshotDate?.toString() != decision.evidenceCutoff) {
-            return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_EVIDENCE_STALE")
-        }
-        val regular = accept(expectedProposalFingerprint, currentSkeleton, candidateId)
-        if (!regular.accepted || regular.skeleton == null) return regular
-        val review = BCoachSquatShadowProgramBridge.inspect(
-            regular.skeleton, comparison
-        ) ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_NOT_ELIGIBLE")
-        val changed = BCoachSquatShadowProgramBridge.apply(
-            regular.skeleton, comparison, review
-        ) ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_PROPOSAL_CHANGED")
-        val instructions = loadInstructionsByCandidateId[candidateId].orEmpty() +
-            (BCoachV2LoadCandidateResolver.setId(review.localId, 1) to
-                "USER_APPROVED_GATE_F_FIRST_SET:${review.approvedLoadKg}kg:${review.approvedReps}reps")
-        val signed = BCoachMultiobjectiveProduction.withDecisionMetadata(
-            changed,
-            decision,
-            "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW",
-            acceptedStructureFingerprint =
-                BCoachMultiobjectiveProduction.persistenceStructureFingerprint(changed),
-            // The objective scores were computed for the original reviewed B candidate,
-            // not this optional first-set experiment. Keep the source fingerprint
-            // so persisted diagnostics correctly mark the final prescription as adjusted.
-            acceptedCandidateFingerprint =
-                BCoachMultiobjectiveProduction.fingerprint(regular.skeleton),
-            chosenAlternativeId = candidateId,
-            chosenLoadInstructions = instructions
-        )
-        return BCoachProposalAcceptance(true, signed, "SQUAT_SHADOW_FIRST_SET_APPROVED")
-    }
 
     fun accept(
         expectedProposalFingerprint: String,
