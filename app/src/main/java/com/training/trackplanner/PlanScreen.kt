@@ -155,8 +155,9 @@ internal fun bCoachReviewWindowBounds(): Modifier {
         val bars = metrics.windowInsets.getInsetsIgnoringVisibility(
             android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout()
         )
-        frame.set(metrics.bounds)
-        frame.inset(bars.left, bars.top, bars.right, bars.bottom)
+        val bounds = metrics.bounds
+        frame.set(bounds.left + bars.left, bounds.top + bars.top,
+            bounds.right - bars.right, bounds.bottom - bars.bottom)
     }
     // A floating dialog can measure at full display height even when WindowManager
     // clips its surface to the smaller system-bar-safe frame on Android 17.
