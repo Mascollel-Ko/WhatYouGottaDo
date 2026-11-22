@@ -207,12 +207,16 @@ class V22ProgramIntegrationTest {
             generationRequest, emptyList(), mapOf(exercise.stableKey to exercise),
             baseline = skeleton(2), candidate = skeleton(3)
         )
-        val jointCandidateId = outcome.decision.alternatives.single { it.label == "JOINT_SEED" }.candidateId
-        val accepted = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton, jointCandidateId
+        val proposal = requireNotNull(outcome.proposal)
+        val reviewed = outcome.decision.alternatives.map { alternative ->
+            alternative to requireNotNull(proposal.candidateForReview(alternative.candidateId)).items.single()
+        }.first { (_, item) -> item.dayOfWeek == 1 && item.weekNumber == 1 && item.setCount != 2 }
+        val reviewedSetCount = reviewed.second.setCount
+        val accepted = proposal.accept(
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton, reviewed.first.candidateId
         )
         val acceptedSkeleton = requireNotNull(accepted.skeleton)
-        assertEquals(3, acceptedSkeleton.items.single().setCount)
+        assertEquals(reviewedSetCount, acceptedSkeleton.items.single().setCount)
         val calibratedSkeleton = acceptedSkeleton.copy(items = acceptedSkeleton.items.map { item ->
             item.copy(
                 weightKg = 100.0,
@@ -226,7 +230,7 @@ class V22ProgramIntegrationTest {
         val repository = TrainingRepository(db, context)
         val programId = repository.saveGeneratedProgram(null, calibratedSkeleton)
         val reopened = skeletonFromProgram(repository.programEditorSnapshot(programId))
-        assertEquals(3, reopened.items.single().setCount)
+        assertEquals(reviewedSetCount, reopened.items.single().setCount)
         assertTrue(reopened.items.single().setPrescriptions.all {
             it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
         })
@@ -255,7 +259,7 @@ class V22ProgramIntegrationTest {
         repository.applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
         val applied = db.workoutDao().entriesWithSets("2026-11-16").single()
         assertEquals(exercise.stableKey, applied.entry.exerciseStableKey)
-        assertEquals(3, applied.sets.size)
+        assertEquals(reviewedSetCount, applied.sets.size)
         assertTrue(applied.sets.all {
             !it.confirmed && it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
         })
