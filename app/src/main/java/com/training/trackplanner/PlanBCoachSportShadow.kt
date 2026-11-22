@@ -112,9 +112,10 @@ internal fun BCoachSportShadowDialog(
         report.candidates.filter { it.productionRecommended })
         .distinctBy { it.candidateId }
 
+    val windowBounds = bCoachReviewWindowBounds()
     Dialog(onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        Surface(Modifier.fillMaxSize().testTag("b_coach_sport_shadow_dialog")) {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)) {
+        Surface(windowBounds.fillMaxSize().testTag("b_coach_sport_shadow_dialog")) {
             Column(
                 Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)

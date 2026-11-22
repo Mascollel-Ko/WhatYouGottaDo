@@ -179,6 +179,7 @@ class BCoachObservedSquatProgressionTest {
             .allowMainThreadQueries().build()
         try {
             val now = LocalDate.now()
+            db.exerciseDao().insertAll(SeedData.exercises(context))
             val repo = TrainingRepository(db, context)
             val dao = db.programProgressionDao()
             val workouts = db.workoutDao()

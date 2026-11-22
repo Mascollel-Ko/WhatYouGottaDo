@@ -2,6 +2,7 @@ package com.training.trackplanner
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -142,6 +143,33 @@ internal fun personalizedQuestionShortLabel(question: PersonalizedPlanningQuesti
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+internal fun bCoachReviewWindowBounds(): Modifier {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val frame = android.graphics.Rect()
+    view.getWindowVisibleDisplayFrame(frame)
+    if (android.os.Build.VERSION.SDK_INT >= 30) {
+        val manager = view.context.getSystemService(android.view.WindowManager::class.java)
+        val metrics = manager.currentWindowMetrics
+        val bars = metrics.windowInsets.getInsetsIgnoringVisibility(
+            android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout()
+        )
+        frame.set(metrics.bounds)
+        frame.inset(bars.left, bars.top, bars.right, bars.bottom)
+    }
+    // A floating dialog can measure at full display height even when WindowManager
+    // clips its surface to the smaller system-bar-safe frame on Android 17.
+    return with(density) {
+        Modifier.sizeIn(
+            maxWidth = frame.width().takeIf { it > 0 }?.toDp() ?: configuration.screenWidthDp.dp,
+            maxHeight = frame.height().takeIf { it > 0 }?.toDp() ?: configuration.screenHeightDp.dp
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 internal fun BCoachProductionReviewDialog(
     changes: List<String>,
     unresolvedCodes: List<String>,
@@ -225,11 +253,12 @@ internal fun BCoachProductionReviewDialog(
         set.loadState == ProgramLoadState.NOT_APPLICABLE -> "중량 적용 안 함"
         else -> "${"%.1f".format(set.weightKg)}kg"
     }
+    val windowBounds = bCoachReviewWindowBounds()
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)
     ) {
-        Surface(Modifier.fillMaxSize().testTag("b_coach_review_dialog")) {
+        Surface(windowBounds.fillMaxSize().testTag("b_coach_review_dialog")) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
                 Text("B-Coach 전체 블록 후보 검토", style = MaterialTheme.typography.titleLarge)
                 Column(
