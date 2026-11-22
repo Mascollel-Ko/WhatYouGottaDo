@@ -41,6 +41,11 @@ import org.junit.Rule
 import org.junit.Test
 abstract class BCoachReviewLayoutContract {
     @get:Rule val compose = createComposeRule()
+    protected open fun captureReviewScreen(name: String) = Unit
+
+    private fun displayText(value: String) = com.training.trackplanner.localization.LocalizedPresentation.uiText(
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext, value
+    )
 
     @Test
     fun reviewActionsReachable() {
@@ -118,11 +123,12 @@ abstract class BCoachReviewLayoutContract {
         compose.onAllNodesWithText(BCoachV2Policy.DISCLAIMER).assertCountEquals(1)
         compose.onAllNodesWithText("legacy text must not drive review", substring = true)
             .assertCountEquals(0)
-        compose.onNodeWithText("아주 긴 이름의 바벨 백 스쿼트 1주").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("약 82.5kg · 장비 단위 확인 필요", substring = true)
+        compose.onNodeWithText(displayText("아주 긴 이름의 바벨 백 스쿼트 1주")).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(displayText("2세트 · 8회 · 약 82.5kg · 장비 단위 확인 필요 · 예상 RIR 1.5 · 휴식 120초"))
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("12주").performScrollTo().performClick()
-        compose.onNodeWithText("아주 긴 이름의 바벨 백 스쿼트 12주").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(displayText("아주 긴 이름의 바벨 백 스쿼트 12주")).performScrollTo().assertIsDisplayed()
+        captureReviewScreen("candidate-week12")
         compose.onNodeWithTag("b_coach_review_content").assert(hasScrollAction())
         listOf("b_coach_review_apply", "b_coach_review_keep").forEach { tag ->
             val bounds = compose.onNodeWithTag(tag).assertIsDisplayed().getUnclippedBoundsInRoot()
@@ -203,6 +209,7 @@ abstract class BCoachReviewLayoutContract {
         compose.onNodeWithTag("b_coach_sport_shadow_content").performScrollToKey("shadow-w12")
         compose.onNodeWithText("앞뒤 랜덤 콕줍기 장문 이름 12주")
             .performScrollTo().assertIsDisplayed()
+        captureReviewScreen("sport-week12")
         compose.onNodeWithTag("b_coach_sport_shadow_close").assertIsDisplayed()
             .performClick()
         compose.runOnIdle { assertTrue(closed) }

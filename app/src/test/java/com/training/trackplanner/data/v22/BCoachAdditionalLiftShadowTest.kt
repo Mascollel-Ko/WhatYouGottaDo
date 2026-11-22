@@ -81,8 +81,10 @@ class BCoachAdditionalLiftShadowTest {
                 assertEquals(0.0, set.weightKg % step, 1e-6)
             }
         }
-        assertFalse(keys[0] in BCoachConfirmedLiftModel.snapshots(asOf,
-            records + entry(keys[0], 5, 180.0, confirmed = false), curves, policy))
+        val pending = entry(keys[0], 5, 200.0, confirmed = false)
+        assertFalse(keys[0] in BCoachConfirmedLiftModel.snapshots(asOf, listOf(pending), curves, policy))
+        assertEquals(snapshots.getValue(keys[0]).evidenceIds, BCoachConfirmedLiftModel.snapshots(
+            asOf, records + pending, curves, policy).getValue(keys[0]).evidenceIds)
     }
 
     private fun plan(): GeneratedProgramSkeleton {

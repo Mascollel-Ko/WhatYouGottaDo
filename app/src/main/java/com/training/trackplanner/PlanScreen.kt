@@ -227,7 +227,7 @@ internal fun BCoachProductionReviewDialog(
     }
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
         Surface(Modifier.fillMaxSize().testTag("b_coach_review_dialog")) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
@@ -251,8 +251,6 @@ internal fun BCoachProductionReviewDialog(
                         onClick = onOpenSportShadow,
                         modifier = Modifier.fillMaxWidth().testTag("b_coach_review_open_sport_shadow")
                     ) { Text("후보별 스포츠 훈련량 비교") }
-                    Text("실험 화면에서는 추천안을 적용하거나 저장할 수 없습니다.",
-                        style = MaterialTheme.typography.bodySmall)
                 }
                 if (alternatives.isNotEmpty()) Column {
                     Text("계획 선택", modifier = Modifier.padding(top = 12.dp))
@@ -1106,9 +1104,6 @@ private fun ProgramEditorScreen(
                         "STALE_INPUT_REGENERATE_REQUIRED" -> "검토하는 동안 초안의 처방이 변경되었습니다. 다시 생성해 주세요."
                         "UNKNOWN_CANDIDATE" -> "선택한 후보를 찾을 수 없습니다. 다른 후보를 선택하거나 다시 생성해 주세요."
                         "PROPOSAL_CONTENT_MISMATCH" -> "후보 내용 검증에 실패했습니다. 다시 생성해 주세요."
-                        "SQUAT_SHADOW_NOT_ELIGIBLE", "SQUAT_SHADOW_PROPOSAL_CHANGED",
-                        "SQUAT_SHADOW_EVIDENCE_STALE" ->
-                            "백스쿼트 Shadow 기록이나 계획이 바뀌었습니다. 다시 생성하거나 일반 후보를 적용해 주세요."
                         else -> "후보를 적용하지 못했습니다. 다시 생성해 주세요."
                     }
                     Toast.makeText(

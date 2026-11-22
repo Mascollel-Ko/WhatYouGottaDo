@@ -174,6 +174,50 @@ class BCoachObservedSquatProgressionTest {
         assertFalse(inspect(rows.map { if (it.entryId == 2L) it.copy(originalReps = 3) else it }).canApply)
     }
 
+    @Test fun fourLiftsPersistOnlyTheNextLinkedPrescriptionAfterConfirmation() = kotlinx.coroutines.runBlocking {
+        val db = androidx.room.Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val now = LocalDate.now()
+            val repo = TrainingRepository(db, context)
+            val dao = db.programProgressionDao()
+            val workouts = db.workoutDao()
+            db.programDao().insertProgram(TrainingProgram(stableKey = app.programStableKey,
+                name = "4주 B", durationDays = 28, planningMetadataJson = """
+                {"bCoachIntegratedLifts":true,"bCoachProgressionEquipmentSchema":"linked-g-1",
+                 "bCoachPlateOneSideKg":1.25,"bCoachDumbbellDisplayedIncrementKg":2.0}
+                """.trimIndent()))
+            dao.putApplication(app.copy(startDate = now.toString()))
+            for ((index, key) in BCoachConfirmedLiftModel.keys.withIndex()) {
+                val firstId = 10L * (index + 1)
+                for (sequence in 1..3) {
+                    val id = firstId + sequence
+                    val confirmed = sequence == 1
+                    val scheduledDate = now.plusDays(listOf(0L, 9L, 15L)[sequence - 1])
+                    val row = record(id, scheduledDate.toString(), confirmed,
+                        count = 3, reps = 6, kg = 100.0, rpe = if (confirmed) 10.0 else null)
+                    workouts.insertEntry(row.entry.copy(exerciseStableKey = key))
+                    dao.putLink(link(id, sequence, key))
+                    for (set in row.sets) {
+                        workouts.insertSet(set.copy(loadState = ProgramLoadState.EXPLICIT_LOAD))
+                        dao.putPrescription(ProgramPrescriptionSet(id, set.setIndex, set.reps, set.weightKg, 0))
+                    }
+                }
+                val result = repo.progressBCoachAfterConfirmedSquat(firstId + 1)
+                assertTrue("$key ${result.status}", result.wasApplied)
+                val future = workouts.setsForEntry(firstId + 2)
+                assertTrue(future.all { it.weightKg < 100.0 && !it.confirmed && !it.manualWeight })
+                assertTrue(dao.prescriptions(firstId + 2).all { it.originalKg == 100.0 && it.plannedKg < 100.0 })
+                assertTrue(workouts.setsForEntry(firstId + 1).all { it.confirmed && it.weightKg == 100.0 })
+                assertTrue(workouts.setsForEntry(firstId + 3).all { it.weightKg == 100.0 })
+                assertFalse(repo.progressBCoachAfterConfirmedSquat(firstId + 1).wasApplied)
+                assertEquals(future, workouts.setsForEntry(firstId + 2))
+            }
+        } finally {
+            db.close()
+        }
+    }
+
     @Test fun coarseEquipmentAdjustsOneRepAndProtectsManualTargets() {
         val prior = record(1, today.toString(), true, reps = 8, kg = 40.0, rpe = 10.0)
         val scheduled = record(2, today.plusDays(7).toString(), false, reps = 8, kg = 40.0)

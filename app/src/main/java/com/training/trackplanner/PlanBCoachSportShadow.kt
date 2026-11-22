@@ -113,7 +113,7 @@ internal fun BCoachSportShadowDialog(
         .distinctBy { it.candidateId }
 
     Dialog(onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)) {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize().testTag("b_coach_sport_shadow_dialog")) {
             Column(
                 Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
