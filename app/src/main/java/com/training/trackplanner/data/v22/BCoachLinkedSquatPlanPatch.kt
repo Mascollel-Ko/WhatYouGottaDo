@@ -32,6 +32,9 @@ internal object BCoachLinkedSquatPlanPatch {
         if (byIndex.size != count || byIndex.containsKey(null)) return null
         val affected = proposal.affectedSetIndices.ifEmpty { currentSets.map { it.setIndex } }
             .distinct()
+        if (proposal.loadsBySetIndex.isNotEmpty() &&
+            (proposal.loadsBySetIndex.keys != affected.toSet() ||
+                proposal.loadsBySetIndex.values.any { !it.isFinite() || it <= 0.0 })) return null
         if (affected.isEmpty() || affected.any { it !in currentSets.map(WorkoutSet::setIndex) })
             return null
         val next = currentSets.sortedBy { it.setIndex }.map { set ->
@@ -50,13 +53,16 @@ internal object BCoachLinkedSquatPlanPatch {
             if (set.setIndex !in affected) {
                 set to target
             } else {
+                val nextKg = proposal.loadsBySetIndex[set.setIndex] ?: kg
+                val nextReps = if (proposal.loadsBySetIndex.isEmpty()) reps else set.reps
                 val nextSet = set.copy(
-                    reps = reps, weightKg = kg,
+                    reps = nextReps, weightKg = nextKg,
+                    estimatedLoadKg = nextKg, freshRir = null, expectedRir = null, relativeIntensity = null,
                     loadState = ProgramLoadState.EXPLICIT_LOAD,
                     manualWeight = true
                 )
                 val nextTarget = target.copy(
-                    plannedReps = reps, plannedKg = kg,
+                    plannedReps = nextReps, plannedKg = nextKg,
                     plannedLoadState = ProgramLoadState.EXPLICIT_LOAD
                 )
                 nextSet to nextTarget

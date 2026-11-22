@@ -49,6 +49,33 @@ class BCoachAdditionalLiftShadowTest {
         })
     }
 
+    @Test fun confirmedCurvesPrescribeEveryWeekWithoutAnOptIn() {
+        val records = listOf(entry(keys[0], 1, 180.0), entry(keys[1], 2, 70.0),
+            entry(keys[2], 3, 48.0), entry("barbell_back_squat", 4, 130.0))
+        val snapshots = BCoachConfirmedLiftModel.snapshots(asOf, records, curves, policy)
+        assertEquals(BCoachConfirmedLiftModel.keys, snapshots.keys)
+        assertTrue(snapshots.getValue(keys[1]).capacityBase > snapshots.getValue(keys[2]).capacityBase)
+        val request = newBBalancedGenerationRequest("four weeks", 3, asOf, 60, false,
+            BBalancedGoalImportance(3,3,3,3), shadowPlateOneSideKg = 1.25, shadowDumbbellIncrementKg = 2.0)
+        val exercises = records.associate { val key = it.entry.exerciseStableKey
+            key to com.training.trackplanner.data.Exercise(stableKey = key, name = key, category = "Strength",
+                equipment = if (key == keys[2]) "DUMBBELL" else "BARBELL")
+        }
+        val resolved = BCoachV2LoadCandidateResolver.resolve(plan(), request, emptyList(), exercises, snapshots)
+        for (item in resolved.skeleton.items) {
+            assertEquals(3, item.setPrescriptions.size)
+            for (set in item.setPrescriptions) {
+                assertTrue(set.weightKg > 0.0)
+                assertEquals(ProgramLoadState.EXPLICIT_LOAD, set.loadState)
+                assertTrue(set.expectedRir?.isFinite() == true)
+                val step = if (item.exerciseStableKey == keys[2]) 2.0 else 2.5
+                assertEquals(0.0, set.weightKg % step, 1e-6)
+            }
+        }
+        assertFalse(keys[0] in BCoachConfirmedLiftModel.snapshots(asOf,
+            records + entry(keys[0], 5, 180.0, confirmed = false), curves, policy))
+    }
+
     private fun plan(): GeneratedProgramSkeleton {
         val request = ProgramSkeletonRequest(
             "B", ProgramGoal.FUNCTIONAL_CONDITIONING, 3, 60, emptySet(),

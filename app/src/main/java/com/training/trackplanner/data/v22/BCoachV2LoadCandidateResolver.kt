@@ -612,7 +612,8 @@ internal object BCoachV2LoadCandidateResolver {
         model: BCoachV2LoadModelSnapshot?,
         direct: DirectHistoryEstimate?
     ): BCoachV2LoadModelSnapshot? {
-        if (model == null || direct == null || direct.capacityKg <= model.capacityBase) return model
+        if (model == null || model.tier == "CONFIRMED_LIFT_CURVE" || direct == null ||
+            direct.capacityKg <= model.capacityBase) return model
         val scale = direct.capacityKg / model.capacityBase
         return model.copy(
             capacityLow = model.capacityLow * scale,

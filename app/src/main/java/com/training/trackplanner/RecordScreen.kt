@@ -468,7 +468,7 @@ internal fun RecordScreen(
                                     prescriptionsByEntryId[entryId].orEmpty(),
                                     viewModel::resolveProgression
                                 )
-                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                                if (entryWithSets.entry.exerciseStableKey in com.training.trackplanner.data.v22.BCoachConfirmedLiftModel.keys &&
                                     selectedDate >= LocalDate.now().toString() &&
                                     entryWithSets.sets.isNotEmpty() &&
                                     entryWithSets.sets.none { it.confirmed }
@@ -476,7 +476,7 @@ internal fun RecordScreen(
                                     BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
                                 }
                             }
-                            if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                            if (entryWithSets.entry.exerciseStableKey in com.training.trackplanner.data.v22.BCoachConfirmedLiftModel.keys &&
                                 entryWithSets.sets.isNotEmpty() &&
                                 entryWithSets.sets.all { it.confirmed }
                             ) {
@@ -517,7 +517,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
         if (appliedKg != null) {
-            Text("B-Coach · 다음 연결 스쿼트 자동 반영 완료 (${appliedKg}kg)",
+            Text("B-Coach · 다음 연결 운동 자동 반영 완료 (${appliedKg}kg)",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
                 Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
@@ -528,10 +528,10 @@ private fun BCoachConfirmedSquatProgressionNotice(
                 "NEXT_LINKED_UPDATED" -> "다음 연결 운동의 계획에 자동 반영했습니다."
                 "WAITING_FOR_CONFIRMED_RPE_SETS" -> "모든 세트의 확인과 RPE 기록이 필요합니다."
                 "SOURCE_NOT_PROGRAM_LINKED" -> "이 기록이 적용 프로그램과 연결되지 않았습니다."
-                "TRACK_EXERCISE_MISMATCH" -> "연결된 다음 운동의 종목이 스쿼트가 아니어서 자동 변경하지 않았습니다."
+                "TRACK_EXERCISE_MISMATCH" -> "연결된 다음 운동의 종목이 달라서 자동 변경하지 않았습니다."
                 "LINKED_PREDECESSOR_RECORD_MISSING" -> "프로그램 연결에 해당하는 실제 운동기록이 없습니다."
                 "NO_LINKED_PREDECESSOR" -> "계획에서 연결한 이전 운동이 없습니다."
-                "NO_NEXT_LINKED_EXERCISE" -> "계획에서 연결한 다음 스쿼트가 없습니다. 운동 간 연결을 확인하세요."
+                "NO_NEXT_LINKED_EXERCISE" -> "계획에서 연결한 다음 운동가 없습니다. 운동 간 연결을 확인하세요."
                 "AMBIGUOUS_LINKED_SEQUENCE" -> "연결된 운동의 순서가 중복되어 다음 운동을 특정할 수 없습니다."
                 "EQUIPMENT_SNAPSHOT_MISSING" -> "이전 버전의 프로그램에 원판 간격이 저장돼 있지 않습니다. 새 B 프로그램이 필요합니다."
                 "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "기록한 세트가 프로그램 목표를 모두 달성하지 못했습니다."
@@ -587,19 +587,21 @@ private fun BCoachLinkedSquatNextWeekControl(
     }
     val proposal = report ?: return
     if (applied) {
-        Text("B-Coach: 다음 연결 스쿼트 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
+        Text("B-Coach: 다음 연결 운동 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
         return
     }
     if (proposal.canApply) {
         Column(Modifier.fillMaxWidth().padding(vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("B-Coach · 다음 연결 스쿼트 후보 (실험)", style = MaterialTheme.typography.labelLarge)
+            Text("B-Coach · 다음 연결 운동 처방", style = MaterialTheme.typography.labelLarge)
             Text("${proposal.sourceWeek}주차 실제 기록: ${proposal.sourceText ?: "-"}",
                 style = MaterialTheme.typography.bodySmall)
             Text("기존 ${proposal.targetWeek}주차: ${proposal.originalPlanText ?: "-"}",
                 style = MaterialTheme.typography.bodySmall)
-            Text("선정: ${proposal.proposedLoadKg}kg × ${proposal.proposedReps}회 × ${proposal.proposedSets}세트" +
-                " (${proposal.selectedAction})", style = MaterialTheme.typography.bodySmall)
+            val prescription = proposal.loadsBySetIndex.entries.joinToString(" · ") { (index, kg) ->
+                "${index}세트 ${kg}kg"
+            }.ifEmpty { "${proposal.proposedLoadKg}kg × ${proposal.proposedReps}회" }
+            Text(prescription, style = MaterialTheme.typography.bodySmall)
             Text("실제 완료·RPE와 e1RM 곡선을 비교한 잠정 결과입니다. 해당 미완료 운동만 수정합니다.",
                 style = MaterialTheme.typography.bodySmall)
             Button(

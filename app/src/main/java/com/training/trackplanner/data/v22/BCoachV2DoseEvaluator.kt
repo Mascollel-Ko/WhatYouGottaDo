@@ -206,8 +206,19 @@ internal object BCoachV2DoseEvaluator {
                         val gap = (max(0.0, lower - dose) / max(lower, 1.0)).unitInterval()
                         val excess = (max(0.0, dose - upper) / max(upper, 1.0)).pow(2).unitInterval()
                         val taskWeight = blockWeights.getValue(task.goal) / max(1, taskCounts[task.goal] ?: 0)
-                        gapWeighted += taskWeight * gap
-                        excessWeighted += taskWeight * excess
+                        if (task.goal == BBalancedGoal.SPORT_SUPPORT && task.id != "SPORT:GENERAL") {
+                            // Keep actual deficit and excess on their respective Pareto axes.
+                            val weights = BCoachV2Policy.scoreWeights
+                            val deficitWeight = weights.getValue(BCoachObjectiveAxis.GOAL_DEFICIT)
+                            val excessWeight = weights.getValue(BCoachObjectiveAxis.GOAL_EXCESS)
+                            val budget = deficitWeight + excessWeight
+                            val loss = sportObjectiveLoss(dose, lower, upper)
+                            if (dose < lower) gapWeighted += taskWeight * loss * budget / deficitWeight
+                            if (dose > upper) excessWeighted += taskWeight * loss * budget / excessWeight
+                        } else {
+                            gapWeighted += taskWeight * gap
+                            excessWeighted += taskWeight * excess
+                        }
                         doseWeight += taskWeight
                     }
                     val reference = previous[task.id] ?: task.historyReference
@@ -273,7 +284,7 @@ internal object BCoachV2DoseEvaluator {
             rirBySetId = baseRirBySetId,
             intensityBySetId = baseIntensityBySetId
         )
-        val constraints = hardConstraints(plan, baseline, request, baseSchedule, exercises)
+        val constraints = hardConstraints(plan, baseline, request, baseSchedule, exercises, mainExerciseKeys)
         if (baseSchedule.unmappedAxisExerciseCount > 0) reasons +=
             "UNMAPPED_AXIS_EXERCISES:${baseSchedule.unmappedAxisExerciseCount}"
         return BCoachV2CandidateEvaluation(
@@ -607,7 +618,8 @@ internal object BCoachV2DoseEvaluator {
         baseline: GeneratedProgramSkeleton,
         request: V22GenerationRequest,
         schedule: BCoachV2ScheduleEvaluation,
-        exercises: Map<String, Exercise>
+        exercises: Map<String, Exercise>,
+        mainExerciseKeys: Set<String>
     ): List<BCoachConstraintResult> = buildList {
         add(constraint("SESSION_TIME_LIMIT", if (schedule.daysOverLimit == 0)
             BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL,
@@ -632,7 +644,13 @@ internal object BCoachV2DoseEvaluator {
             val special = listOf("RECOVERY", "MOBILITY", "TEST").any { token ->
                 token in (item.category + " " + item.selectionRole).uppercase()
             }
-            !timed && !special
+            val splitDose = plan.items.filter {
+                it.weekNumber == item.weekNumber && it.exerciseStableKey == item.exerciseStableKey
+            }
+            val distributedAccessory = splitDose.any { it.selectionReason == "B_COACH_SPLIT_ACCESSORY_USER_REVIEW" } &&
+                splitDose.sumOf { it.setCount } >= 4 && splitDose.distinctBy { it.dayOfWeek }.size >= 2 &&
+                item.exerciseStableKey !in mainExerciseKeys && !item.selectionRole.contains("MAIN", true)
+            !timed && !special && !distributedAccessory
         }
         add(constraint("NORMAL_TRAINING_MIN_TWO_SETS",
             if (unsupportedSingles.isEmpty()) BCoachConstraintStatus.PASS

@@ -59,6 +59,12 @@ internal data class BCoachSportShadowReport(
     val available: Boolean get() = candidates.isNotEmpty() || error != null
 }
 
+internal fun sportObjectiveLoss(dose: Double, lower: Double, upper: Double): Double {
+    val deficit = ((lower - dose) / max(1.0, lower)).coerceIn(0.0, 1.0)
+    val excess = ((dose - upper) / max(1.0, upper)).coerceIn(0.0, 1.0)
+    return 0.85 * deficit + 0.15 * excess
+}
+
 internal object BCoachSportShadowReview {
     internal data class Input(
         val candidateId: String,
@@ -109,15 +115,9 @@ internal object BCoachSportShadowReview {
                         }.average()
                     )
                 }
-            val deficit = eligible.map { row ->
-                (max(0.0, row.lower - row.dose) / max(1.0, row.lower)).coerceIn(0.0, 1.0)
-            }.average().takeIf { eligible.isNotEmpty() }
-            val excess = eligible.map { row ->
-                (max(0.0, row.dose - row.upper) / max(1.0, row.upper)).coerceIn(0.0, 1.0)
-            }.average().takeIf { eligible.isNotEmpty() }
-            val shadowSportLoss = if (deficit != null && excess != null) {
-                0.85 * deficit + 0.15 * excess
-            } else null
+            val shadowSportLoss = eligible.takeIf { it.isNotEmpty() }?.map {
+                sportObjectiveLoss(it.dose, it.lower, it.upper)
+            }?.average()
 
             val sportItems = candidate.skeleton.items.filter { item ->
                 catalog.relations(item.exerciseStableKey).any { relation ->

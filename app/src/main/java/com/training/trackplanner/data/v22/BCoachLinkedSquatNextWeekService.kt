@@ -43,13 +43,19 @@ internal class BCoachLinkedSquatNextWeekService(
                 notes = listOf("이전에 생성한 프로그램은 실제 원판 크기의 저장 정보가 없어 자동 변경하지 않습니다.")
             )
         }
+        val key = workoutDao.findEntryById(targetEntryId)?.exerciseStableKey
+            ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
+        if (key !in BCoachConfirmedLiftModel.keys ||
+            (key != BCoachLinkedSquatWeekPlanner.SQUAT && !metadata.optBoolean("bCoachIntegratedLifts")))
+            return BCoachLinkedSquatNextWeekProposal("LINK_OR_MODE_NOT_ELIGIBLE")
         val plate = metadata.optDouble("bCoachPlateOneSideKg", Double.NaN)
-        if (!plate.isFinite() || plate !in 0.1..25.0) {
+        val step = if (key == "ex_3a7d3eda") metadata.optDouble("bCoachDumbbellDisplayedIncrementKg", Double.NaN)
+            else plate * 2.0
+        if (!step.isFinite() || step <= 0.0 || (key != "ex_3a7d3eda" && plate !in 0.1..25.0)) {
             return BCoachLinkedSquatNextWeekProposal("INVALID_EQUIPMENT_SNAPSHOT")
         }
-        val evidence = evidenceReader.read(asOf)
-        val pipeline = BCoachSquatShadowPipeline.evaluate(
-            input = evidence,
+        val pipeline = if (key != BCoachLinkedSquatWeekPlanner.SQUAT) null else BCoachSquatShadowPipeline.evaluate(
+            input = evidenceReader.read(asOf),
             rirPolicy = rirPolicy,
             smallestPlateOneSideKg = plate,
             targetRirMin = 1.0,
@@ -62,20 +68,17 @@ internal class BCoachLinkedSquatNextWeekService(
         val records = workoutDao.allEntriesWithSets()
         val links = dao.links()
         val prescriptions = dao.prescriptions()
-        val targetSetCount = prescriptions.count {
-            it.entryId == targetEntryId && it.plannedSetIndex != null
-        }
         val canonicalReport = pipeline as? BCoachSquatShadowPipelineResult.ShadowReport
         // Use the canonical personal curve when available. Even if the async
         // stored posterior has not caught up with the last confirmed workout,
         // the canonical asset q(n) and existing RPE/RIR mixture are still available
         // and can evaluate the actual same-track confirmed sets.
         val curve = canonicalReport?.input?.curve
-            ?: curves.resolve(BCoachLinkedSquatWeekPlanner.SQUAT)
+            ?: curves.resolve(key)
         val evidenceForPlan = BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
             links = links, records = records, prescriptions = prescriptions,
-            plateOneSideKg = plate,
+            plateOneSideKg = plate, displayedStepKg = step,
             curve = curve, rirPolicy = rirPolicy
         )
         // The global Gate F ranker remains a separate diagnostic. This production
@@ -99,7 +102,19 @@ internal class BCoachLinkedSquatNextWeekService(
                         ProgressionResolution.MANUAL_OVERRIDE
                     )
             }) return report.copy(status = "PRIOR_EXPLICIT_PROGRESSION_DECISION", evidenceFingerprint = null)
-        return report
+        if (!report.canApply || !metadata.optBoolean("bCoachIntegratedLifts")) return report
+        val source = records.single { it.entry.id == report.sourceEntryId }
+        val target = records.single { it.entry.id == targetEntryId }
+        val loads = BCoachConfirmedLiftModel.nextLoads(source, target, curve, rirPolicy, step)
+            ?: return report.copy(status = "SET_SCHEME_REVIEW", evidenceFingerprint = null)
+        val changed = target.sets.filter { it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
+            kotlin.math.abs(it.weightKg - loads.getValue(it.setIndex)) > 1e-8 }
+        if (changed.isEmpty()) return report.copy(status = "CURRENT_PLAN_FITS", evidenceFingerprint = null)
+        val first = changed.minBy { it.setIndex }
+        val changedLoads = changed.associate { it.setIndex to loads.getValue(it.setIndex) }.toSortedMap()
+        return report.copy(affectedSetIndices = changedLoads.keys.toList(), loadsBySetIndex = changedLoads,
+            proposedLoadKg = changedLoads.getValue(first.setIndex), proposedReps = first.reps,
+            selectedAction = "SET_SPECIFIC", evidenceFingerprint = "${report.evidenceFingerprint}|$changedLoads")
     }
 
     /** User taps Apply. No stale previews or half-completed target entries can be written. */
@@ -155,8 +170,16 @@ internal class BCoachLinkedSquatNextWeekService(
             currentPlanKg = originalKg,
             suggestedKg = proposedKg,
             judgmentRpe = priorRpe,
-            direction = if (proposal.selectedAction == "HOLD") ProgressionDirection.HOLD
-                else ProgressionDirection.INCREASE,
+            direction = when (proposal.selectedAction) {
+                "LOAD_DOWN_ONE_STEP" -> ProgressionDirection.DECREASE
+                "LOAD_UP_ONE_STEP" -> ProgressionDirection.INCREASE
+                "SET_SPECIFIC" -> when {
+                    proposedKg > originalKg -> ProgressionDirection.INCREASE
+                    proposedKg < originalKg -> ProgressionDirection.DECREASE
+                    else -> ProgressionDirection.HOLD
+                }
+                else -> ProgressionDirection.HOLD
+            },
             reasons = "B_COACH_${if (automaticallyAfterConfirm) "GATE_H_AUTO_AFTER_CONFIRM" else "GATE_G_USER_APPROVED"}_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}",
             evidenceHash = expectedFingerprint,
             resolution = ProgressionResolution.ACCEPTED,

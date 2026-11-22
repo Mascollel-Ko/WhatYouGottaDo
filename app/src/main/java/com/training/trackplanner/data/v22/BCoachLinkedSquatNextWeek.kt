@@ -34,7 +34,8 @@ data class BCoachLinkedSquatNextWeekProposal(
     val evidenceFingerprint: String? = null,
     val notes: List<String> = emptyList(),
     /** Sets approved for change; omitted for old whole-session proposals. */
-    val affectedSetIndices: List<Int> = emptyList()
+    val affectedSetIndices: List<Int> = emptyList(),
+    val loadsBySetIndex: Map<Int, Double> = emptyMap()
 ) {
     val canApply: Boolean get() = status == "READY_FOR_USER_APPROVAL" &&
         evidenceFingerprint != null && proposedLoadKg != null &&
@@ -65,7 +66,7 @@ internal object BCoachLinkedSquatWeekPlanner {
                 status = status, sourceEntryId = sourceEntryId,
                 targetEntryId = targetEntryId, targetWeek = targetLink.weekNumber, notes = notes
             )
-        if (target.entry.exerciseStableKey != SQUAT || targetLink.trackId == "untracked" ||
+        if (target.entry.exerciseStableKey !in BCoachConfirmedLiftModel.keys || targetLink.trackId == "untracked" ||
             targetLink.mode in setOf(ProgressionMode.OFF, ProgressionMode.DIRECT) ||
             (targetLink.needsReview && targetLink.basePolicy != ProgressionBase.REVIEW)
         ) return result("LINK_OR_MODE_NOT_ELIGIBLE")
@@ -116,7 +117,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         val sourceLink = checkNotNull(predecessor.link)
         val sourceRecord = byEntry[sourceLink.entryId]
             ?: return result("LINKED_PREDECESSOR_RECORD_MISSING")
-        if (sourceRecord.entry.exerciseStableKey != SQUAT) {
+        if (sourceRecord.entry.exerciseStableKey != target.entry.exerciseStableKey) {
             return result("TRACK_EXERCISE_MISMATCH")
         }
         val sourceDate = runCatching { LocalDate.parse(sourceRecord.entry.date) }.getOrNull()

@@ -57,17 +57,18 @@ internal object BCoachObservedSquatProgression {
         prescriptions: List<ProgramPrescriptionSet>,
         plateOneSideKg: Double,
         curve: ResolvedRepetitionCurve,
-        rirPolicy: RpeRirPolicy
+        rirPolicy: RpeRirPolicy,
+        displayedStepKg: Double = plateOneSideKg * 2.0
     ): ProposalEvidence? {
-        if (!plateOneSideKg.isFinite() || plateOneSideKg !in 0.1..25.0) return null
+        if (!displayedStepKg.isFinite() || displayedStepKg <= 0.0) return null
         val targetLink = links.singleOrNull { it.entryId == targetEntryId } ?: return null
         val predecessor = BCoachProgramLinkChain.predecessor(targetLink, links)
         if (!predecessor.found) return null
         val sourceLink = predecessor.link ?: return null
         val source = records.singleOrNull { it.entry.id == sourceLink.entryId } ?: return null
         val target = records.singleOrNull { it.entry.id == targetEntryId } ?: return null
-        if (source.entry.exerciseStableKey != BCoachLinkedSquatWeekPlanner.SQUAT ||
-            target.entry.exerciseStableKey != BCoachLinkedSquatWeekPlanner.SQUAT) return null
+        if (source.entry.exerciseStableKey !in BCoachConfirmedLiftModel.keys ||
+            target.entry.exerciseStableKey != source.entry.exerciseStableKey) return null
         val day = runCatching { LocalDate.parse(source.entry.date) }.getOrNull() ?: return null
         val targetDay = runCatching { LocalDate.parse(target.entry.date) }.getOrNull() ?: return null
         if (day > asOf || targetDay < asOf || targetDay < day) return null
@@ -105,7 +106,8 @@ internal object BCoachObservedSquatProgression {
         val firstTarget = targetOriginal.singleOrNull {
             it.plannedSetIndex == firstTargetIndex
         } ?: return null
-        val uniformTarget = planned.all { it.reps == planned.first().reps }
+        val uniformTarget = planned.all { it.reps == planned.first().reps &&
+            abs(it.weightKg - planned.first().weightKg) <= EPS }
         if (firstTarget.originalReps != reps ||
             targetOriginal.any { !it.originalExists } ||
             planned.any { it.confirmed } ||
@@ -117,7 +119,7 @@ internal object BCoachObservedSquatProgression {
 
         val maxRpe = done.maxOf { it.rpe ?: source.entry.rpe!! }
         val rirDistribution = rirPolicy.resolve(maxRpe)
-        val step = BBlockPeriodization.barbellIncrement(plateOneSideKg)
+        val step = displayedStepKg
 
         fun score(candidateKg: Double): Evaluation? {
             val distribution = rirDistribution ?: return null
@@ -169,9 +171,13 @@ internal object BCoachObservedSquatProgression {
             up.lowRirMixtureMass <= MAX_LOW_RIR_MIXTURE_MASS + EPS &&
             up.averageSquaredRirError + EPS < hold.averageSquaredRirError &&
             planned.size <= done.size
-        val chosen = if (increase) checkNotNull(up) else hold
+        val down = if (hold != null && hold.lowRirMixtureMass > MAX_LOW_RIR_MIXTURE_MASS &&
+            step < load && step / load <= MAX_SINGLE_STEP_FRACTION) score(load - step) else null
+        val decrease = down != null && hold != null && down.averageSquaredRirError + EPS < hold.averageSquaredRirError &&
+            down.lowRirMixtureMass < hold.lowRirMixtureMass
+        val chosen = when { increase -> up; decrease -> down; else -> hold }
         val kg = chosen?.loadKg ?: load
-        val action = if (increase) "LOAD_UP_ONE_STEP" else "HOLD"
+        val action = when { increase -> "LOAD_UP_ONE_STEP"; decrease -> "LOAD_DOWN_ONE_STEP"; else -> "HOLD" }
         val anchor = BCoachSquatAnchorSession(
             sessionStableKey = source.entry.sessionStableKey,
             date = day,
@@ -195,6 +201,7 @@ internal object BCoachObservedSquatProgression {
             eligible = true,
             reason = when {
                 increase -> "LINKED_E1RM_CURVE_RIR_ONE_STEP"
+                decrease -> "LINKED_E1RM_CURVE_RIR_REDUCE"
                 hold != null -> "LINKED_E1RM_CURVE_RIR_HOLD"
                 else -> "LINKED_CONFIRMED_HOLD_CURVE_UNSUPPORTED"
             }

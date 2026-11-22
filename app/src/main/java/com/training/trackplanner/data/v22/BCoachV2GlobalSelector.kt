@@ -849,6 +849,12 @@ internal object BCoachV2GlobalSelector {
                 )
                 if (candidate !== plan) {
                     add("SPLIT_WEEKLY_SETS_${key}_TO_DAY_${targetDay}" to candidate)
+                    // Evaluate a third exposure even when the intermediate two-day plan
+                    // would be pruned from the beam.
+                    activeDays.filter { it > targetDay }.forEach { thirdDay ->
+                        val spread = splitAccessorySetsAcrossDays(candidate, key, thirdDay, mainExerciseKeys)
+                        if (spread !== candidate) add("SPLIT_WEEKLY_SETS_${key}_D${targetDay}_D${thirdDay}" to spread)
+                    }
                 }
             }
         }
@@ -916,7 +922,11 @@ internal object BCoachV2GlobalSelector {
         val replacements = mutableMapOf<String, ProgramSkeletonItem>()
         val inserted = mutableListOf<ProgramSkeletonItem>()
         for ((_, weekItems) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
-            val source = weekItems.filter { it.exerciseStableKey == key }.singleOrNull() ?: continue
+            val occurrences = weekItems.filter { it.exerciseStableKey == key }
+            if (occurrences.size !in 1..2) continue
+            val source = occurrences.maxWith(compareBy<ProgramSkeletonItem> { it.setCount }
+                .thenBy { it.dayOfWeek })
+            if (source.progressionBinding != null || source.progressionAnchorSetIndex != null) continue
             if (source.dayOfWeek == targetDay || "MAIN" in source.selectionRole.uppercase() ||
                 "PEAK" in source.selectionRole.uppercase() || source.directSportSession ||
                 BCoachV2DoseEvaluator.isExplicitUserExerciseLock(source.selectionReason)
@@ -924,7 +934,8 @@ internal object BCoachV2GlobalSelector {
             val targetItems = weekItems.filter { it.dayOfWeek == targetDay }
             if (targetItems.isEmpty() || targetItems.any { it.exerciseStableKey == key }) continue
             val all = ProgramSetPrescriptionResolver.resolve(source)
-            if (all.size < 4 || all.any {
+            val minimum = if (occurrences.size == 1) 4 else 2
+            if (all.size < minimum || all.any {
                 BCoachV2LoadCandidateResolver.isSetUserFixed(it, source.weightSource)
             }) continue
             val movedCount = all.size / 2

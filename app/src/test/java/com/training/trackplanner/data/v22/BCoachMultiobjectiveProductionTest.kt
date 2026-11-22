@@ -1792,6 +1792,15 @@ class BCoachMultiobjectiveProductionTest {
             assertEquals(listOf(1, 2), occurrences[1].setPrescriptions.map(ProgramSetPrescription::setIndex))
             assertEquals(4, occurrences.sumOf(ProgramSkeletonItem::setCount))
         }
+        val threeDays = split.copy(items = split.items + (1..2).map { week ->
+            item("row", week, 5, 2, 10)
+        })
+        val spread = BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(threeDays, deadBug, 5)
+        for (week in 1..2) {
+            val rows = spread.items.filter { it.exerciseStableKey == deadBug && it.weekNumber == week }
+            assertEquals(listOf(1, 1, 2), rows.map { it.setCount }.sorted())
+            assertEquals(3, rows.distinctBy { it.dayOfWeek }.size)
+        }
         assertEquals(2, plan.items.count { it.exerciseStableKey == squat.stableKey })
         assertEquals(plan, BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(
             plan, squat.stableKey, targetDay = 3, mainExerciseKeys = setOf(squat.stableKey)
