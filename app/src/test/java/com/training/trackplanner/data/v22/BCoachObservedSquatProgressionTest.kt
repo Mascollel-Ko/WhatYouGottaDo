@@ -164,7 +164,7 @@ class BCoachObservedSquatProgressionTest {
         fun inspect(prescriptions: List<ProgramPrescriptionSet>) = BCoachLinkedSquatWeekPlanner.inspect(
             today, next.entry.id, listOf(prior, next), listOf(app),
             listOf(link(1,1), link(2,2)), prescriptions, null, null
-        ) { from, to -> BCoachConfirmedLiftModel.nextLoads(from, to, dbCurve, rirPolicy, 2.0) }
+        ) { from, to -> BCoachConfirmedLiftModel.nextDoses(from, to, dbCurve, rirPolicy, 2.0) }
         val proposal = inspect(rows)
         assertTrue(proposal.status, proposal.canApply)
         val patch = requireNotNull(BCoachLinkedSquatPlanPatch.build(proposal, next.sets, rows.filter { it.entryId == 2L }))
@@ -172,6 +172,26 @@ class BCoachObservedSquatProgressionTest {
         assertTrue(patch.nextSets.any { it.weightKg < 48.0 })
         assertTrue(patch.nextSets.none { it.confirmed })
         assertFalse(inspect(rows.map { if (it.entryId == 2L) it.copy(originalReps = 3) else it }).canApply)
+    }
+
+    @Test fun coarseEquipmentAdjustsOneRepAndProtectsManualTargets() {
+        val prior = record(1, today.toString(), true, reps = 8, kg = 40.0, rpe = 10.0)
+        val scheduled = record(2, today.plusDays(7).toString(), false, reps = 8, kg = 40.0)
+        val next = scheduled.copy(sets = scheduled.sets.map { it.copy(loadState = ProgramLoadState.EXPLICIT_LOAD) })
+        val doses = requireNotNull(BCoachConfirmedLiftModel.nextDoses(prior, next, curve, rirPolicy, 5.0))
+        assertTrue(doses.values.all { it.kg == 40.0 && it.reps == 7 })
+        val edited = next.copy(sets = next.sets.map { it.copy(manualWeight = true) })
+        assertNull(BCoachConfirmedLiftModel.nextDoses(prior, edited, curve, rirPolicy, 5.0))
+        val uncalibrated = scheduled.copy(sets = scheduled.sets.map { it.copy(reps = 20) })
+        assertNull(BCoachConfirmedLiftModel.nextDoses(prior, uncalibrated, curve, rirPolicy, 5.0))
+    }
+
+    @Test fun incompleteNewerEntryDoesNotHideTheLastConfirmedSession() {
+        val prior = record(1, today.minusDays(1).toString(), true)
+        val planned = record(2, today.toString(), false)
+        val snapshots = BCoachConfirmedLiftModel.snapshots(today, listOf(prior, planned),
+            RepetitionCurveRegistry.fromContext(context), rirPolicy)
+        assertEquals(setOf("barbell_back_squat"), snapshots.keys)
     }
 
     @Test fun `planned heavy versus volume rep scheme is never silently flattened`() {

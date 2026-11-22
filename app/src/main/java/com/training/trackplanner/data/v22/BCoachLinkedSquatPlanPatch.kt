@@ -1,5 +1,6 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.WorkoutSet
@@ -35,6 +36,8 @@ internal object BCoachLinkedSquatPlanPatch {
         if (proposal.loadsBySetIndex.isNotEmpty() &&
             (proposal.loadsBySetIndex.keys != affected.toSet() ||
                 proposal.loadsBySetIndex.values.any { !it.isFinite() || it <= 0.0 })) return null
+        if (proposal.repsBySetIndex.isNotEmpty() && (proposal.repsBySetIndex.keys != affected.toSet() ||
+            proposal.repsBySetIndex.values.any { it !in 1..20 })) return null
         if (affected.isEmpty() || affected.any { it !in currentSets.map(WorkoutSet::setIndex) })
             return null
         val next = currentSets.sortedBy { it.setIndex }.map { set ->
@@ -54,12 +57,13 @@ internal object BCoachLinkedSquatPlanPatch {
                 set to target
             } else {
                 val nextKg = proposal.loadsBySetIndex[set.setIndex] ?: kg
-                val nextReps = if (proposal.loadsBySetIndex.isEmpty()) reps else set.reps
+                val nextReps = proposal.repsBySetIndex[set.setIndex] ?: reps
                 val nextSet = set.copy(
                     reps = nextReps, weightKg = nextKg,
                     estimatedLoadKg = nextKg, freshRir = null, expectedRir = null, relativeIntensity = null,
                     loadState = ProgramLoadState.EXPLICIT_LOAD,
-                    manualWeight = true
+                    manualWeight = proposal.loadsBySetIndex.isEmpty(),
+                    loadSource = if (proposal.loadsBySetIndex.isEmpty()) set.loadSource else ProgramLoadSource.PERSONAL_MODEL
                 )
                 val nextTarget = target.copy(
                     plannedReps = nextReps, plannedKg = nextKg,

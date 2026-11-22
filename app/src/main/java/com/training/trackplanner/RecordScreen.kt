@@ -517,10 +517,15 @@ private fun BCoachConfirmedSquatProgressionNotice(
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
         if (appliedKg != null) {
-            Text("B-Coach · 다음 연결 운동 자동 반영 완료 (${appliedKg}kg)",
+            Text("B-Coach · 다음 연결 운동 자동 반영 완료",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
-                Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
+                val prescription = if (outcome.loadsBySetIndex.isEmpty()) {
+                    "${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트"
+                } else outcome.loadsBySetIndex.toSortedMap().entries.joinToString(" · ") { (index, kg) ->
+                    "${index}세트 ${kg}kg × ${outcome.repsBySetIndex[index]}회"
+                }
+                Text(prescription,
                     style = MaterialTheme.typography.bodySmall)
             }
         } else if (outcome != null) {
@@ -534,6 +539,8 @@ private fun BCoachConfirmedSquatProgressionNotice(
                 "NO_NEXT_LINKED_EXERCISE" -> "계획에서 연결한 다음 운동가 없습니다. 운동 간 연결을 확인하세요."
                 "AMBIGUOUS_LINKED_SEQUENCE" -> "연결된 운동의 순서가 중복되어 다음 운동을 특정할 수 없습니다."
                 "EQUIPMENT_SNAPSHOT_MISSING" -> "이전 버전의 프로그램에 원판 간격이 저장돼 있지 않습니다. 새 B 프로그램이 필요합니다."
+                "CURRENT_PLAN_FITS" -> "기록과 목표 강도에 맞아 현재 처방을 유지했습니다."
+                "SET_SCHEME_REVIEW" -> "세트별 근거가 부족해 기존 처방을 유지했습니다."
                 "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "기록한 세트가 프로그램 목표를 모두 달성하지 못했습니다."
                 "CANONICAL_MODEL_NOT_READY", "MODEL_UPDATE_FAILED" ->
                     "새 운동기록을 반영한 근력 추정치가 준비되지 않았습니다."
@@ -553,7 +560,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
                 "STALE_OR_EDITED_TARGET" -> "계산 후 기록이 변경되어 자동 적용을 취소했습니다."
                 else -> "안전 조건을 충족하지 않아 자동 반영을 보류했습니다 (${outcome.status})."
             }
-            Text("B-Coach · 다음 연결 운동 조정 보류: $explanation",
+            Text("B-Coach · $explanation",
                 style = MaterialTheme.typography.bodySmall)
         } else {
             Text("B-Coach · 이 완료 기록으로 다음 연결 운동의 계획을 평가할 수 있습니다.",
@@ -599,7 +606,7 @@ private fun BCoachLinkedSquatNextWeekControl(
             Text("기존 ${proposal.targetWeek}주차: ${proposal.originalPlanText ?: "-"}",
                 style = MaterialTheme.typography.bodySmall)
             val prescription = proposal.loadsBySetIndex.entries.joinToString(" · ") { (index, kg) ->
-                "${index}세트 ${kg}kg"
+                "${index}세트 ${kg}kg × ${proposal.repsBySetIndex[index]}회"
             }.ifEmpty { "${proposal.proposedLoadKg}kg × ${proposal.proposedReps}회" }
             Text(prescription, style = MaterialTheme.typography.bodySmall)
             Text("실제 완료·RPE와 e1RM 곡선을 비교한 잠정 결과입니다. 해당 미완료 운동만 수정합니다.",

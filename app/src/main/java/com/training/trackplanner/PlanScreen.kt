@@ -232,11 +232,11 @@ internal fun BCoachProductionReviewDialog(
         Surface(Modifier.fillMaxSize().testTag("b_coach_review_dialog")) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
                 Text("B-Coach 전체 블록 후보 검토", style = MaterialTheme.typography.titleLarge)
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth().testTag("b_coach_review_content"),
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).testTag("b_coach_review_content"),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                  item {
+                  Column {
                 Text(BCoachV2Policy.DISCLAIMER)
                 Text(
                     "아래 추천안과 대안은 모든 주차의 시간·요일 제약을 통과한 실제 저장 후보입니다. " +
@@ -246,7 +246,7 @@ internal fun BCoachProductionReviewDialog(
                     modifier = Modifier.padding(top = 8.dp)
                 )
                   }
-                if (sportShadowAvailable) item {
+                if (sportShadowAvailable) Column {
                     OutlinedButton(
                         onClick = onOpenSportShadow,
                         modifier = Modifier.fillMaxWidth().testTag("b_coach_review_open_sport_shadow")
@@ -254,7 +254,7 @@ internal fun BCoachProductionReviewDialog(
                     Text("실험 화면에서는 추천안을 적용하거나 저장할 수 없습니다.",
                         style = MaterialTheme.typography.bodySmall)
                 }
-                if (alternatives.isNotEmpty()) item {
+                if (alternatives.isNotEmpty()) Column {
                     Text("계획 선택", modifier = Modifier.padding(top = 12.dp))
                     Column(Modifier.fillMaxWidth()) {
                     if (alternatives.size == 1) {
@@ -285,7 +285,7 @@ internal fun BCoachProductionReviewDialog(
                     }
                 }
                 selectedPlan?.let { plan ->
-                    item {
+                    Column {
                         val weeklySets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
                             .toDouble() / plan.request.durationWeeks.coerceAtLeast(1)
                         val trainingDays = plan.weekDaySchedule.values.flatten().distinct().sorted()
@@ -304,7 +304,7 @@ internal fun BCoachProductionReviewDialog(
                         Text("세션 목표 ${plan.request.sessionMinutes}분 · 예상 약 ${estimatedMinutes}분(세트·휴식 기준)")
                         if (weekStages.isNotBlank()) Text("주차 단계: $weekStages")
                     }
-                    item {
+                    Column {
                         Text("주차", style = MaterialTheme.typography.titleMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -324,11 +324,8 @@ internal fun BCoachProductionReviewDialog(
                             }
                         }
                     }
-                    items(
-                        plan.items.filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
-                            .sortedBy(ProgramSkeletonItem::orderIndex),
-                        key = ProgramSkeletonItem::localId
-                    ) { exercise ->
+                    plan.items.filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
+                            .sortedBy(ProgramSkeletonItem::orderIndex).forEach { exercise ->
                         Card(Modifier.fillMaxWidth().testTag("b_coach_review_exercise_${exercise.localId}")) {
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(exercise.exerciseName, fontWeight = FontWeight.Bold)
@@ -356,16 +353,16 @@ internal fun BCoachProductionReviewDialog(
                     }
                 }
                 val displayedChanges = selectedAlternative?.changeSummary?.ifEmpty { changes } ?: changes
-                if (displayedChanges.isNotEmpty()) item {
+                if (displayedChanges.isNotEmpty()) Column {
                     Text("변경 내용", modifier = Modifier.padding(top = 12.dp))
                     displayedChanges.forEach { change -> Text("• ${changeText(change)}") }
                 }
-                if (unresolvedCodes.isNotEmpty()) item {
+                if (unresolvedCodes.isNotEmpty()) Column {
                     Text("주의사항", modifier = Modifier.padding(top = 12.dp))
                     Text("• 자동 판단이 필요한 항목 ${unresolvedCodes.distinct().size}개를 보수적으로 처리했습니다.")
                 }
                 selectedAlternative?.let { alternative ->
-                    item {
+                    Column {
                         TextButton({ showDiagnostics = !showDiagnostics },
                             modifier = Modifier.testTag("b_coach_review_diagnostics")) {
                             Text(if (showDiagnostics) "고급 진단 접기" else "고급 진단 펼치기")

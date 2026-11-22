@@ -3,6 +3,8 @@ package com.training.trackplanner.data.v22
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveEvaluationStatus
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
+import com.training.trackplanner.analysis.strengthperformance.curve.ResolvedRepetitionCurve
+import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
@@ -14,17 +16,18 @@ internal object BCoachConfirmedLiftModel {
 
     /** Compare the planned load with one equipment step in either direction.
      * Match set position so a fatigued back-off set cannot calibrate the top set. */
-    fun nextLoads(source: WorkoutEntryWithSets, target: WorkoutEntryWithSets,
-                  curve: com.training.trackplanner.analysis.strengthperformance.curve.ResolvedRepetitionCurve,
-                  policy: RpeRirPolicy, step: Double): Map<Int, Double>? {
+    data class SetDose(val kg: Double, val reps: Int)
+
+    fun nextDoses(source: WorkoutEntryWithSets, target: WorkoutEntryWithSets,
+                  curve: ResolvedRepetitionCurve, policy: RpeRirPolicy, step: Double): Map<Int, SetDose>? {
         if (source.entry.exerciseStableKey != target.entry.exerciseStableKey ||
             source.entry.exerciseStableKey !in keys || !step.isFinite() || step <= 0.0 ||
-            source.sets.size != target.sets.size) return null
+            source.sets.isEmpty() || source.sets.any { !it.confirmed }) return null
         return target.sets.associate { planned ->
             val done = source.sets.singleOrNull { it.setIndex == planned.setIndex } ?: return null
             if (!done.confirmed || planned.confirmed || done.reps !in 1..20 || planned.reps !in 1..20 ||
                 done.loadState != ProgramLoadState.EXPLICIT_LOAD || !done.weightKg.isFinite() || done.weightKg <= 0 ||
-                planned.loadSource == com.training.trackplanner.data.ProgramLoadSource.USER_FIXED) return null
+                planned.manualWeight || planned.loadSource == ProgramLoadSource.USER_FIXED) return null
             val rpe = done.rpe ?: source.entry.rpe ?: return null
             if (!rpe.isFinite() || rpe !in 6.0..10.0) return null
             val mixture = policy.resolve(rpe) ?: return null
@@ -32,27 +35,39 @@ internal object BCoachConfirmedLiftModel {
             if (!current.isFinite() || current <= 0.0) return null
             val goal = 10.0 - (planned.targetRpeMin ?: 8.0)
             if (!goal.isFinite() || goal !in 0.0..5.0) return null
-            val capacities = mixture.probabilities.map { row ->
+            val capacities = mixture.probabilities.filter { it.probability > 0.0 }.map { row ->
                 val point = curve.evaluate(done.reps + row.rir.toDouble())
                 if (point.status != RepetitionCurveEvaluationStatus.SUPPORTED) return null
                 done.weightKg / (point.relativeLoad ?: return null) to row.probability
             }
-            fun loss(kg: Double): Double {
-                if (kg <= 0) return Double.POSITIVE_INFINITY
+            if (capacities.isEmpty()) return null
+            fun projectedRir(dose: SetDose, capacity: Double): Double? {
+                val inverse = curve.profile.invert(dose.kg / capacity)
+                if (inverse.status != RepetitionCurveEvaluationStatus.SUPPORTED) return null
+                return 1.0 + kotlin.math.exp(curve.personalTheta) *
+                    ((inverse.repetitions ?: return null) - 1.0) - dose.reps
+            }
+            fun loss(dose: SetDose): Double {
+                if (dose.kg <= 0.0 || dose.reps !in 1..20) return Double.POSITIVE_INFINITY
                 return capacities.sumOf { (capacity, probability) ->
-                    val inverse = curve.profile.invert(kg / capacity)
-                    if (inverse.status != RepetitionCurveEvaluationStatus.SUPPORTED) return Double.POSITIVE_INFINITY
-                    val rir = 1.0 + kotlin.math.exp(curve.personalTheta) *
-                        ((inverse.repetitions ?: return Double.POSITIVE_INFINITY) - 1.0) - planned.reps
+                    val rir = projectedRir(dose, capacity) ?: return Double.POSITIVE_INFINITY
                     probability * ((rir - goal) * (rir - goal) + 4.0 * maxOf(0.0, 1.0 - rir))
                 }
             }
-            val hold = loss(current)
+            val hold = SetDose(current, planned.reps)
             val maximumStep = if (target.entry.exerciseStableKey == "ex_3a7d3eda") 0.07 else 0.05
-            val choices = if (step / current <= maximumStep) listOf(current - step, current + step) else emptyList()
-            val best = choices.minByOrNull(::loss)
-            if (!hold.isFinite()) return null
-            val selected = if (best != null && loss(best) + 0.05 < hold) best else current
+            val candidates = if (step / current <= maximumStep) {
+                listOf(hold.copy(kg = current - step), hold.copy(kg = current + step))
+            } else {
+                listOf(hold.copy(reps = planned.reps - 1), hold.copy(reps = planned.reps + 1))
+            }
+            val holdLoss = loss(hold)
+            val best = candidates.minBy(::loss)
+            val selected = if (loss(best) + 0.05 < holdLoss) best else hold
+            if (!loss(selected).isFinite()) return null
+            if (planned.loadState != ProgramLoadState.EXPLICIT_LOAD && capacities.any { (capacity, _) ->
+                    (projectedRir(selected, capacity) ?: return null) < 0.0
+                }) return null
             planned.setIndex to selected
         }
     }
@@ -61,7 +76,8 @@ internal object BCoachConfirmedLiftModel {
                   policy: RpeRirPolicy?): Map<String, BCoachV2LoadModelSnapshot> {
         if (curves == null || policy == null) return emptyMap()
         return keys.mapNotNull { key ->
-            val latest = records.filter { it.entry.exerciseStableKey == key &&
+            val latest = records.filter { it.entry.exerciseStableKey == key && it.sets.isNotEmpty() &&
+                it.sets.all { set -> set.confirmed } &&
                 it.entry.date in asOf.minusDays(55).toString()..asOf.toString() }
                 .maxWithOrNull(compareBy<WorkoutEntryWithSets> { it.entry.date }.thenBy { it.entry.id })
                 ?: return@mapNotNull null

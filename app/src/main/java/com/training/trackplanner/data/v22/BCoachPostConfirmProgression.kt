@@ -17,7 +17,9 @@ data class BCoachPostConfirmOutcome(
     val nextReps: Int? = null,
     val nextSets: Int? = null,
     val selectedAction: String? = null,
-    val detail: String? = null
+    val detail: String? = null,
+    val loadsBySetIndex: Map<Int, Double> = emptyMap(),
+    val repsBySetIndex: Map<Int, Int> = emptyMap()
 ) {
     val wasApplied: Boolean get() = status == "NEXT_LINKED_UPDATED"
 }

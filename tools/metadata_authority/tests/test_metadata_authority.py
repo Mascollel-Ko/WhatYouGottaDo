@@ -181,7 +181,7 @@ class MetadataAuthorityTest(unittest.TestCase):
         validate_display_routing(metrics)
         self.assertEqual(1697, metrics["reachableProductionPairCount"])
         self.assertEqual(1697, metrics["translatedReachableProductionPairCount"])
-        self.assertEqual(137, metrics["expectedCompatibilityOnlyPairCount"])
+        self.assertEqual(133, metrics["expectedCompatibilityOnlyPairCount"])
         self.assertEqual(70, metrics["preRefactorRawCodeProneUiPathCount"])
         self.assertEqual(0, metrics["postRefactorRawCodeProneUiPathCount"])
         self.assertEqual(

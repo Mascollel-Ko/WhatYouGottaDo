@@ -11,13 +11,7 @@ import com.training.trackplanner.data.TrainingDatabase
 import java.time.LocalDate
 import org.json.JSONObject
 
-/**
- * Gate G opt-in bridge for ONE future applied squat entry.
- * Re-evaluates inside the write transaction against the same evidence fingerprint.
- *
- * No user workout has to be auto-updated when the user opens a screen. Explicit approval
- * is required because the Gate F loss coefficients and later-set fatigue are not validated.
- */
+/** Re-evaluate the linked prescription and its evidence inside the write transaction. */
 internal class BCoachLinkedSquatNextWeekService(
     private val db: TrainingDatabase,
     private val evidenceReader: BCoachSquatShadowEvidenceReader,
@@ -54,27 +48,12 @@ internal class BCoachLinkedSquatNextWeekService(
         if (!step.isFinite() || step <= 0.0 || (key != "ex_3a7d3eda" && plate !in 0.1..25.0)) {
             return BCoachLinkedSquatNextWeekProposal("INVALID_EQUIPMENT_SNAPSHOT")
         }
-        val pipeline = if (key != BCoachLinkedSquatWeekPlanner.SQUAT) null else BCoachSquatShadowPipeline.evaluate(
-            input = evidenceReader.read(asOf),
-            rirPolicy = rirPolicy,
-            smallestPlateOneSideKg = plate,
-            targetRirMin = 1.0,
-            targetRirMax = 3.0,
-            policies = listOf(
-                BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-            ),
-            omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
-        )
+        val personal = if (key == BCoachLinkedSquatWeekPlanner.SQUAT)
+            evidenceReader.read(asOf) as? BCoachSquatEvidenceResult.Ready else null
+        val curve = personal?.evidence?.curve ?: curves.resolve(key)
         val records = workoutDao.allEntriesWithSets()
         val links = dao.links()
         val prescriptions = dao.prescriptions()
-        val canonicalReport = pipeline as? BCoachSquatShadowPipelineResult.ShadowReport
-        // Use the canonical personal curve when available. Even if the async
-        // stored posterior has not caught up with the last confirmed workout,
-        // the canonical asset q(n) and existing RPE/RIR mixture are still available
-        // and can evaluate the actual same-track confirmed sets.
-        val curve = canonicalReport?.input?.curve
-            ?: curves.resolve(key)
         val integrated = metadata.optBoolean("bCoachIntegratedLifts")
         val evidenceForPlan = if (integrated) null else BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
@@ -82,9 +61,6 @@ internal class BCoachLinkedSquatNextWeekService(
             plateOneSideKg = plate, displayedStepKg = step,
             curve = curve, rirPolicy = rirPolicy
         )
-        // The global Gate F ranker remains a separate diagnostic. This production
-        // decision is intentionally anchored to the immediate linked completed
-        // workout and requires a monotone improvement in projected RIR distance.
         val report = BCoachLinkedSquatWeekPlanner.inspect(
             asOf = asOf,
             targetEntryId = targetEntryId,
@@ -94,8 +70,8 @@ internal class BCoachLinkedSquatNextWeekService(
             prescriptions = prescriptions,
             anchor = evidenceForPlan?.anchor,
             ranking = evidenceForPlan?.ranking,
-            resolveLoads = if (integrated) { source, target ->
-                BCoachConfirmedLiftModel.nextLoads(source, target, curve, rirPolicy, step)
+            resolveDoses = if (integrated) { source, target ->
+                BCoachConfirmedLiftModel.nextDoses(source, target, curve, rirPolicy, step)
             } else null
         )
         if (report.canApply && dao.suggestions().any {

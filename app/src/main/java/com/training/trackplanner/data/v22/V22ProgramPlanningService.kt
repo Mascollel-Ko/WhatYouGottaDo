@@ -97,11 +97,13 @@ internal class V22ProgramPlanningService(
             exercises,
             balanced.reviewBaselineWeeks.ifEmpty { balanced.weeks }
         )
+        val confirmedModels = BCoachConfirmedLiftModel.snapshots(coachRequest.asOf, recordedWorkouts, repetitionCurves, rirPolicy)
         // Preserve the actual plate size the user entered at generation time. The profile
         // can change later; an applied program must never silently pick up a different grid.
         fun withEquipmentSnapshot(value: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
             val metadata = org.json.JSONObject(value.planningMetadataJson ?: "{}")
             metadata.put("bCoachIntegratedLifts", true)
+            metadata.put("bCoachConfirmedModelEvidence", confirmedModelEvidence(confirmedModels))
             metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
             coachRequest.bShadowPlateOneSideKg
                 ?.takeIf { it.isFinite() && it in 0.1..25.0 }
@@ -122,7 +124,6 @@ internal class V22ProgramPlanningService(
         val v2LoadSnapshots = v2LoadEvidenceReader?.read(
             coachRequest.asOf, history, v2StableKeys
         ).orEmpty()
-        val confirmedModels = BCoachConfirmedLiftModel.snapshots(coachRequest.asOf, recordedWorkouts, repetitionCurves, rirPolicy)
         val production = coachRequest.blockProgram?.let {
             BCoachMultiobjectiveProduction.prepare(
                 request = coachRequest,
@@ -153,6 +154,9 @@ internal class V22ProgramPlanningService(
         )
     }
 
+    private fun confirmedModelEvidence(models: Map<String, BCoachV2LoadModelSnapshot>) =
+        models.toSortedMap().entries.joinToString("|") { (key, model) -> "$key=${model.sourceVersion}:${model.evidenceIds}" }
+
     /** Rechecks the evidence snapshot before an accepted B proposal can enter persistence. */
     suspend fun validateAcceptedForPersistence(
         skeleton: GeneratedProgramSkeleton
@@ -160,6 +164,13 @@ internal class V22ProgramPlanningService(
         val snapshot = BCoachMultiobjectiveProduction.acceptedPersistenceSnapshot(skeleton)
             ?: return skeleton
         val recordedWorkouts = workoutDao.entriesWithSetsUntil(snapshot.cutoff.toString())
+        val metadata = org.json.JSONObject(skeleton.planningMetadataJson ?: "{}")
+        if (metadata.has("bCoachConfirmedModelEvidence")) {
+            val current = BCoachConfirmedLiftModel.snapshots(snapshot.cutoff, recordedWorkouts, repetitionCurves, rirPolicy)
+            require(metadata.getString("bCoachConfirmedModelEvidence") == confirmedModelEvidence(current)) {
+                "B_COACH_HISTORY_CHANGED_REGENERATE_REQUIRED"
+            }
+        }
         val history = V22HistoryInput.fromWorkoutHistory(recordedWorkouts)
         val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
         val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()

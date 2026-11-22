@@ -35,7 +35,8 @@ data class BCoachLinkedSquatNextWeekProposal(
     val notes: List<String> = emptyList(),
     /** Sets approved for change; omitted for old whole-session proposals. */
     val affectedSetIndices: List<Int> = emptyList(),
-    val loadsBySetIndex: Map<Int, Double> = emptyMap()
+    val loadsBySetIndex: Map<Int, Double> = emptyMap(),
+    val repsBySetIndex: Map<Int, Int> = emptyMap()
 ) {
     val canApply: Boolean get() = status == "READY_FOR_USER_APPROVAL" &&
         evidenceFingerprint != null && proposedLoadKg != null &&
@@ -56,7 +57,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         prescriptions: List<ProgramPrescriptionSet>,
         anchor: BCoachSquatAnchorSession?,
         ranking: BCoachSquatCurveProgressionReport?,
-        resolveLoads: ((WorkoutEntryWithSets, WorkoutEntryWithSets) -> Map<Int, Double>?)? = null
+        resolveDoses: ((WorkoutEntryWithSets, WorkoutEntryWithSets) -> Map<Int, BCoachConfirmedLiftModel.SetDose>?)? = null
     ): BCoachLinkedSquatNextWeekProposal {
         val byEntry = workouts.associateBy { it.entry.id }
         val target = byEntry[targetEntryId] ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
@@ -128,7 +129,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         }
         val sourceSets = sourceRecord.sets.sortedBy { it.setIndex }
         val sourceTargets = prescriptions.filter { it.entryId == sourceLink.entryId }
-        if (resolveLoads != null) {
+        if (resolveDoses != null) {
             val sourceIndices = sourceSets.map { it.setIndex }
             if (sourceIndices.isEmpty() || sourceIndices.distinct().size != sourceIndices.size ||
                 sourceTargets.any { !it.originalExists } ||
@@ -137,21 +138,24 @@ internal object BCoachLinkedSquatWeekPlanner {
             if (targets.any { it.originalTargetRpeMin != it.plannedTargetRpeMin } ||
                 sets.any { set -> targets.single { it.plannedSetIndex == set.setIndex }.plannedTargetRpeMin != set.targetRpeMin })
                 return result("USER_EDIT_PROTECTED")
-            val loads = resolveLoads(sourceRecord, target) ?: return result("SET_SCHEME_REVIEW")
-            if (loads.keys != sets.map { it.setIndex }.toSet() ||
-                loads.values.any { !it.isFinite() || it <= 0 }) return result("SET_SCHEME_REVIEW")
-            val changed = sets.filter { it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
-                abs(it.weightKg - loads.getValue(it.setIndex)) > EPS }
+            val doses = resolveDoses(sourceRecord, target) ?: return result("SET_SCHEME_REVIEW")
+            if (doses.keys != sets.map { it.setIndex }.toSet() ||
+                doses.values.any { !it.kg.isFinite() || it.kg <= 0 || it.reps !in 1..20 }) return result("SET_SCHEME_REVIEW")
+            val changed = sets.filter { set ->
+                val dose = doses.getValue(set.setIndex)
+                set.loadState != ProgramLoadState.EXPLICIT_LOAD || abs(set.weightKg - dose.kg) > EPS || set.reps != dose.reps
+            }
             if (changed.isEmpty()) return result("CURRENT_PLAN_FITS", sourceLink.entryId)
-            val first = changed.first()
-            val updated = changed.associate { it.setIndex to loads.getValue(it.setIndex) }.toSortedMap()
+            val first = doses.getValue(changed.first().setIndex)
+            val updated = changed.associate { it.setIndex to doses.getValue(it.setIndex) }.toSortedMap()
             return result("READY_FOR_USER_APPROVAL", sourceLink.entryId).copy(
                 sourceWeek = sourceLink.weekNumber,
                 sourceText = sourceSets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
                 originalPlanText = sets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
-                proposedLoadKg = updated.getValue(first.setIndex), proposedReps = first.reps,
+                proposedLoadKg = first.kg, proposedReps = first.reps,
                 proposedSets = sets.size, selectedAction = "SET_SPECIFIC",
-                affectedSetIndices = updated.keys.toList(), loadsBySetIndex = updated,
+                affectedSetIndices = updated.keys.toList(), loadsBySetIndex = updated.mapValues { it.value.kg },
+                repsBySetIndex = updated.mapValues { it.value.reps },
                 evidenceFingerprint = fingerprint(asOf, application, sourceLink, sourceRecord,
                     sourceTargets, targetLink, target, targets, null, updated.toString()))
         }
