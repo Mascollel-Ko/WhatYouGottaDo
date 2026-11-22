@@ -16,14 +16,15 @@ internal object BCoachConfirmedLiftModel {
 
     /** Compare the planned load with one equipment step in either direction.
      * Match set position so a fatigued back-off set cannot calibrate the top set. */
-    data class SetDose(val kg: Double, val reps: Int)
+    data class SetDose(val kg: Double, val reps: Int, val failureRisk: Double = 0.0)
 
     fun nextDoses(source: WorkoutEntryWithSets, target: WorkoutEntryWithSets,
                   curve: ResolvedRepetitionCurve, policy: RpeRirPolicy, step: Double): Map<Int, SetDose>? {
         if (source.entry.exerciseStableKey != target.entry.exerciseStableKey ||
             source.entry.exerciseStableKey !in keys || !step.isFinite() || step <= 0.0 ||
             source.sets.isEmpty() || source.sets.any { !it.confirmed }) return null
-        return target.sets.associate { planned ->
+        val matches = target.sets.filter { planned -> source.sets.any { it.setIndex == planned.setIndex } }
+        return matches.associate { planned ->
             val done = source.sets.singleOrNull { it.setIndex == planned.setIndex } ?: return null
             if (!done.confirmed || planned.confirmed || done.reps !in 1..20 || planned.reps !in 1..20 ||
                 done.loadState != ProgramLoadState.EXPLICIT_LOAD || !done.weightKg.isFinite() || done.weightKg <= 0 ||
@@ -68,7 +69,10 @@ internal object BCoachConfirmedLiftModel {
             if (planned.loadState != ProgramLoadState.EXPLICIT_LOAD && capacities.any { (capacity, _) ->
                     (projectedRir(selected, capacity) ?: return null) < 0.0
                 }) return null
-            planned.setIndex to selected
+            val failureRisk = capacities.sumOf { (capacity, probability) ->
+                if ((projectedRir(selected, capacity) ?: return null) < 0.0) probability else 0.0
+            }
+            planned.setIndex to selected.copy(failureRisk = failureRisk)
         }
     }
 

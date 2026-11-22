@@ -520,13 +520,14 @@ private fun BCoachConfirmedSquatProgressionNotice(
             Text("B-Coach · 다음 연결 운동 자동 반영 완료",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
-                val prescription = if (outcome.loadsBySetIndex.isEmpty()) {
+                outcome.omittedSetIndex?.let { Text("마지막 ${it}번째 세트 제외 · 다음 운동 총 ${outcome.nextSets}세트",
+                    style = MaterialTheme.typography.bodySmall) }
+                val prescription = if (outcome.omittedSetIndex == null && outcome.loadsBySetIndex.isEmpty()) {
                     "${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트"
                 } else outcome.loadsBySetIndex.toSortedMap().entries.joinToString(" · ") { (index, kg) ->
                     "${index}세트 ${kg}kg × ${outcome.repsBySetIndex[index]}회"
                 }
-                Text(prescription,
-                    style = MaterialTheme.typography.bodySmall)
+                if (prescription.isNotEmpty()) Text(prescription, style = MaterialTheme.typography.bodySmall)
             }
         } else if (outcome != null) {
             val explanation = when (outcome.status) {
@@ -605,10 +606,12 @@ private fun BCoachLinkedSquatNextWeekControl(
                 style = MaterialTheme.typography.bodySmall)
             Text("기존 ${proposal.targetWeek}주차: ${proposal.originalPlanText ?: "-"}",
                 style = MaterialTheme.typography.bodySmall)
+            proposal.omittedSetIndex?.let { Text("마지막 ${it}번째 세트 제외 · 다음 운동 총 ${proposal.proposedSets}세트",
+                style = MaterialTheme.typography.bodySmall) }
             val prescription = proposal.loadsBySetIndex.entries.joinToString(" · ") { (index, kg) ->
                 "${index}세트 ${kg}kg × ${proposal.repsBySetIndex[index]}회"
-            }.ifEmpty { "${proposal.proposedLoadKg}kg × ${proposal.proposedReps}회" }
-            Text(prescription, style = MaterialTheme.typography.bodySmall)
+            }.ifEmpty { if (proposal.omittedSetIndex == null) "${proposal.proposedLoadKg}kg × ${proposal.proposedReps}회" else "" }
+            if (prescription.isNotEmpty()) Text(prescription, style = MaterialTheme.typography.bodySmall)
             Text("실제 완료·RPE와 e1RM 곡선을 비교한 잠정 결과입니다. 해당 미완료 운동만 수정합니다.",
                 style = MaterialTheme.typography.bodySmall)
             Button(

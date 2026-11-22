@@ -89,8 +89,7 @@ class BCoachAdditionalLiftShadowTest {
 
     @Test fun timedCarryUsesOnlyConfirmedSameSetDurationAndLoad() {
         val key = "dumbbell_farmer_carry"
-        val exercise = com.training.trackplanner.data.Exercise(stableKey = key, name = key,
-            category = "근력운동", progressMetricType = "DISTANCE_OR_TIME_LOAD")
+        val exercise = com.training.trackplanner.data.SeedData.exercises(context).single { it.stableKey == key }
         val baseline = plan()
         val sets = (1..3).map { ProgramSetPrescription(it, 0, 0.0, 0,
             loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED) }

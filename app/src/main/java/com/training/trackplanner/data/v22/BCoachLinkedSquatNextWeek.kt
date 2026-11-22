@@ -36,7 +36,8 @@ data class BCoachLinkedSquatNextWeekProposal(
     /** Sets approved for change; omitted for old whole-session proposals. */
     val affectedSetIndices: List<Int> = emptyList(),
     val loadsBySetIndex: Map<Int, Double> = emptyMap(),
-    val repsBySetIndex: Map<Int, Int> = emptyMap()
+    val repsBySetIndex: Map<Int, Int> = emptyMap(),
+    val omittedSetIndex: Int? = null
 ) {
     val canApply: Boolean get() = status == "READY_FOR_USER_APPROVAL" &&
         evidenceFingerprint != null && proposedLoadKg != null &&
@@ -57,6 +58,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         prescriptions: List<ProgramPrescriptionSet>,
         anchor: BCoachSquatAnchorSession?,
         ranking: BCoachSquatCurveProgressionReport?,
+        coachOmissions: Map<Long, Int> = emptyMap(),
         resolveDoses: ((WorkoutEntryWithSets, WorkoutEntryWithSets) -> Map<Int, BCoachConfirmedLiftModel.SetDose>?)? = null
     ): BCoachLinkedSquatNextWeekProposal {
         val byEntry = workouts.associateBy { it.entry.id }
@@ -131,33 +133,56 @@ internal object BCoachLinkedSquatWeekPlanner {
         val sourceTargets = prescriptions.filter { it.entryId == sourceLink.entryId }
         if (resolveDoses != null) {
             val sourceIndices = sourceSets.map { it.setIndex }
+            val omittedPreviously = coachOmissions[sourceLink.entryId]
+            val activeTargets = sourceTargets.filterNot {
+                it.setIndex == omittedPreviously && it.plannedSetIndex == null && it.originalExists
+            }
             if (sourceIndices.isEmpty() || sourceIndices.distinct().size != sourceIndices.size ||
-                sourceTargets.any { !it.originalExists } ||
-                sourceTargets.map { it.plannedSetIndex }.toSet() != sourceIndices.toSet() ||
-                sourceTargets.size != sourceIndices.size) return result("SOURCE_STRUCTURE_CHANGED")
+                activeTargets.any { !it.originalExists } ||
+                activeTargets.map { it.plannedSetIndex }.toSet() != sourceIndices.toSet() ||
+                activeTargets.size != sourceIndices.size) return result("SOURCE_STRUCTURE_CHANGED")
             if (targets.any { it.originalTargetRpeMin != it.plannedTargetRpeMin } ||
                 sets.any { set -> targets.single { it.plannedSetIndex == set.setIndex }.plannedTargetRpeMin != set.targetRpeMin })
                 return result("USER_EDIT_PROTECTED")
             val doses = resolveDoses(sourceRecord, target) ?: return result("SET_SCHEME_REVIEW")
-            if (doses.keys != sets.map { it.setIndex }.toSet() ||
+            val targetIndices = sets.map { it.setIndex }.toSet()
+            val unmatched = targetIndices - doses.keys
+            // A previously omitted final set may resume its original approved dose.
+            // It has no corresponding observation and is never assigned a borrowed load.
+            if (doses.isEmpty() || doses.keys.any { it !in targetIndices } ||
+                (unmatched.isNotEmpty() && (unmatched != setOf(omittedPreviously) ||
+                    unmatched.single() != sets.last().setIndex || omittedPreviously in sourceIndices)) ||
                 doses.values.any { !it.kg.isFinite() || it.kg <= 0 || it.reps !in 1..20 }) return result("SET_SCHEME_REVIEW")
+            val last = sets.last()
+            val lastActual = sourceSets.singleOrNull { it.setIndex == last.setIndex }
+            val omitLast = sets.size >= 4 && sets.map { it.setIndex } == (1..sets.size).toList() &&
+                last.setIndex != targetLink.anchorSetIndex && targetLink.basePolicy != ProgressionBase.ANCHOR &&
+                targetLink.role in setOf(com.training.trackplanner.data.ProgressionRole.MAIN, com.training.trackplanner.data.ProgressionRole.ASSISTANCE) &&
+                last.targetRpeMin?.let { it > 8.0 } != true &&
+                (lastActual?.rpe ?: sourceRecord.entry.rpe ?: 0.0) >= 9.5 &&
+                (doses[last.setIndex]?.failureRisk ?: 0.0) >= 0.75 &&
+                sets.dropLast(1).all { (doses[it.setIndex]?.failureRisk ?: 1.0) <= 0.10 }
+            val omitted = last.setIndex.takeIf { omitLast }
             val changed = sets.filter { set ->
-                val dose = doses.getValue(set.setIndex)
-                set.loadState != ProgramLoadState.EXPLICIT_LOAD || abs(set.weightKg - dose.kg) > EPS || set.reps != dose.reps
+                val dose = doses[set.setIndex] ?: return@filter false
+                set.setIndex != omitted && (set.loadState != ProgramLoadState.EXPLICIT_LOAD ||
+                    abs(set.weightKg - dose.kg) > EPS || set.reps != dose.reps)
             }
-            if (changed.isEmpty()) return result("CURRENT_PLAN_FITS", sourceLink.entryId)
-            val first = doses.getValue(changed.first().setIndex)
+            if (changed.isEmpty() && omitted == null) return result("CURRENT_PLAN_FITS", sourceLink.entryId)
+            val first = doses.getValue((changed.firstOrNull() ?: sets.first()).setIndex)
             val updated = changed.associate { it.setIndex to doses.getValue(it.setIndex) }.toSortedMap()
             return result("READY_FOR_USER_APPROVAL", sourceLink.entryId).copy(
                 sourceWeek = sourceLink.weekNumber,
                 sourceText = sourceSets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
                 originalPlanText = sets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
                 proposedLoadKg = first.kg, proposedReps = first.reps,
-                proposedSets = sets.size, selectedAction = "SET_SPECIFIC",
-                affectedSetIndices = updated.keys.toList(), loadsBySetIndex = updated.mapValues { it.value.kg },
+                proposedSets = sets.size - if (omitLast) 1 else 0,
+                selectedAction = if (omitLast) "REDUCE_LAST_SET" else "SET_SPECIFIC", omittedSetIndex = omitted,
+                affectedSetIndices = updated.keys.toList() + listOfNotNull(omitted),
+                loadsBySetIndex = updated.mapValues { it.value.kg },
                 repsBySetIndex = updated.mapValues { it.value.reps },
                 evidenceFingerprint = fingerprint(asOf, application, sourceLink, sourceRecord,
-                    sourceTargets, targetLink, target, targets, null, updated.toString()))
+                    sourceTargets, targetLink, target, targets, null, "$updated/omit=$omitted"))
         }
         val session = ProgressionSession(sourceLink, sourceSets, sourceTargets)
         // Set edits made immediately before confirmation can change plannedReps/plannedKg.

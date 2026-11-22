@@ -61,6 +61,11 @@ internal class BCoachLinkedSquatNextWeekService(
             plateOneSideKg = plate, displayedStepKg = step,
             curve = curve, rirPolicy = rirPolicy
         )
+        val decisions = dao.suggestions()
+        val coachOmissions = decisions.filter { it.resolution == ProgressionResolution.ACCEPTED &&
+            it.reasons.startsWith("B_COACH_") && it.reasons.contains("_REDUCE_LAST_SET_") }
+            .mapNotNull { decision -> decision.reasons.substringAfterLast("_OMIT_", "").toIntOrNull()
+                ?.let { decision.targetEntryId to it } }.toMap()
         val report = BCoachLinkedSquatWeekPlanner.inspect(
             asOf = asOf,
             targetEntryId = targetEntryId,
@@ -70,11 +75,12 @@ internal class BCoachLinkedSquatNextWeekService(
             prescriptions = prescriptions,
             anchor = evidenceForPlan?.anchor,
             ranking = evidenceForPlan?.ranking,
+            coachOmissions = coachOmissions,
             resolveDoses = if (integrated) { source, target ->
                 BCoachConfirmedLiftModel.nextDoses(source, target, curve, rirPolicy, step)
             } else null
         )
-        if (report.canApply && dao.suggestions().any {
+        if (report.canApply && decisions.any {
                 it.targetEntryId == targetEntryId &&
                     it.resolution in setOf(
                         ProgressionResolution.ACCEPTED,
@@ -102,7 +108,7 @@ internal class BCoachLinkedSquatNextWeekService(
         if (LocalDate.parse(target.date) < asOf) return@withTransaction false
         val sets = workoutDao.setsForEntry(targetEntryId).sortedBy { it.setIndex }
         val targets = dao.prescriptions(targetEntryId)
-        if (sets.size != proposal.proposedSets || sets.isEmpty() ||
+        if (sets.size - (if (proposal.omittedSetIndex != null) 1 else 0) != proposal.proposedSets || sets.isEmpty() ||
             sets.any { it.confirmed } || targets.size != sets.size
         ) return@withTransaction false
         val patch = BCoachLinkedSquatPlanPatch.build(proposal, sets, targets)
@@ -115,7 +121,8 @@ internal class BCoachLinkedSquatNextWeekService(
         val affected = proposal.affectedSetIndices.ifEmpty { sets.map { it.setIndex } }.toSet()
         patch.nextSets.filter { it.setIndex in affected }
             .forEach { workoutDao.updateSet(it) }
-        patch.nextPrescriptions.filter { it.plannedSetIndex in affected }
+        proposal.omittedSetIndex?.let { omitted -> workoutDao.deleteSet(sets.single { it.setIndex == omitted }) }
+        patch.nextPrescriptions.filter { it.plannedSetIndex in affected || it.setIndex == proposal.omittedSetIndex }
             .forEach { dao.putPrescription(it) }
         // A legacy progression suggestion may have been created before the B-Coach
         // decision. Mark it stale in the same transaction so it cannot conflict with
@@ -139,7 +146,7 @@ internal class BCoachLinkedSquatNextWeekService(
             suggestedKg = proposedKg,
             judgmentRpe = priorRpe,
             direction = when (proposal.selectedAction) {
-                "LOAD_DOWN_ONE_STEP" -> ProgressionDirection.DECREASE
+                "REDUCE_LAST_SET", "LOAD_DOWN_ONE_STEP" -> ProgressionDirection.DECREASE
                 "LOAD_UP_ONE_STEP" -> ProgressionDirection.INCREASE
                 "SET_SPECIFIC" -> when {
                     proposedKg > originalKg -> ProgressionDirection.INCREASE
@@ -148,7 +155,8 @@ internal class BCoachLinkedSquatNextWeekService(
                 }
                 else -> ProgressionDirection.HOLD
             },
-            reasons = "B_COACH_${if (automaticallyAfterConfirm) "GATE_H_AUTO_AFTER_CONFIRM" else "GATE_G_USER_APPROVED"}_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}",
+            reasons = "B_COACH_${if (automaticallyAfterConfirm) "GATE_H_AUTO_AFTER_CONFIRM" else "GATE_G_USER_APPROVED"}_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}" +
+                (proposal.omittedSetIndex?.let { "_OMIT_$it" } ?: ""),
             evidenceHash = expectedFingerprint,
             resolution = ProgressionResolution.ACCEPTED,
             resolvedAt = System.currentTimeMillis(),

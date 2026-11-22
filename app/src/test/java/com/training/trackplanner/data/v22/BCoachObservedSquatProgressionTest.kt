@@ -188,7 +188,7 @@ class BCoachObservedSquatProgressionTest {
                 {"bCoachIntegratedLifts":true,"bCoachProgressionEquipmentSchema":"linked-g-1",
                  "bCoachPlateOneSideKg":1.25,"bCoachDumbbellDisplayedIncrementKg":2.0}
                 """.trimIndent()))
-            dao.putApplication(app.copy(startDate = now.toString()))
+            dao.putApplication(app.copy(startDate = now.minusDays(9).toString()))
             for ((index, key) in BCoachConfirmedLiftModel.keys.withIndex()) {
                 val firstId = 10L * (index + 1)
                 for (sequence in 1..3) {
@@ -214,9 +214,44 @@ class BCoachObservedSquatProgressionTest {
                 assertFalse(repo.progressBCoachAfterConfirmedSquat(firstId + 1).wasApplied)
                 assertEquals(future, workouts.setsForEntry(firstId + 2))
             }
+            verifyFatiguedTailAndRecovery(db, repo, now)
         } finally {
             db.close()
         }
+    }
+
+    private suspend fun verifyFatiguedTailAndRecovery(db: TrainingDatabase, repo: TrainingRepository, now: LocalDate) {
+        val workouts = db.workoutDao()
+        val dao = db.programProgressionDao()
+        for (sequence in 1..3) {
+            val id = 100L + sequence
+            val day = now.plusDays(listOf(-9L, 0L, 6L)[sequence - 1])
+            val source = sequence == 1
+            val row = record(id, day.toString(), source, count = 4, reps = 6, kg = 100.0)
+            workouts.insertEntry(row.entry.copy(exerciseStableKey = "barbell_deadlift"))
+            dao.putLink(link(id, sequence, "fatigued-deadlift"))
+            row.sets.forEach { set ->
+                val kg = if (set.setIndex != 4) 100.0 else if (source) 80.0 else 90.0
+                workouts.insertSet(set.copy(weightKg = kg, targetRpeMin = 8.0,
+                    rpe = if (!source) null else if (set.setIndex == 4) 10.0 else 7.0,
+                    loadState = ProgramLoadState.EXPLICIT_LOAD))
+                dao.putPrescription(ProgramPrescriptionSet(id, set.setIndex, 6, kg, 0, originalTargetRpeMin = 8.0))
+            }
+        }
+        val decision = repo.progressBCoachAfterConfirmedSquat(101)
+        assertTrue(decision.toString(), decision.wasApplied)
+        assertEquals(4, decision.omittedSetIndex)
+        assertEquals(3, workouts.setsForEntry(102).size)
+        assertEquals(4, workouts.setsForEntry(101).size)
+        val originalTail = dao.prescriptions(102).single { it.setIndex == 4 }
+        assertNull(originalTail.plannedSetIndex)
+        assertEquals(90.0, originalTail.originalKg, 0.0)
+        assertFalse(repo.progressBCoachAfterConfirmedSquat(101).wasApplied)
+        workouts.setsForEntry(102).forEach { workouts.updateSet(it.copy(confirmed = true, rpe = 7.0)) }
+        val recovered = repo.progressBCoachAfterConfirmedSquat(102)
+        assertTrue(recovered.toString(), recovered.wasApplied || recovered.status == "CURRENT_PLAN_FITS")
+        assertEquals(4, workouts.setsForEntry(103).size)
+        assertEquals(90.0, workouts.setsForEntry(103).last().weightKg, 0.0)
     }
 
     @Test fun coarseEquipmentAdjustsOneRepAndProtectsManualTargets() {

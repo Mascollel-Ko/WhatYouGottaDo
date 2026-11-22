@@ -445,7 +445,8 @@ class TrainingRepository internal constructor(
             nextSets = proposal.proposedSets,
             selectedAction = proposal.selectedAction,
             loadsBySetIndex = proposal.loadsBySetIndex,
-            repsBySetIndex = proposal.repsBySetIndex
+            repsBySetIndex = proposal.repsBySetIndex,
+            omittedSetIndex = proposal.omittedSetIndex
         )
     }
 
