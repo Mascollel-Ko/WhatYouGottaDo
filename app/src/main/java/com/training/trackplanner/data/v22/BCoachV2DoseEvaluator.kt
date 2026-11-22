@@ -639,6 +639,9 @@ internal object BCoachV2DoseEvaluator {
                 item.setCount > 0 && item.setCount <= BCoachV2Policy.MAX_PER_EXERCISE_SETS &&
                     ProgramSetPrescriptionResolver.resolve(item).size == item.setCount
             }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
+        val missingDose = plan.items.filter { hasMissingTimedDose(it, exercises[it.exerciseStableKey]) }
+        add(constraint("MEASURABLE_WORK_INTERVAL", if (missingDose.isEmpty()) BCoachConstraintStatus.PASS
+            else BCoachConstraintStatus.FAIL, missingDose.firstOrNull()?.exerciseStableKey))
         // Most general training prescriptions must not collapse to isolated
         // single sets. Explicit peak tests and duration-driven exposures are
         // permitted exceptions; they are not ordinary strength/accessory work.
@@ -707,6 +710,10 @@ internal object BCoachV2DoseEvaluator {
                 plan.items.any { it.exerciseStableKey == key }
             }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
     }
+
+    internal fun hasMissingTimedDose(item: ProgramSkeletonItem, exercise: Exercise?): Boolean =
+        exercise?.progressMetricType in BCoachV2LoadCandidateResolver.timedMetrics &&
+            ProgramSetPrescriptionResolver.resolve(item).any { it.seconds <= 0 && it.reps <= 0 }
 
     internal fun isExplicitUserExerciseLock(selectionReason: String): Boolean {
         val reason = selectionReason.trim().uppercase()

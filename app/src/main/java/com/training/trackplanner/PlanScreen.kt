@@ -1057,7 +1057,9 @@ private fun ProgramEditorScreen(
             if (generated.bCoachMultiobjectiveDecision?.status == BCoachProductionStatus.INPUT_CONFLICT) {
                 Toast.makeText(
                     context,
-                    "고정 요일·시간·운동 조건을 동시에 만족할 수 없습니다. 입력 조건을 확인해 주세요.",
+                    if (generated.bCoachMultiobjectiveDecision.hardConstraints.any { it.id == "MEASURABLE_WORK_INTERVAL" })
+                        "모든 세트의 수행량을 정할 수 있는 조합을 찾지 못했습니다. 시간 운동의 기록이나 선택한 운동을 확인해 주세요."
+                    else "고정 요일·시간·운동 조건을 동시에 만족할 수 없습니다. 입력 조건을 확인해 주세요.",
                     Toast.LENGTH_LONG
                 ).show()
                 pendingBReview = null

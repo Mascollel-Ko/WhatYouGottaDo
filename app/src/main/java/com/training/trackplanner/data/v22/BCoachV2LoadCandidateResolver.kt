@@ -82,10 +82,22 @@ internal object BCoachV2LoadCandidateResolver {
         val scenarioIntensityBySet = BCoachV2Scenario.entries.associateWith { linkedMapOf<String, Double>() }
         val reasons = linkedSetOf<String>()
         val recentStart = request.asOf.minusDays(55)
+        val timedHistory = history.filter { row -> row.date in recentStart..request.asOf &&
+            row.seconds?.let { it.isFinite() && it >= 1.0 && it <= Int.MAX_VALUE } == true
+        }.groupBy { it.stableKey to it.setIndex }
 
         val resolvedItems = skeleton.items.map { item ->
             val exercise = exercises[item.exerciseStableKey]
-            val sets = ProgramSetPrescriptionResolver.resolve(item)
+            val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
+                if (set.seconds > 0 || set.reps > 0 || exercise?.progressMetricType !in timedMetrics ||
+                    item.progressionBinding != null || BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) ||
+                    isSetUserFixed(set, item.weightSource)) return@map set
+                val rows = timedHistory[item.exerciseStableKey to set.setIndex].orEmpty()
+                val lastDay = rows.maxOfOrNull { it.date } ?: return@map set
+                val durations = rows.filter { it.date == lastDay }.mapNotNull { it.seconds?.toInt() }.sorted()
+                reasons += "CONFIRMED_DURATION:${item.localId}:${set.setIndex}:$lastDay"
+                set.copy(seconds = durations[(durations.size - 1) / 2])
+            }
             val storedModel = modelSnapshots[item.exerciseStableKey]
             val step = equipmentStep(request, item.exerciseStableKey, exercise)
             val allRows = history.filter { row ->
@@ -130,8 +142,7 @@ internal object BCoachV2LoadCandidateResolver {
                     "OBSERVED_FOLLOW_UP_FACTOR:${item.exerciseStableKey}:set=${set.setIndex}"
                 val targetRpe = 10.0 - targetRir
                 val nonLoadMetric = nonLoadMetric(set.seconds, set.reps, exercise)
-                val metricNeedsInput = set.seconds <= 0 && exercise?.progressMetricType in
-                    setOf("TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION")
+                val metricNeedsInput = set.seconds <= 0 && set.reps <= 0 && exercise?.progressMetricType in timedMetrics
                 if (metricNeedsInput) reasons += "NON_LOAD_METRIC_INPUT_REQUIRED:$setId"
                 val instruction = when {
                     validFixedLoad -> BCoachV2LoadInstruction.ExactLoad(
@@ -161,6 +172,16 @@ internal object BCoachV2LoadCandidateResolver {
                     metricNeedsInput -> BCoachV2LoadInstruction.Calibrate(
                         reason = "NON_LOAD_METRIC_INPUT_REQUIRED", evidenceIds = listOf(setId)
                     )
+                    exercise?.progressMetricType == "DISTANCE_OR_TIME_LOAD" -> {
+                        val rows = timedHistory[item.exerciseStableKey to set.setIndex].orEmpty()
+                        val lastDate = rows.maxOfOrNull { it.date }
+                        val matching = rows.filter { it.date == lastDate && it.seconds == set.seconds.toDouble() }
+                        val kg = matching.map { it.weightKg }.distinct().singleOrNull()
+                        if (kg != null && kg.isFinite() && kg > 0.0)
+                            BCoachV2LoadInstruction.HoldLastConfirmed(kg, lastDate.toString(),
+                                evidenceIds = listOf("${item.exerciseStableKey}:$lastDate:${set.setIndex}:${set.seconds}s"))
+                        else BCoachV2LoadInstruction.Calibrate(reason = "TIMED_LOAD_CALIBRATION", evidenceIds = listOf(setId))
+                    }
                     nonLoadMetric != null -> BCoachV2LoadInstruction.NonLoadMetric(
                         metric = nonLoadMetric.first,
                         value = nonLoadMetric.second
@@ -217,7 +238,7 @@ internal object BCoachV2LoadCandidateResolver {
                     )
                     is BCoachV2LoadInstruction.HoldLastConfirmed -> set.copy(
                         weightKg = instruction.kg,
-                        targetRpeMin = set.targetRpeMin ?: targetRpe,
+                        targetRpeMin = set.targetRpeMin,
                         loadState = ProgramLoadState.EXPLICIT_LOAD,
                         estimatedLoadKg = instruction.kg,
                         loadSource = BCoachLoadSource.HISTORY_HOLD,
@@ -225,7 +246,8 @@ internal object BCoachV2LoadCandidateResolver {
                     )
                     is BCoachV2LoadInstruction.Calibrate -> set.copy(
                         weightKg = 0.0,
-                        targetRpeMin = if (metricNeedsInput) null else set.targetRpeMin ?: targetRpe,
+                        targetRpeMin = if (exercise?.progressMetricType in timedMetrics) set.targetRpeMin
+                            else set.targetRpeMin ?: targetRpe,
                         loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED,
                         estimatedLoadKg = null,
                         loadSource = BCoachLoadSource.CALIBRATION_REQUIRED,
@@ -260,6 +282,7 @@ internal object BCoachV2LoadCandidateResolver {
             }.distinct()
             item.copy(
                 weightKg = commonWeight,
+                seconds = updatedSets.map { it.seconds }.distinct().singleOrNull() ?: item.seconds,
                 weightSource = if (itemSources.size == 1) itemSources.single() else "B_COACH_V2_SET_SPECIFIC",
                 setPrescriptions = updatedSets
             )
@@ -708,6 +731,8 @@ internal object BCoachV2LoadCandidateResolver {
         else -> 3.0
     }
 
+    internal val timedMetrics = setOf("TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION")
+
     private fun nonLoadMetric(
         seconds: Int,
         reps: Int,
@@ -715,15 +740,14 @@ internal object BCoachV2LoadCandidateResolver {
     ): Pair<String, Double>? {
         val metric = exercise?.progressMetricType.orEmpty().uppercase()
         return when {
-            seconds > 0 || listOf("DURATION", "TIME", "HOLD").any(metric::contains) ->
-                "SECONDS" to seconds.takeIf { it > 0 }?.toDouble().orDefault(20.0)
+            seconds > 0 -> "SECONDS" to seconds.toDouble()
+            listOf("DURATION", "TIME", "HOLD").any(metric::contains) ->
+                reps.takeIf { it > 0 }?.let { "REPETITIONS" to it.toDouble() }
             listOf("DISTANCE", "JUMP", "SPEED", "QUALITY", "ACCURACY").any(metric::contains) ->
                 (metric.ifBlank { "QUALITY_REPETITIONS" }) to reps.coerceAtLeast(1).toDouble()
             else -> null
         }
     }
-
-    private fun Double?.orDefault(default: Double): Double = this ?: default
 
     internal fun workingRir(
         freshRir: Double,

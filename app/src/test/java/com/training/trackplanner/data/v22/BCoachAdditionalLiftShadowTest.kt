@@ -87,6 +87,28 @@ class BCoachAdditionalLiftShadowTest {
             asOf, records + pending, curves, policy).getValue(keys[0]).evidenceIds)
     }
 
+    @Test fun timedCarryUsesOnlyConfirmedSameSetDurationAndLoad() {
+        val key = "dumbbell_farmer_carry"
+        val exercise = com.training.trackplanner.data.Exercise(stableKey = key, name = key,
+            category = "근력운동", progressMetricType = "DISTANCE_OR_TIME_LOAD")
+        val baseline = plan()
+        val sets = (1..3).map { ProgramSetPrescription(it, 0, 0.0, 0,
+            loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED) }
+        val slot = baseline.items.first().copy(exerciseStableKey = key, stableKey = key,
+            weightSource = "", reps = 0, seconds = 0, weightKg = 0.0, setPrescriptions = sets)
+        val request = newBBalancedGenerationRequest("carry", 3, asOf, 60, false, BBalancedGoalImportance(3,3,3,3))
+        val observed = entry(key, 1, 24.0, reps = 0)
+        val history = V22HistoryInput.fromWorkoutHistory(listOf(observed.copy(sets = observed.sets.map { set ->
+            set.copy(seconds = 15 + set.setIndex, confirmed = set.setIndex != 3)
+        })))
+        val resolved = BCoachV2LoadCandidateResolver.resolve(baseline.copy(items = listOf(slot)), request,
+            history, mapOf(key to exercise)).skeleton.items.single()
+        assertEquals(listOf(16, 17, 0), resolved.setPrescriptions.map { it.seconds })
+        assertEquals(listOf(24.0, 24.0, 0.0), resolved.setPrescriptions.map { it.weightKg })
+        assertEquals(ProgramLoadSource.HISTORY_HOLD, resolved.setPrescriptions.first().loadSource)
+        assertTrue(BCoachV2DoseEvaluator.hasMissingTimedDose(resolved, exercise))
+    }
+
     private fun plan(): GeneratedProgramSkeleton {
         val request = ProgramSkeletonRequest(
             "B", ProgramGoal.FUNCTIONAL_CONDITIONING, 3, 60, emptySet(),

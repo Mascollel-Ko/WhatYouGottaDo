@@ -597,6 +597,25 @@ internal object BCoachV2GlobalSelector {
         }
 
         val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
+        val missing = plan.items.filter { item -> eligibleSource(item) && item.progressionBinding == null &&
+            item.progressionAnchorSetIndex == null && !item.requiredTemplateAnchor && !item.directSportSession &&
+            !item.rehabLikeActivation && !item.selectionRole.contains("PEAK", ignoreCase = true) &&
+            BCoachV2DoseEvaluator.hasMissingTimedDose(item, exercises[item.exerciseStableKey])
+        }
+        if (missing.isNotEmpty()) {
+            val remaining = plan.items - missing.toSet()
+            if (remaining.map { it.weekNumber to it.dayOfWeek }.toSet() ==
+                plan.items.map { it.weekNumber to it.dayOfWeek }.toSet()) {
+                changes += "REMOVE_UNMEASURED_ACCESSORY" to plan.copy(items = remaining)
+            }
+            // Keep every training day when its only exercise has no measurable work interval.
+            for (replacement in eligible.filter { it.progressMetricType == "QUALITY_BASED" ||
+                    it.progressMetricType.contains("REP", ignoreCase = true) }.sortedWith(rank).take(3)) {
+                val revised = plan.items.map { item -> if (item in missing) reselectedItem(item, replacement) else item }
+                if (revised.distinctBy { Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey) }.size == revised.size)
+                    changes += "REPLACE_UNMEASURED_WITH_${replacement.stableKey}" to plan.copy(items = revised)
+            }
+        }
         val mutableKeys = selected.filter { key ->
             plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource)
         }

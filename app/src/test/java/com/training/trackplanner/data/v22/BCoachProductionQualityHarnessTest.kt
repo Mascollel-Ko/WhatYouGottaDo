@@ -108,6 +108,9 @@ class BCoachProductionQualityHarnessTest {
             assertTrue(decision.alternatives.isNotEmpty())
             decision.alternatives.forEach { alternative ->
                 val plan = requireNotNull(proposal.candidateForReview(alternative.candidateId))
+                assertTrue("${fixture.id}: every recommended set needs a work interval", plan.items.all { item ->
+                    ProgramSetPrescriptionResolver.resolve(item).all { it.seconds > 0 || it.reps > 0 }
+                })
                 assertEquals(fixture.weeks, plan.request.durationWeeks)
                 assertEquals((1..fixture.weeks).toSet(), plan.items.map { it.weekNumber }.toSet())
                 assertTrue("${fixture.id}/${alternative.candidateId}: main sets", plan.items
