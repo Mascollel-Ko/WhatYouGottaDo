@@ -1,6 +1,8 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.ProgramSkeletonItem
 
 /**
  * Per-exercise *planning* policy for new B blocks. The observed roster can be reused,
@@ -111,6 +113,27 @@ internal object BBlockPurposePrescription {
         BBlockGoal.PEAK_EVALUATION -> if (main) 1..3 else 6..10
         BBlockGoal.AUTO, BBlockGoal.BALANCED -> if (main) 4..8 else 8..12
     }
+
+    /** Keep automated resistance assistance inside its block purpose after roster and dose mutations. */
+    fun accessoryPrescription(item: ProgramSkeletonItem, block: BBlockGoal, exercise: Exercise?,
+        mainKeys: Set<String>): ProgramSkeletonItem {
+        val role = item.selectionRole.substringBefore('|').uppercase()
+        if (item.exerciseStableKey in mainKeys || listOf("MAIN", "PEAK", "SPORT", "CORE", "TEST").any(role::contains) ||
+            listOf("ACCESSORY", "ASSIST", "HYPERTROPHY").none(role::contains) ||
+            exercise?.progressMetricType !in resistanceRepMetrics ||
+            BCoachSessionComposition.isFixedInSession(item)) return item
+        if (block == BBlockGoal.PEAK_EVALUATION || block == BBlockGoal.SPORT_SUPPORT) return item
+        val purpose = if ("HYPERTROPHY" in role) BBlockGoal.HYPERTROPHY else purpose(block, false, exercise)
+        if (purpose != BBlockGoal.HYPERTROPHY && purpose != BBlockGoal.STRENGTH) return item
+        val range = repRange(purpose, false)
+        val sets = ProgramSetPrescriptionResolver.resolve(item)
+        if (sets.any { it.seconds > 0 || it.reps <= 0 } || sets.all { it.reps in range }) return item
+        val aligned = sets.map { it.copy(reps = it.reps.coerceIn(range)) }
+        return item.copy(reps = aligned.map { it.reps }.distinct().singleOrNull() ?: 0, setPrescriptions = aligned)
+    }
+
+    private val resistanceRepMetrics = setOf("LOAD_REPS", "MACHINE_LOAD_REPS", "ESTIMATED_1RM", "VOLUME_LOAD",
+        "REPS_AT_LOAD", "LOAD_REPS_OR_REPS", "LOAD_REPS_OR_TIME")
 
     /** Peak/evaluation is a distinct last-week prescription, not a stronger normal week. */
     fun finishWeek(

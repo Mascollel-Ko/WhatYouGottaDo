@@ -94,12 +94,20 @@ internal object BCoachV2GlobalSelector {
         } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}|badminton=" +
             BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonAtCutoff) +
             "|referenceCapacity=" + referenceCapacityByStableKey.toSortedMap())
+        val blockCalendar = request.blockProgram?.let(::BBlockCalendar)
         fun prepareLayout(raw: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
             val rows = raw.items.map { item ->
-                runtimeMetadata.resolveByStableKey(item.exerciseStableKey)?.let { meta ->
+                val enriched = runtimeMetadata.resolveByStableKey(item.exerciseStableKey)?.let { meta ->
                     item.copy(movementFamily = meta.movementFamily, redundancyGroup = meta.redundancyGroup,
                         primaryStressProfile = meta.primaryStressProfile)
                 } ?: item
+                val block = blockCalendar?.blockIndex(item.weekNumber, item.dayOfWeek)
+                    ?.let { request.blockProgram?.blocks?.get(it) }
+                if (block == null || raw.weekPlans.any { it.weekIndex == item.weekNumber &&
+                        (it.deloadFlag || "RECOVERY" in it.weekType) })
+                    enriched
+                else BBlockPurposePrescription.accessoryPrescription(enriched, block.goal,
+                    exercises[item.exerciseStableKey], mainExerciseKeys)
             }
             return raw.copy(items = if (raw === baseline) rows else
                 rows.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap {
@@ -845,7 +853,7 @@ internal object BCoachV2GlobalSelector {
         coreCatalog: CanonicalCoreCatalog,
         goalWeights: List<BCoachGoalWeight>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
-        addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises))
+        addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises, request.blockProgram?.let(::BBlockCalendar)))
         // Offer roster mutations before generic dose tweaks. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,

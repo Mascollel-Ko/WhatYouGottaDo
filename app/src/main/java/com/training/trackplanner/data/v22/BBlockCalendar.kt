@@ -7,6 +7,17 @@ internal class BBlockCalendar(private val program: BBlockProgramDefinition) {
     val durationDays: Int = program.durationDays
     val calendarWeeks: Int = (durationDays + 6) / 7
 
+    fun blockIndex(week: Int, day: Int): Int? {
+        val date = (week - 1) * 7 + day - 1
+        var start = 0
+        for ((index, block) in program.blocks.withIndex()) {
+            val end = start + block.weeks * 7
+            if (date in start until end) return index
+            start = end + program.recoveryDaysBetween.getOrElse(index) { 0 }
+        }
+        return null
+    }
+
     fun slot(blockIndex: Int, localWeekIndex: Int, sessionDay: Int): BCalendarSlot {
         require(blockIndex in program.blocks.indices)
         require(localWeekIndex in 0 until program.blocks[blockIndex].weeks)

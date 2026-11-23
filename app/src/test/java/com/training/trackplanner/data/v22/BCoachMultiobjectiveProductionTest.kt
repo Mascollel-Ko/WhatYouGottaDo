@@ -1729,6 +1729,9 @@ class BCoachMultiobjectiveProductionTest {
         for (candidate in alternatives) {
             for (day in candidate.items.groupBy { it.weekNumber to it.dayOfWeek }.values) {
                 assertTrue(day.count { it.exerciseStableKey in press } <= 2)
+                for (machine in day.filter { it.exerciseStableKey == "ex_1dbee10e" }) {
+                    assertTrue(machine.setPrescriptions.all { it.reps in 8..15 })
+                }
                 val bench = day.find { it.exerciseStableKey == "barbell_bench_press" } ?: continue
                 assertTrue(day.none { it.exerciseStableKey == "ex_1dbee10e" && it.orderIndex < bench.orderIndex })
             }
@@ -1756,6 +1759,23 @@ class BCoachMultiobjectiveProductionTest {
         assertTrue(BCoachSessionComposition.neighbors(locked, emptySet(), emptyMap()).isEmpty())
         assertTrue(evaluate(locked).hardConstraints.any { it.id == "SESSION_SIMILAR_VARIANT_LIMIT" &&
             it.status == BCoachConstraintStatus.FAIL })
+    }
+
+    @Test fun `accessory rep bounds follow the block purpose before resolving loads`() {
+        val machine = exercise("ex_1dbee10e", "MACHINE", metric = "MACHINE_LOAD_REPS")
+        val assist = item(machine.stableKey, 1, 1, 3, 6).copy(selectionRole = "ACCESSORY|B12_FOCUS_STRENGTH")
+        fun prescribe(goal: BBlockGoal, row: ProgramSkeletonItem = assist) =
+            BBlockPurposePrescription.accessoryPrescription(row, goal, machine, emptySet())
+        assertEquals(listOf(8, 8, 8), prescribe(BBlockGoal.AUTO).setPrescriptions.map { it.reps })
+        assertEquals(assist, prescribe(BBlockGoal.STRENGTH))
+        assertEquals(8, prescribe(BBlockGoal.STRENGTH, assist.copy(selectionRole = "HYPERTROPHY_ASSIST")).reps)
+        assertEquals(assist, prescribe(BBlockGoal.PEAK_EVALUATION))
+        val fixed = assist.copy(selectionReason = "USER_EXERCISE_LOCK")
+        assertEquals(fixed, prescribe(BBlockGoal.HYPERTROPHY, fixed))
+        val main = assist.copy(selectionRole = "MAIN_STRENGTH")
+        assertEquals(main, prescribe(BBlockGoal.HYPERTROPHY, main))
+        val mixed = assist.copy(setPrescriptions = assist.setPrescriptions.map { it.copy(reps = 5 + 2 * it.setIndex) })
+        assertEquals(listOf(8, 9, 11), prescribe(BBlockGoal.BALANCED, mixed).setPrescriptions.map { it.reps })
     }
 
     private fun prepare(

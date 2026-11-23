@@ -66,7 +66,8 @@ internal object BCoachSessionComposition {
     }
 
     /** Repair all occurrences in a block before beam pruning. Compare destination and prescription choices. */
-    fun neighbors(plan: GeneratedProgramSkeleton, mains: Set<String>, exercises: Map<String, Exercise>):
+    fun neighbors(plan: GeneratedProgramSkeleton, mains: Set<String>, exercises: Map<String, Exercise>,
+        calendar: BBlockCalendar? = null):
         List<Pair<String, GeneratedProgramSkeleton>> = buildList {
         val sessions = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
         val groups = sessions.values.flatMap(::families)
@@ -89,6 +90,7 @@ internal object BCoachSessionComposition {
                         for (item in choices.take((group.size - limit).coerceAtLeast(0))) {
                             val places = days.filter { (other, dest) ->
                                 other.first == slot.first && other != slot &&
+                                    calendar?.blockIndex(other.first, other.second) == calendar?.blockIndex(slot.first, slot.second) &&
                                     dest.none { it.exerciseStableKey == item.exerciseStableKey } &&
                                     dest.count { family(it) == family(item) } < limit
                             }
