@@ -22,5 +22,11 @@ class BBlockCalendarTest {
         assertEquals(BCalendarSlot(4, 4), cal.slot(1, 0, 1))
         assertEquals(BCalendarSlot(4, 7), cal.slot(1, 0, 4))
         assertEquals(BCalendarSlot(5, 1), cal.slot(1, 0, 5))
+        assertEquals(null, cal.blockIndex(4, 3))
+        assertEquals(1, cal.blockIndex(4, 4))
+        for (block in 0..1) for (week in 0..2) for (day in 1..7) {
+            val slot = cal.slot(block, week, day)
+            assertEquals(block, cal.blockIndex(slot.week, slot.day))
+        }
     }
 }

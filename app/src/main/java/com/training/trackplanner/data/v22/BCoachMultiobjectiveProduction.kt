@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgressionLinkMode
@@ -85,6 +86,16 @@ data class BCoachConstraintResult(
     val reasonCodes: List<String> = emptyList()
 )
 
+data class BCoachSessionTime(
+    val warmupMinutes: Double,
+    val setupAndTransitionMinutes: Double,
+    val workMinutes: Double,
+    val restMinutes: Double,
+    val upperMinutes: Double
+) {
+    val expectedMinutes: Double get() = warmupMinutes + setupAndTransitionMinutes + workMinutes + restMinutes
+}
+
 data class BCoachPlanAlternative(
     val status: BCoachProductionStatus,
     val label: String,
@@ -100,7 +111,9 @@ data class BCoachPlanAlternative(
     val reasonCodes: List<String> = emptyList(),
     val prescriptionSummary: List<String> = emptyList(),
     /** Structured review uses these codes without parsing the legacy summary text. */
-    val changeSummary: List<String> = emptyList()
+    val changeSummary: List<String> = emptyList(),
+    val sessionTimes: Map<Pair<Int, Int>, BCoachSessionTime> = emptyMap(),
+    val weeklyGoalGaps: Map<Int, List<BBalancedGoal>> = emptyMap()
 )
 
 data class BCoachMultiobjectiveDecision(
@@ -169,110 +182,7 @@ class BCoachMultiobjectiveProposal internal constructor(
         "RECOMMENDED"
     )
 
-    /**
-     * Explicit opt-in: apply ONE Gate F first-squat-set change to the already
-     * fingerprint-approved B candidate. The original candidate is first
-     * accepted using the normal stale-input and proposal checks; any missing
-     * shadow evidence rejects without mutating a draft.
-     */
-    fun acceptWithSquatShadow(
-        expectedProposalFingerprint: String,
-        currentSkeleton: GeneratedProgramSkeleton,
-        candidateId: String,
-        comparison: BCoachSquatShadowProgramComparison
-    ): BCoachProposalAcceptance {
-        if (comparison.snapshotDate?.toString() != decision.evidenceCutoff) {
-            return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_EVIDENCE_STALE")
-        }
-        val regular = accept(expectedProposalFingerprint, currentSkeleton, candidateId)
-        if (!regular.accepted || regular.skeleton == null) return regular
-        val review = BCoachSquatShadowProgramBridge.inspect(
-            regular.skeleton, comparison
-        ) ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_NOT_ELIGIBLE")
-        val changed = BCoachSquatShadowProgramBridge.apply(
-            regular.skeleton, comparison, review
-        ) ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_PROPOSAL_CHANGED")
-        val instructions = loadInstructionsByCandidateId[candidateId].orEmpty() +
-            (BCoachV2LoadCandidateResolver.setId(review.localId, 1) to
-                "USER_APPROVED_GATE_F_FIRST_SET:${review.approvedLoadKg}kg:${review.approvedReps}reps")
-        val signed = BCoachMultiobjectiveProduction.withDecisionMetadata(
-            changed,
-            decision,
-            "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW",
-            acceptedStructureFingerprint =
-                BCoachMultiobjectiveProduction.persistenceStructureFingerprint(changed),
-            // The objective scores were computed for the original reviewed B candidate,
-            // not this optional first-set experiment. Keep the source fingerprint
-            // so persisted diagnostics correctly mark the final prescription as adjusted.
-            acceptedCandidateFingerprint =
-                BCoachMultiobjectiveProduction.fingerprint(regular.skeleton),
-            chosenAlternativeId = candidateId,
-            chosenLoadInstructions = instructions
-        )
-        return BCoachProposalAcceptance(true, signed, "SQUAT_SHADOW_FIRST_SET_APPROVED")
-    }
 
-    /**
-     * Explicitly approved SHORT-HORIZON first-set changes. The base B-Coach
-     * candidate passes the ordinary stale-input acceptance checks first.
-     * Every selected lift is required to remain compatible with that exact
-     * candidate; a single failure rejects all changes without writing data.
-     */
-    fun acceptWithStrengthShadows(
-        expectedProposalFingerprint: String,
-        currentSkeleton: GeneratedProgramSkeleton,
-        candidateId: String,
-        applySquat: Boolean,
-        squatComparison: BCoachSquatShadowProgramComparison?,
-        additionalLiftEvidence: Map<String, BCoachAdditionalLiftShadow.Evidence>,
-        selectedLiftKeys: Set<String>
-    ): BCoachProposalAcceptance {
-        if (!applySquat && selectedLiftKeys.isEmpty())
-            return accept(expectedProposalFingerprint, currentSkeleton, candidateId)
-        if (applySquat && squatComparison?.snapshotDate?.toString() != decision.evidenceCutoff)
-            return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_EVIDENCE_STALE")
-        if (selectedLiftKeys.any {
-                additionalLiftEvidence[it]?.asOf?.toString() != decision.evidenceCutoff
-            }) return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_EVIDENCE_STALE")
-        val ordinary = accept(expectedProposalFingerprint, currentSkeleton, candidateId)
-        if (!ordinary.accepted || ordinary.skeleton == null) return ordinary
-        var candidate = ordinary.skeleton
-        val approvedInstructions = linkedMapOf<String, String>()
-        if (applySquat) {
-            val report = squatComparison
-                ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_MISSING")
-            val inspected = BCoachSquatShadowProgramBridge.inspect(candidate, report)
-                ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_NOT_ELIGIBLE")
-            candidate = BCoachSquatShadowProgramBridge.apply(candidate, report, inspected)
-                ?: return BCoachProposalAcceptance(false, null, "SQUAT_SHADOW_PROPOSAL_CHANGED")
-            approvedInstructions[BCoachV2LoadCandidateResolver.setId(inspected.localId, 1)] =
-                "EXPLICIT_GATE_F_SQUAT:${inspected.approvedLoadKg}kg:${inspected.approvedReps}reps"
-        }
-        for (key in selectedLiftKeys.sorted()) {
-            val evidence = additionalLiftEvidence[key]
-                ?: return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_MISSING")
-            val inspected = BCoachAdditionalLiftShadow.inspect(candidate, evidence)
-                ?: return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_NOT_ELIGIBLE:$key")
-            candidate = BCoachAdditionalLiftShadow.apply(candidate, evidence, inspected)
-                ?: return BCoachProposalAcceptance(false, null, "OTHER_LIFT_SHADOW_PROPOSAL_CHANGED:$key")
-            approvedInstructions[BCoachV2LoadCandidateResolver.setId(inspected.localId, 1)] =
-                "EXPLICIT_EXACT_LIFT_SHADOW:${inspected.kg}kg:${inspected.reps}reps"
-        }
-        val signed = BCoachMultiobjectiveProduction.withDecisionMetadata(
-            candidate, decision, "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW",
-            acceptedStructureFingerprint =
-                BCoachMultiobjectiveProduction.persistenceStructureFingerprint(candidate),
-            // The original optimizer score predates optional per-set Shadow edits.
-            acceptedCandidateFingerprint =
-                BCoachMultiobjectiveProduction.fingerprint(ordinary.skeleton),
-            chosenAlternativeId = candidateId,
-            chosenLoadInstructions =
-                loadInstructionsByCandidateId[candidateId].orEmpty() + approvedInstructions
-        )
-        return BCoachProposalAcceptance(true, signed, "EXPLICIT_STRENGTH_SHADOW_FIRST_SETS_APPROVED")
-    }
-
-    /** Revalidates the displayed fallback and the selected candidate before applying it. */
     fun accept(
         expectedProposalFingerprint: String,
         currentSkeleton: GeneratedProgramSkeleton,
@@ -336,7 +246,8 @@ internal object BCoachMultiobjectiveProduction {
         recommendedImportance: Map<BBalancedGoal, Int> = emptyMap(),
         modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
         rirPolicy: RpeRirPolicy? = null,
-        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList(),
+        runtimeMetadata: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): Outcome {
         val result = BCoachV2GlobalSelector.select(
             request = request,
@@ -345,6 +256,7 @@ internal object BCoachMultiobjectiveProduction {
             exercises = exercises,
             baseline = baseline,
             jointCandidate = candidate,
+            runtimeMetadata = runtimeMetadata,
             muscleRelations = muscleRelations,
             coreCatalog = coreCatalog,
             badmintonCatalog = badmintonCatalog,

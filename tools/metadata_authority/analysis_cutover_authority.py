@@ -14,7 +14,7 @@ CORE_APPROVED_SHA256 = "558c2f4a89d4d4bfba4eba35561881117122249afd905f86d95c1a6c
 BADMINTON_OBJECTIVE_AUTHORITY_SOURCE = (
     ROOT / "docs/metadata_authority/badminton_objective_relations_v2_authority.csv"
 )
-BADMINTON_OBJECTIVE_AUTHORITY_SHA256 = "9a7eb5ecaf9687429e6bdca19d275d814ef36b1cb14e4c3dc14b72bb1bbd3a1e"
+BADMINTON_OBJECTIVE_AUTHORITY_SHA256 = "e2c852240f7aeaf27a220cd99eb2d9e0c4bdd7600f9dfeba34c5603210891b9d"
 USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE = (
     "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
 )
@@ -117,14 +117,20 @@ def build_badminton_objective_relations() -> list[dict[str, str]]:
     if {row["objectiveId"] for row in relations} != set(CANONICAL_OBJECTIVES):
         raise ValueError("Canonical badminton objective set must contain exactly nine objectives")
     for row in relations:
-        if row["transferLevel"] not in {"DIRECT", "SUPPORTIVE", "GENERAL", "LOW"}:
+        correction = row["provenance"] in {
+            "OBJECTIVE_SPECIFIC_SEMANTIC_CORRECTION_2026_11_21",
+            "OBJECTIVE_SPECIFIC_SEMANTIC_CORRECTION_2026_11_22",
+        }
+        if correction and row["transferLevel"] != "NONE":
+            raise ValueError(f"Unsubstantiated sport objective must carry zero credit: {row['relationId']}")
+        if not correction and row["transferLevel"] not in {"DIRECT", "SUPPORTIVE", "GENERAL", "LOW"}:
             raise ValueError(f"Invalid badminton objective transfer level: {row['relationId']}")
         if row["reviewStatus"] != "PASS" or not row["reviewReason"]:
             raise ValueError(f"Unreviewed badminton objective relation: {row['relationId']}")
         if row["provenance"] == USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE:
             if row["evidenceRelationKeys"]:
                 raise ValueError(f"Product decision unexpectedly contains inherited evidence: {row['relationId']}")
-        elif row["provenance"] == "INHERITED_FROM_EXPLICIT_BADMINTON_RELATION_V1":
+        elif correction or row["provenance"] == "INHERITED_FROM_EXPLICIT_BADMINTON_RELATION_V1":
             if not row["evidenceRelationKeys"]:
                 raise ValueError(f"Inherited objective lacks frozen evidence lineage: {row['relationId']}")
         else:

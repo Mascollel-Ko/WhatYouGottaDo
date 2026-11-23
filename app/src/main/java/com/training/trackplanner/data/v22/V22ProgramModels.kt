@@ -289,16 +289,10 @@ data class V22GeneratedProgram(
     val skeleton: GeneratedProgramSkeleton,
     /** Present only for the live B path. [plan] remains the frozen Python-parity comparator. */
     val balanced12WeekPlan: BBalanced12WeekPlan? = null,
-    /** Transient read-only experiment; never persisted in GeneratedProgramSkeleton. */
-    val squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
-    /** Gate E: other exercise coverage only. Never an approved progression. */
-    val otherExerciseShadowCoverage: List<BCoachExerciseShadowCoverageRow> = emptyList(),
     /** Typed eight-axis decision and authority status for the V22 B production path. */
     val bCoachMultiobjectiveDecision: BCoachMultiobjectiveDecision? = null,
     /** Transient candidate. It can change the saved draft only after fingerprinted acceptance. */
-    val bCoachMultiobjectiveProposal: BCoachMultiobjectiveProposal? = null,
-    /** Exact-key short-horizon lift Shadows; opt-in only, never applied by generation. */
-    val additionalLiftShadows: Map<String, BCoachAdditionalLiftShadow.Evidence> = emptyMap()
+    val bCoachMultiobjectiveProposal: BCoachMultiobjectiveProposal? = null
 )
 
 enum class BBalancedNumericAuthority {

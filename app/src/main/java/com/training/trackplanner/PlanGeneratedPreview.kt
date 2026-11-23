@@ -314,18 +314,28 @@ private fun ProgramDraftEditTab(
                     onEdit = { if (canEdit) onEditItem(item) else onBlockedItem() },
                     onDelete = { if (canEdit) onDeleteItem(item) else onBlockedItem() }
                 )
-                if(onMoveItem!=null) {
-                    ProgramTemporalSelector(selectedDays,setOf(item.dayOfWeek),"move-${item.localId}",
-                        { programWeekdayChipLabel(it) },
-                        { if (canEdit) onMoveItem(item,it) else onBlockedItem() },
-                        { programWeekdayLabel(it) })
-                }
-                if(onReorderItem!=null) Row {
-                    TextButton(onClick={if(canEdit) onReorderItem(item,-1) else onBlockedItem()},enabled=item!=dayItems.first()) { MaterialText(stringResource(R.string.program_move_up)) }
-                    TextButton(onClick={if(canEdit) onReorderItem(item,1) else onBlockedItem()},enabled=item!=dayItems.last()) { MaterialText(stringResource(R.string.program_move_down)) }
-                }
-                if (canEdit && item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null) {
-                    ProgressionDraftControl(item, skeleton, onProgressionChange)
+                val canLink = canEdit && item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null
+                if (onMoveItem != null || onReorderItem != null || canLink) {
+                    var expanded by rememberSaveable(item.localId) { mutableStateOf(false) }
+                    TextButton(onClick = { expanded = !expanded }) {
+                        MaterialText(stringResource(if (expanded) R.string.program_close_item_controls
+                            else R.string.program_show_item_controls))
+                    }
+                    if (expanded) {
+                        if(onMoveItem!=null) {
+                            ProgramTemporalSelector(selectedDays,setOf(item.dayOfWeek),"move-${item.localId}",
+                                { programWeekdayChipLabel(it) },
+                                { if (canEdit) onMoveItem(item,it) else onBlockedItem() },
+                                { programWeekdayLabel(it) })
+                        }
+                        if(onReorderItem!=null) Row {
+                            TextButton(onClick={if(canEdit) onReorderItem(item,-1) else onBlockedItem()},enabled=item!=dayItems.first()) { MaterialText(stringResource(R.string.program_move_up)) }
+                            TextButton(onClick={if(canEdit) onReorderItem(item,1) else onBlockedItem()},enabled=item!=dayItems.last()) { MaterialText(stringResource(R.string.program_move_down)) }
+                        }
+                        if (canLink) {
+                            ProgressionDraftControl(item, skeleton, onProgressionChange)
+                        }
+                    }
                 }
             }
         }
@@ -417,7 +427,7 @@ private fun ProgramDraftItemDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProgramDecimalField(
                             Modifier.weight(1f),
-                            "중량",
+                            if (item.exerciseStableKey in pairedPressKeys) stringResource(R.string.program_pair_input) else "중량",
                             if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg),
                             onChange = { value ->
                                 val parsed = value.toDoubleOrNull()
@@ -451,7 +461,7 @@ private fun ProgramDraftItemDialog(
                     }
                     if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && set.estimatedLoadKg != null) {
                         MaterialText(
-                            "예상 ${formatDecimal(set.estimatedLoadKg)}kg · 장비 단위 확인 필요",
+                            "예상 ${programLoadLabel(item.exerciseStableKey, set.estimatedLoadKg)} · 장비 단위 확인 필요",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -519,31 +529,42 @@ private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
         ) }.distinct().size == 1) {
         return listOf(
                 "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
-                "${sets.first().displayText()}$rest${effort.commonTargetRpeMin.plannedRpeSuffix()}"
+                "${sets.first().displayText(item.exerciseStableKey)}$rest${effort.commonTargetRpeMin.plannedRpeSuffix()}"
         ) + item.periodizationPreviewLine()
     }
     return sets.mapIndexed { index, set ->
         val suffix = effort.commonTargetRpeMin?.plannedRpeSuffix()
             ?: effort.perSetTargetRpeMin.getOrNull(index).plannedRpeSuffix()
-        "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}$rest${if (index == 0) suffix else if (effort.commonTargetRpeMin != null) "" else suffix}"
+        "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText(item.exerciseStableKey)}$rest${if (index == 0) suffix else if (effort.commonTargetRpeMin != null) "" else suffix}"
     } + item.periodizationPreviewLine()
 }
 
 private fun ProgramSkeletonItem.periodizationPreviewLine(): List<String> =
     listOfNotNull(prescription.takeIf { it.startsWith("주기화") })
 
+// Both entries use IMPLEMENT_TOTAL_LOAD for a matched pair in strength_proxy_loadings_v1.csv.
+private val pairedPressKeys = setOf("ex_a61f1e96", "ex_3a7d3eda")
+
 @Composable
-private fun ProgramSetPrescription.displayText(): String =
+internal fun programLoadLabel(key: String, total: Double, ordinary: String = "${formatDecimal(total)}kg"): String {
+    if (key !in pairedPressKeys || !total.isFinite()) return ordinary
+    val amount = java.math.BigDecimal.valueOf(total).setScale(2, java.math.RoundingMode.HALF_UP)
+    val each = amount.divide(java.math.BigDecimal.valueOf(2)).stripTrailingZeros().toPlainString()
+    return stringResource(R.string.program_pair_load, each, amount.stripTrailingZeros().toPlainString())
+}
+
+@Composable
+private fun ProgramSetPrescription.displayText(key: String): String =
     buildList {
         if (reps > 0) add(pluralStringResource(R.plurals.repetition_count, reps, reps))
         when (loadState) {
             ProgramLoadState.USER_CALIBRATION_REQUIRED -> add(
-                estimatedLoadKg?.let { "약 ${formatDecimal(it)}kg · 장비 단위 확인 필요" }
+                estimatedLoadKg?.let { "약 ${programLoadLabel(key, it)} · 장비 단위 확인 필요" }
                     ?: stringResource(R.string.cold_start_choose_weight)
             )
             ProgramLoadState.NOT_APPLICABLE -> Unit
-            ProgramLoadState.EXPLICIT_LOAD -> if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
-            ProgramLoadState.REAL_ZERO_LOAD -> add("${formatDecimal(weightKg)}kg")
+            ProgramLoadState.EXPLICIT_LOAD -> if (weightKg > 0.0) add(programLoadLabel(key, weightKg))
+            ProgramLoadState.REAL_ZERO_LOAD -> add(programLoadLabel(key, weightKg))
         }
         if (seconds > 0) add(stringResource(R.string.seconds_short, seconds))
     }.ifEmpty { listOf(stringResource(R.string.prescription_none)) }.joinToString(" · ")

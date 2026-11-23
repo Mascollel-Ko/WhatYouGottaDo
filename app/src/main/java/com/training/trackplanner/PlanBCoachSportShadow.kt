@@ -112,17 +112,15 @@ internal fun BCoachSportShadowDialog(
         report.candidates.filter { it.productionRecommended })
         .distinctBy { it.candidateId }
 
+    val windowBounds = bCoachReviewWindowBounds()
     Dialog(onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = true)) {
-        Surface(Modifier.fillMaxSize().testTag("b_coach_sport_shadow_dialog")) {
+        Surface(windowBounds.fillMaxSize().testTag("b_coach_sport_shadow_dialog")) {
             Column(
                 Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("스포츠 Shadow · 후보 비교", style = MaterialTheme.typography.titleLarge)
-                Text("읽기 전용 분석 · 실제 추천안·승인·저장에는 반영되지 않습니다.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("후보별 스포츠 훈련량", style = MaterialTheme.typography.titleLarge)
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth()
                         .testTag("b_coach_sport_shadow_content"),
@@ -132,15 +130,13 @@ internal fun BCoachSportShadowDialog(
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("비교 범위", fontWeight = FontWeight.SemiBold)
-                                Text("기존 생성기에서 검증한 후보 " + report.evaluatedCandidateCount +
-                                    "개에 새로운 스포츠 목표별 평가를 적용했습니다.")
-                                Text("새 운동 조합을 별도로 생성한 실험은 아닙니다. " +
-                                    "운동이 후보에 없었다면 이번 Shadow에서 순위를 매길 수 없습니다.")
+                                Text("훈련 시간과 장비 등 제약을 통과한 후보 " + report.evaluatedCandidateCount +
+                                    "개의 목표별 훈련량을 비교합니다.")
                                 if (report.error != null) Text("평가 오류: " + report.error)
                                 else if (report.shadowLeaderId == report.productionCandidateId)
-                                    Text("기존 추천안이 스포츠 기준에서도 상위입니다.")
+                                    Text("전체 목표 추천안이 스포츠 기준에서도 상위입니다.")
                                 else if (report.shadowLeaderId != null)
-                                    Text("스포츠 기준 상위 후보는 기존 추천안과 다릅니다.")
+                                    Text("스포츠 기준 상위 후보는 전체 목표 추천안과 다릅니다.")
                                 else Text("스포츠 목표의 계산 가능한 하한이 없습니다.")
                             }
                         }
@@ -150,7 +146,7 @@ internal fun BCoachSportShadowDialog(
                         visibleCandidates.forEachIndexed { index, row ->
                             val flags = listOfNotNull(
                                 "후보 " + (index + 1),
-                                "기존 추천" .takeIf { row.productionRecommended },
+                                "전체 목표 추천" .takeIf { row.productionRecommended },
                                 "스포츠 기준 상위".takeIf {
                                     row.candidateId == report.shadowLeaderId
                                 }
@@ -174,11 +170,11 @@ internal fun BCoachSportShadowDialog(
                     }
                     if (selected != null) {
                         item {
-                            Text("기존 추천안과 점수 비교", style = MaterialTheme.typography.titleMedium)
+                            Text("전체 목표 추천안과 점수 비교", style = MaterialTheme.typography.titleMedium)
                             Row(Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("기존 추천안", style = MaterialTheme.typography.labelMedium)
+                                    Text("전체 목표 추천안", style = MaterialTheme.typography.labelMedium)
                                     Text("스포츠 " + (production?.shadowSportLoss?.let(::sportShadowNumber)
                                         ?: "평가 불가"))
                                     Text("주평균 " + (production?.meanWeeklySets?.let(::sportShadowNumber)
@@ -191,9 +187,9 @@ internal fun BCoachSportShadowDialog(
                                     Text("주평균 " + sportShadowNumber(selected.meanWeeklySets) + "세트")
                                 }
                             }
-                            Text("최장 세션 예상 약 " +
+                            Text("최장 세션 여유 포함 상한 " +
                                 sportShadowNumber(selected.estimatedMaxDayMinutes) + "분" +
-                                " · 기존 전체목표 손실 " + sportShadowNumber(selected.productionBaseLoss))
+                                " · 전체 목표 손실 " + sportShadowNumber(selected.productionBaseLoss))
                             Text("스포츠 지표는 낮을수록 목표 부족·초과가 적다는 뜻입니다. " +
                                 "전체 훈련의 우수성이나 적응 효과를 의미하지 않습니다.",
                                 style = MaterialTheme.typography.bodySmall)
@@ -253,7 +249,7 @@ internal fun BCoachSportShadowDialog(
                                         }
                                     }
                                 }
-                                Text("기존 추천안과 차이 · " + (selectedWeek ?: "-") + "주",
+                                Text("전체 목표 추천안과 차이 · " + (selectedWeek ?: "-") + "주",
                                     fontWeight = FontWeight.SemiBold)
                                 val changes = selectedWeek?.let {
                                     sportShadowChanges(productionPlan, chosenPlan, it)
@@ -314,7 +310,7 @@ internal fun BCoachSportShadowDialog(
                 OutlinedButton(
                     onClick = onClose,
                     modifier = Modifier.fillMaxWidth().testTag("b_coach_sport_shadow_close")
-                ) { Text("Shadow 닫기 · 기존 추천안으로 돌아가기") }
+                ) { Text("닫기 · 전체 목표 추천안으로 돌아가기") }
             }
         }
     }

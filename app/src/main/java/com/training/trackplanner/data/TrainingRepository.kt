@@ -343,15 +343,11 @@ class TrainingRepository internal constructor(
         bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
         userOverrideDao = exerciseMetadataUserOverrideDao,
         progressionDao = db.programProgressionDao(),
-        squatShadowReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
-            strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
-        ),
         v2LoadEvidenceReader = com.training.trackplanner.data.v22.BCoachV2LoadEvidenceReader(
             strengthPosteriorDao, strengthPerformanceRegistry, repetitionCurveRegistry,
             initialUserProfileDao
         ),
         rirPolicy = rpeRirPolicy,
-        strengthRegistry = strengthPerformanceRegistry,
         repetitionCurves = repetitionCurveRegistry
     )
     private val linkedSquatNextWeekService = com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekService(
@@ -385,8 +381,8 @@ class TrainingRepository internal constructor(
         val now = LocalDate.now()
         val source = workoutDao.findEntryById(sourceEntryId)
             ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
-        if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
-            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+        if (source.exerciseStableKey !in com.training.trackplanner.data.v22.BCoachConfirmedLiftModel.keys) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "UNSUPPORTED_LIFT")
         }
         if (db.programProgressionDao().link(sourceEntryId) == null) {
             return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
@@ -447,7 +443,10 @@ class TrainingRepository internal constructor(
             nextLoadKg = proposal.proposedLoadKg,
             nextReps = proposal.proposedReps,
             nextSets = proposal.proposedSets,
-            selectedAction = proposal.selectedAction
+            selectedAction = proposal.selectedAction,
+            loadsBySetIndex = proposal.loadsBySetIndex,
+            repsBySetIndex = proposal.repsBySetIndex,
+            omittedSetIndex = proposal.omittedSetIndex
         )
     }
 

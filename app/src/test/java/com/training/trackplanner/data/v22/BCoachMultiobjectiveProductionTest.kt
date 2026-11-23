@@ -1,5 +1,7 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
@@ -144,7 +146,7 @@ class BCoachMultiobjectiveProductionTest {
     }
 
     @Test
-    fun `squat Gate F explicit acceptance is fingerprinted and persists only first set`() {
+    fun `accept persists exactly the reviewed set plan for every exercise`() {
         val outcome = prepare(
             baseline = withTargetRpe(skeleton(2), 8.0),
             candidate = withTargetRpe(skeleton(3), 8.0)
@@ -152,64 +154,11 @@ class BCoachMultiobjectiveProductionTest {
         val proposal = requireNotNull(outcome.proposal)
         val candidateId = requireNotNull(outcome.decision.recommendedCandidateId)
         val candidate = requireNotNull(proposal.candidateForReview(candidateId))
-        val first = candidate.items.filter { it.exerciseStableKey == "barbell_back_squat" }
-            .minWithOrNull(compareBy<ProgramSkeletonItem> { it.weekNumber }
-                .thenBy { it.dayOfWeek }) ?: error("missing squat")
-        val original = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(first)
-        val reps = original.first().reps
-        val count = original.size
-        val chosenKg = original.first().weightKg.takeIf { it.isFinite() && it > 0.0 }
-            ?: original.first().estimatedLoadKg?.takeIf { it.isFinite() && it > 0.0 }
-            ?: 100.0
-        assertTrue(reps in 1..20 && count > 0)
-        val report = BCoachSquatShadowProgramComparison(
-            status = "STABLE_EXPERIMENT_ONLY",
-            snapshotDate = request().asOf,
-            observedReference = "${chosenKg}kg × ${reps}회 / RPE 7",
-            plannedSquatRows = emptyList(),
-            experimentCandidates = emptyList(), experiments = emptyList(),
-            notices = emptyList(),
-            curveRanking = BCoachSquatCurveProgressionReport(
-                status = "EXPERIMENTAL_RANKING_ONLY",
-                asOf = request().asOf,
-                referenceDate = request().asOf.minusDays(1),
-                selectedAction = "HOLD", historicalE1rmKg = 155.0,
-                targetRir = 2.0, doseTargetSets = count,
-                ranked = listOf(BCoachSquatCurveProgressionReport.Candidate(
-                    action = "HOLD", loadKg = chosenKg, reps = reps, sets = count,
-                    requiredE1rmKg = 155.0, historicalE1rmLogGap = 0.01,
-                    worstCaseRegret = 0.0, weightedCost = 0.1,
-                    targetRirMixtureMass = 0.95, volumeLoadChange = 0.0,
-                    eligible = true, reason = "OBSERVED_HOLD"
-                )), notes = emptyList()
-            )
-        )
-        val accepted = proposal.acceptWithSquatShadow(
-            requireNotNull(outcome.decision.proposalFingerprint),
-            outcome.skeleton, candidateId, report
-        )
-        assertTrue(accepted.reason, accepted.accepted)
-        val approved = requireNotNull(accepted.skeleton)
-        val edited = approved.items.single { it.localId == first.localId }
-        val all = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(edited)
-        assertEquals(chosenKg, all.first().weightKg, 0.0)
-        assertEquals(ProgramLoadSource.USER_FIXED, all.first().loadSource)
-        assertEquals(original.drop(1), all.drop(1))
-        assertTrue(approved.items.filter { it.localId != first.localId }
-            .map { it.localId to it.setPrescriptions } ==
-            candidate.items.filter { it.localId != first.localId }
-                .map { it.localId to it.setPrescriptions })
-        val audit = JSONObject(requireNotNull(approved.planningMetadataJson))
-            .getJSONObject("bCoachSquatShadowApprovedFirstSet")
-        assertEquals("HOLD", audit.getString("action"))
-        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
-            approved, history(), mapOf(squat.stableKey to squat),
-            BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
-        )
         val ordinary = proposal.accept(
             requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton, candidateId
         )
         assertTrue(ordinary.accepted)
+        assertEquals(candidate.items, requireNotNull(ordinary.skeleton).items)
         assertFalse(requireNotNull(ordinary.skeleton).planningMetadataJson.orEmpty()
             .contains("bCoachSquatShadowApprovedFirstSet"))
     }
@@ -463,6 +412,23 @@ class BCoachMultiobjectiveProductionTest {
         val actual = BCoachV2ScheduleLoad.timeUpper(skeleton(2).items, mapOf(squat.stableKey to squat))
         val expected = 2.0 + 1.15 * (8.0 + 2.3 + 2 * 45.0 / 60.0 + 120.0 / 60.0 + 0.75)
         assertEquals(expected, actual, 1e-12)
+        val item = skeleton(2).items.single()
+        val intervals = item.copy(restSeconds = 20, setPrescriptions =
+            ProgramSetPrescriptionResolver.resolve(item).map { it.copy(seconds = 90) })
+        val time = BCoachV2ScheduleLoad.sessionTime(listOf(intervals), emptyMap())
+        assertEquals(3.0, time.workMinutes, 1e-12)
+        assertEquals(20.0 / 60, time.restMinutes, 1e-12)
+        assertEquals(8 + 4.75 + 3 + 20.0 / 60, time.expectedMinutes, 1e-12)
+        assertEquals(2 + 1.15 * (8 + 4.75 + 3 + 0.75), time.upperMinutes, 1e-12)
+    }
+
+    @Test fun `generic play and lesson cannot be prescribed even with stale exercise metadata`() {
+        for (key in com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys) {
+            assertEquals(BCoachConstraintStatus.FAIL, evaluate(skeleton(3, key = key)).hardConstraints
+                .single { it.id == "NO_RECREATIONAL_SPORT_SESSION" }.status)
+        }
+        assertEquals(BCoachConstraintStatus.PASS, evaluate(skeleton(3, key = "structured_drill")).hardConstraints
+            .single { it.id == "NO_RECREATIONAL_SPORT_SESSION" }.status)
     }
 
     @Test fun `T40 all eight objective scores are finite and three scenarios have unit regret normalizer`() {
@@ -1438,7 +1404,7 @@ class BCoachMultiobjectiveProductionTest {
             it.first.startsWith("INSERT_GOAL_${key}_")
         }).second
         val newItems = candidate.items.filter { it.exerciseStableKey == key }
-        assertEquals(2, newItems.size)
+        assertEquals(listOf(1), newItems.map { it.weekNumber })
         assertTrue(newItems.all { it.setCount == 2 &&
             it.setPrescriptions.all { set -> set.reps == 10 && set.weightKg == 0.0 } })
     }
@@ -1718,6 +1684,100 @@ class BCoachMultiobjectiveProductionTest {
         })
     }
 
+    @Test fun `three horizontal press variants are redistributed and reviewed across the entire block`() {
+        val press = listOf("ex_1dbee10e", "barbell_bench_press", "ex_a61f1e96")
+        val days = setOf(1, 4)
+        val base = skeleton(3, everyWeek = true)
+        val plan = base.copy(request = base.request.copy(weeklyTrainingDays = 2),
+            weekDaySchedule = (1..2).associateWith { days }, items = (1..2).flatMap { week ->
+                press.mapIndexed { i, key ->
+                    item(key, week, 1, 3, if (i == 1) 5 else 8).copy(orderIndex = i + 1,
+                        movementFamily = "BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS",
+                        redundancyGroup = "HORIZONTAL_PUSH_COMPOUND", primaryStressProfile = "HORIZONTAL_PUSH_STRESS",
+                        selectionRole = if (i == 1) "MAIN_STRENGTH" else "ACCESSORY")
+                } + item(squat.stableKey, week, 4, 3, 5).copy(selectionRole = "MAIN_STRENGTH")
+            })
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            request().copy(days = 2, fixedWeekdays = days), history(),
+            (press + squat.stableKey).associateWith { exercise(it, "BARBELL") }, plan, plan,
+            muscleRelations = press.map { relation(it, "CHEST", "PRIMARY") },
+            mainExerciseKeys = setOf("barbell_bench_press", squat.stableKey))
+        val proposal = requireNotNull(outcome.proposal)
+        val alternatives = proposal.decision.alternatives.map { alternative ->
+            requireNotNull(proposal.candidateForReview(alternative.candidateId))
+        }
+        val report = java.io.File("build/reports/b-coach/three-press-layout.tsv")
+        report.parentFile.mkdirs()
+        report.printWriter().use { out ->
+            out.println("Candidate\tWeek\tDay\tKey\tSets\tReps")
+            for ((i, candidate) in alternatives.withIndex()) {
+                for (row in candidate.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
+                    out.println(listOf(i + 1, row.weekNumber, row.dayOfWeek, row.exerciseStableKey, row.setCount,
+                        ProgramSetPrescriptionResolver.resolve(row).joinToString(",") { it.reps.toString() }).joinToString("\t"))
+                }
+            }
+        }
+        val visible = alternatives.map { candidate ->
+            candidate.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex })).map { row ->
+                listOf(row.weekNumber, row.dayOfWeek, row.exerciseStableKey, row.restSeconds,
+                    ProgramSetPrescriptionResolver.resolve(row).map {
+                        listOf(it.reps, it.seconds, it.weightKg, it.estimatedLoadKg, it.targetRpeMin, it.expectedRir)
+                    })
+            }
+        }
+        assertEquals(visible.distinct().size, alternatives.size)
+        for (candidate in alternatives) {
+            for (day in candidate.items.groupBy { it.weekNumber to it.dayOfWeek }.values) {
+                assertTrue(day.count { it.exerciseStableKey in press } <= 2)
+                for (machine in day.filter { it.exerciseStableKey == "ex_1dbee10e" }) {
+                    assertTrue(machine.setPrescriptions.all { it.reps in 8..15 })
+                }
+                val bench = day.find { it.exerciseStableKey == "barbell_bench_press" } ?: continue
+                assertTrue(day.none { it.exerciseStableKey == "ex_1dbee10e" && it.orderIndex < bench.orderIndex })
+            }
+        }
+        assertTrue(alternatives.any { candidate -> (1..2).all { week ->
+            val rows = candidate.items.filter { it.weekNumber == week && it.exerciseStableKey in press }
+            rows.map { it.exerciseStableKey }.toSet() == press.toSet() && rows.map { it.dayOfWeek }.toSet() == days
+        } })
+    }
+
+    @Test fun `redistribution keeps fixed exercises and compares moved set and repetition options`() {
+        val press = listOf("barbell_bench_press", "ex_1dbee10e", "ex_a61f1e96")
+        val fixed = item(press.first(), 1, 1, 3, 5, 80.0)
+        val day = (listOf(fixed) + press.drop(1).map { item(it, 1, 1, 3, 8) }).mapIndexed { i, row ->
+            row.copy(orderIndex = i + 1, movementFamily = "PRESS", redundancyGroup = "HORIZONTAL_PUSH_COMPOUND")
+        }
+        val plan = skeleton(3).copy(items = day + item(squat.stableKey, 1, 4, 3, 5))
+        val variations = BCoachSessionComposition.neighbors(plan, setOf(press.first()), emptyMap()).map { it.second }
+        assertTrue(variations.isNotEmpty())
+        assertTrue(variations.all { it.items.single { row -> row.localId == fixed.localId } == day.first() })
+        val moved = variations.flatMap { it.items }.filter { it.dayOfWeek == 4 && it.exerciseStableKey in press }
+        assertEquals(setOf(2, 3, 4), moved.map { it.setCount }.toSet())
+        assertEquals(setOf(7, 8, 9), moved.flatMap { it.setPrescriptions }.map { it.reps }.toSet())
+        val locked = plan.copy(items = plan.items.map { it.copy(selectionReason = "USER_EXERCISE_LOCK") })
+        assertTrue(BCoachSessionComposition.neighbors(locked, emptySet(), emptyMap()).isEmpty())
+        assertTrue(evaluate(locked).hardConstraints.any { it.id == "SESSION_SIMILAR_VARIANT_LIMIT" &&
+            it.status == BCoachConstraintStatus.FAIL })
+    }
+
+    @Test fun `accessory rep bounds follow the block purpose before resolving loads`() {
+        val machine = exercise("ex_1dbee10e", "MACHINE", metric = "MACHINE_LOAD_REPS")
+        val assist = item(machine.stableKey, 1, 1, 3, 6).copy(selectionRole = "ACCESSORY|B12_FOCUS_STRENGTH")
+        fun prescribe(goal: BBlockGoal, row: ProgramSkeletonItem = assist) =
+            BBlockPurposePrescription.accessoryPrescription(row, goal, machine, emptySet())
+        assertEquals(listOf(8, 8, 8), prescribe(BBlockGoal.AUTO).setPrescriptions.map { it.reps })
+        assertEquals(assist, prescribe(BBlockGoal.STRENGTH))
+        assertEquals(8, prescribe(BBlockGoal.STRENGTH, assist.copy(selectionRole = "HYPERTROPHY_ASSIST")).reps)
+        assertEquals(assist, prescribe(BBlockGoal.PEAK_EVALUATION))
+        val fixed = assist.copy(selectionReason = "USER_EXERCISE_LOCK")
+        assertEquals(fixed, prescribe(BBlockGoal.HYPERTROPHY, fixed))
+        val main = assist.copy(selectionRole = "MAIN_STRENGTH")
+        assertEquals(main, prescribe(BBlockGoal.HYPERTROPHY, main))
+        val mixed = assist.copy(setPrescriptions = assist.setPrescriptions.map { it.copy(reps = 5 + 2 * it.setIndex) })
+        assertEquals(listOf(8, 9, 11), prescribe(BBlockGoal.BALANCED, mixed).setPrescriptions.map { it.reps })
+    }
+
     private fun prepare(
         request: V22GenerationRequest = request(),
         history: List<V22HistoryRow> = history(),
@@ -1791,6 +1851,15 @@ class BCoachMultiobjectiveProductionTest {
             assertEquals(listOf(1, 2), occurrences[0].setPrescriptions.map(ProgramSetPrescription::setIndex))
             assertEquals(listOf(1, 2), occurrences[1].setPrescriptions.map(ProgramSetPrescription::setIndex))
             assertEquals(4, occurrences.sumOf(ProgramSkeletonItem::setCount))
+        }
+        val threeDays = split.copy(items = split.items + (1..2).map { week ->
+            item("row", week, 5, 2, 10)
+        })
+        val spread = BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(threeDays, deadBug, 5)
+        for (week in 1..2) {
+            val rows = spread.items.filter { it.exerciseStableKey == deadBug && it.weekNumber == week }
+            assertEquals(listOf(1, 1, 2), rows.map { it.setCount }.sorted())
+            assertEquals(3, rows.distinctBy { it.dayOfWeek }.size)
         }
         assertEquals(2, plan.items.count { it.exerciseStableKey == squat.stableKey })
         assertEquals(plan, BCoachV2GlobalSelector.splitAccessorySetsAcrossDays(

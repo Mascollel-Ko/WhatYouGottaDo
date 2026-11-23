@@ -49,6 +49,65 @@ class BCoachAdditionalLiftShadowTest {
         })
     }
 
+    @Test fun confirmedCurvesPrescribeEveryWeekWithoutAnOptIn() {
+        val records = listOf(entry(keys[0], 1, 180.0), entry(keys[1], 2, 70.0),
+            entry(keys[2], 3, 48.0), entry("barbell_back_squat", 4, 130.0))
+        val snapshots = BCoachConfirmedLiftModel.snapshots(asOf, records, curves, policy)
+        assertEquals(BCoachConfirmedLiftModel.keys, snapshots.keys)
+        assertTrue(snapshots.getValue(keys[1]).capacityBase > snapshots.getValue(keys[2]).capacityBase)
+        val request = newBBalancedGenerationRequest("four weeks", 3, asOf, 60, false,
+            BBalancedGoalImportance(3,3,3,3), shadowPlateOneSideKg = 1.25, shadowDumbbellIncrementKg = 2.0)
+        val exercises = records.associate { val key = it.entry.exerciseStableKey
+            key to com.training.trackplanner.data.Exercise(stableKey = key, name = key, category = "Strength",
+                equipment = if (key == keys[2]) "DUMBBELL" else "BARBELL")
+        }
+        val history = V22HistoryInput.fromWorkoutHistory(records)
+        val resolved = BCoachV2LoadCandidateResolver.resolve(plan(), request, history, exercises, snapshots, rirPolicy = policy)
+        val legacy = BCoachV2LoadCandidateResolver.resolve(plan(), request, history, exercises, rirPolicy = policy)
+        val comparison = java.io.File("build/reports/b-coach/confirmed-lift-comparison.txt")
+        comparison.parentFile.mkdirs()
+        comparison.writeText(resolved.skeleton.items.joinToString("\n") { item ->
+            val old = legacy.skeleton.items.single { it.localId == item.localId }
+            "W${item.weekNumber} ${item.exerciseStableKey} legacy=${old.setPrescriptions.map { it.weightKg }} " +
+                "curve=${item.setPrescriptions.map { it.weightKg }} reps=${item.setPrescriptions.map { it.reps }}"
+        })
+        for (item in resolved.skeleton.items) {
+            assertEquals(3, item.setPrescriptions.size)
+            for (set in item.setPrescriptions) {
+                assertTrue(set.weightKg > 0.0)
+                assertEquals(ProgramLoadState.EXPLICIT_LOAD, set.loadState)
+                assertTrue(set.expectedRir?.isFinite() == true)
+                val step = if (item.exerciseStableKey == keys[2]) 2.0 else 2.5
+                assertEquals(0.0, set.weightKg % step, 1e-6)
+            }
+        }
+        val pending = entry(keys[0], 5, 200.0, confirmed = false)
+        assertFalse(keys[0] in BCoachConfirmedLiftModel.snapshots(asOf, listOf(pending), curves, policy))
+        assertEquals(snapshots.getValue(keys[0]).evidenceIds, BCoachConfirmedLiftModel.snapshots(
+            asOf, records + pending, curves, policy).getValue(keys[0]).evidenceIds)
+    }
+
+    @Test fun timedCarryUsesOnlyConfirmedSameSetDurationAndLoad() {
+        val key = "dumbbell_farmer_carry"
+        val exercise = com.training.trackplanner.data.SeedData.exercises(context).single { it.stableKey == key }
+        val baseline = plan()
+        val sets = (1..3).map { ProgramSetPrescription(it, 0, 0.0, 0,
+            loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED) }
+        val slot = baseline.items.first().copy(exerciseStableKey = key, stableKey = key,
+            weightSource = "", reps = 0, seconds = 0, weightKg = 0.0, setPrescriptions = sets)
+        val request = newBBalancedGenerationRequest("carry", 3, asOf, 60, false, BBalancedGoalImportance(3,3,3,3))
+        val observed = entry(key, 1, 24.0, reps = 0)
+        val history = V22HistoryInput.fromWorkoutHistory(listOf(observed.copy(sets = observed.sets.map { set ->
+            set.copy(seconds = 15 + set.setIndex, confirmed = set.setIndex != 3)
+        })))
+        val resolved = BCoachV2LoadCandidateResolver.resolve(baseline.copy(items = listOf(slot)), request,
+            history, mapOf(key to exercise)).skeleton.items.single()
+        assertEquals(listOf(16, 17, 0), resolved.setPrescriptions.map { it.seconds })
+        assertEquals(listOf(24.0, 24.0, 0.0), resolved.setPrescriptions.map { it.weightKg })
+        assertEquals(ProgramLoadSource.HISTORY_HOLD, resolved.setPrescriptions.first().loadSource)
+        assertTrue(BCoachV2DoseEvaluator.hasMissingTimedDose(resolved, exercise))
+    }
+
     private fun plan(): GeneratedProgramSkeleton {
         val request = ProgramSkeletonRequest(
             "B", ProgramGoal.FUNCTIONAL_CONDITIONING, 3, 60, emptySet(),

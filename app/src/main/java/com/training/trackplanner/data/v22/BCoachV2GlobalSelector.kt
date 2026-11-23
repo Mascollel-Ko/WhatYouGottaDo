@@ -9,6 +9,7 @@ import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.CanonicalRelationDomain
 import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramSetPrescription
@@ -72,7 +73,8 @@ internal object BCoachV2GlobalSelector {
         mainExerciseKeys: Set<String>,
         recommendedImportance: Map<BBalancedGoal, Int> = emptyMap(),
         modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
-        rirPolicy: RpeRirPolicy? = null
+        rirPolicy: RpeRirPolicy? = null,
+        runtimeMetadata: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): Result {
         val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
         val badmintonAtCutoff = badmintonHistory.filter { !it.date.isAfter(request.asOf) }
@@ -92,17 +94,38 @@ internal object BCoachV2GlobalSelector {
         } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}|badminton=" +
             BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonAtCutoff) +
             "|referenceCapacity=" + referenceCapacityByStableKey.toSortedMap())
+        val blockCalendar = request.blockProgram?.let(::BBlockCalendar)
+        fun prepareLayout(raw: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
+            val rows = raw.items.map { item ->
+                val enriched = runtimeMetadata.resolveByStableKey(item.exerciseStableKey)?.let { meta ->
+                    item.copy(movementFamily = meta.movementFamily, redundancyGroup = meta.redundancyGroup,
+                        primaryStressProfile = meta.primaryStressProfile)
+                } ?: item
+                val block = blockCalendar?.blockIndex(item.weekNumber, item.dayOfWeek)
+                    ?.let { request.blockProgram?.blocks?.get(it) }
+                if (block == null || raw.weekPlans.any { it.weekIndex == item.weekNumber &&
+                        (it.deloadFlag || "RECOVERY" in it.weekType) })
+                    enriched
+                else BBlockPurposePrescription.accessoryPrescription(enriched, block.goal,
+                    exercises[item.exerciseStableKey], mainExerciseKeys)
+            }
+            return raw.copy(items = if (raw === baseline) rows else
+                rows.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap {
+                    BCoachSessionComposition.mainFirst(it, mainExerciseKeys)
+                })
+        }
         val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
-            baseline, request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
+            prepareLayout(baseline), request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
         )
         val evaluationCache = mutableMapOf<String, ResolvedPlan>()
         fun evaluatePlan(rawSkeleton: GeneratedProgramSkeleton): ResolvedPlan {
-            val rawSignature = BCoachMultiobjectiveProduction.fingerprint(rawSkeleton)
+            val layout = prepareLayout(rawSkeleton)
+            val rawSignature = BCoachMultiobjectiveProduction.fingerprint(layout)
             val cacheKey = sha256("$rawSignature|$inputFingerprint|$loadEvidenceFingerprint")
             return evaluationCache.getOrPut(cacheKey) {
                 val loadData = if (rawSkeleton === baseline) baselineLoad else
                     BCoachV2LoadCandidateResolver.resolve(
-                        rawSkeleton, request, historyAtCutoff, exercises, modelSnapshots,
+                        layout, request, historyAtCutoff, exercises, modelSnapshots,
                         mainExerciseKeys, rirPolicy
                     )
                 val resolvedSkeleton = loadData.skeleton
@@ -218,7 +241,7 @@ internal object BCoachV2GlobalSelector {
                 .thenBy { it.dayOfWeek }.thenBy { it.orderIndex }
                 .thenBy { it.exerciseStableKey })
             .joinToString("|") { item ->
-                "${item.weekNumber}/${item.dayOfWeek}/${item.orderIndex}/" +
+                "${item.weekNumber}/${item.dayOfWeek}/" +
                     "${item.exerciseStableKey}/${item.restSeconds}:" +
                     ProgramSetPrescriptionResolver.resolve(item).joinToString(";") { set ->
                         "${set.reps}/${set.seconds}/${set.loadState}/" +
@@ -264,7 +287,11 @@ internal object BCoachV2GlobalSelector {
                 prescriptionSummary = prescriptionSummary(
                     candidate.skeleton, candidate.loadData.instructionsBySetId
                 ),
-                changeSummary = candidate.changes
+                changeSummary = candidate.changes,
+                sessionTimes = candidate.skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }
+                    .mapValues { (_, items) -> BCoachV2ScheduleLoad.sessionTime(items, exercises) },
+                weeklyGoalGaps = candidate.evaluation.taskWeekDoses.filter { it.scored && it.lower > it.dose }
+                    .groupBy { it.week }.mapValues { (_, rows) -> rows.map { it.goal }.distinct() }
             )
         }
         val baselineEvaluation = evaluated.firstOrNull { it.label == "SAFE_BASELINE" }?.evaluation
@@ -493,7 +520,7 @@ internal object BCoachV2GlobalSelector {
         }.toSet()
         fun skillTags(exercise: Exercise): Set<String> =
             exercise.badmintonSkillTargets.split(Regex("[,|;]"))
-                .map(String::trim).filter(String::isNotEmpty).toSet()
+                .map(String::trim).filter { it.isNotEmpty() && it != "NONE" }.toSet()
         val skillCoverage = selected.flatMap { key ->
             exercises[key]?.let(::skillTags).orEmpty()
         }.toSet()
@@ -533,13 +560,9 @@ internal object BCoachV2GlobalSelector {
             .thenBy(Exercise::stableKey)
 
         fun eligibleSource(item: ProgramSkeletonItem): Boolean =
-            item.exerciseStableKey !in mainExerciseKeys &&
+            !BCoachSessionComposition.isFixedInSession(item) && item.exerciseStableKey !in mainExerciseKeys &&
                 !item.selectionRole.contains("MAIN", ignoreCase = true) &&
-                !BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) &&
-                !item.weightSource.contains("USER_FIXED", ignoreCase = true) &&
-                ProgramSetPrescriptionResolver.resolve(item).none {
-                    BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
-                }
+                !item.weightSource.contains("USER_FIXED", ignoreCase = true)
 
         fun knownSeconds(source: ProgramSkeletonItem): Int =
             ProgramSetPrescriptionResolver.resolve(source)
@@ -597,6 +620,23 @@ internal object BCoachV2GlobalSelector {
         }
 
         val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
+        val missing = plan.items.filter { item -> eligibleSource(item) &&
+            BCoachV2DoseEvaluator.hasMissingTimedDose(item, exercises[item.exerciseStableKey])
+        }
+        if (missing.isNotEmpty()) {
+            val remaining = plan.items - missing.toSet()
+            if (remaining.map { it.weekNumber to it.dayOfWeek }.toSet() ==
+                plan.items.map { it.weekNumber to it.dayOfWeek }.toSet()) {
+                changes += "REMOVE_UNMEASURED_ACCESSORY" to plan.copy(items = remaining)
+            }
+            // Keep every training day when its only exercise has no measurable work interval.
+            for (replacement in eligible.filter { it.progressMetricType == "QUALITY_BASED" ||
+                    it.progressMetricType.contains("REP", ignoreCase = true) }.sortedWith(rank).take(3)) {
+                val revised = plan.items.map { item -> if (item in missing) reselectedItem(item, replacement) else item }
+                if (revised.distinctBy { Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey) }.size == revised.size)
+                    changes += "REPLACE_UNMEASURED_WITH_${replacement.stableKey}" to plan.copy(items = revised)
+            }
+        }
         val mutableKeys = selected.filter { key ->
             plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource)
         }
@@ -632,8 +672,8 @@ internal object BCoachV2GlobalSelector {
             }.thenBy { it.key })?.key
         if (day != null) {
             val additions = eligible.asSequence()
-                .filter { badmintonCatalog.relations(it.stableKey).isNotEmpty() &&
-                    it.progressMetricType == "QUALITY_BASED" }
+                .filter { exercise -> badmintonCatalog.relations(exercise.stableKey).any { it.transferLevel.coefficient > 0.0 } &&
+                    exercise.progressMetricType == "QUALITY_BASED" }
                 .sortedWith(rank).take(2).toList()
             for (candidate in additions) {
                 val next = plan.items.toMutableList()
@@ -658,14 +698,14 @@ internal object BCoachV2GlobalSelector {
         // A deficit cannot be improved by changing sets when its primary muscle or
         // direct core function has no exercise in the incumbent. Admit bounded,
         // reviewed whole-block accessory inserts instead of SPORT-only inserts.
-        // Do not treat missing personal records as proof of a weakness: only a
-        // user-explicit goal priority or a recorded per-task exposure permits
-        // this additional recruitment lane.
-        if (day != null && (explicitlyRequested.hypertrophy ?: 0) >= 4 ||
-            day != null && (explicitlyRequested.core ?: 0) >= 4 ||
-            day != null && taskWeekDoses.any { it.scored && it.lower > it.dose }) {
-            val need = taskWeekDoses.filter { it.scored && it.lower > it.dose }
-                .groupBy(BCoachV2TaskWeekDose::taskId)
+        // A policy-derived target can guide planning without observed personal weakness.
+        if (day != null && ((explicitlyRequested.hypertrophy ?: 0) >= 4 ||
+            (explicitlyRequested.core ?: 0) >= 4 || taskWeekDoses.any { it.scored && it.lower > it.dose })) {
+            val unmet = taskWeekDoses.filter { it.scored && it.lower > it.dose }
+            val weeklyGaps = unmet.groupBy { it.week }.mapValues { (_, rows) ->
+                rows.associate { it.taskId to (it.lower - it.dose) / it.lower.coerceAtLeast(1.0) }
+            }
+            val need = unmet.groupBy(BCoachV2TaskWeekDose::taskId)
                 .mapValues { (_, rows) ->
                     rows.map { row -> ((row.lower - row.dose) /
                         row.lower.coerceAtLeast(1.0)).coerceIn(0.0, 1.0) }.average()
@@ -675,36 +715,37 @@ internal object BCoachV2GlobalSelector {
                 it.domain == CanonicalRelationDomain.MUSCLE &&
                     it.relationType in setOf("PRIMARY", "SECONDARY")
             }.groupBy(CanonicalMetadataRelation::exerciseStableKey)
-            fun addedValue(exercise: Exercise): Double {
+            fun addedValue(exercise: Exercise, gaps: Map<String, Double>): Double {
                 val muscleGain = muscleCandidates[exercise.stableKey].orEmpty().sumOf { relation ->
                     val credit = if (relation.relationType == "PRIMARY") 1.0 else 0.5
-                    credit * (need["HYPERTROPHY:${relation.relationValue}"] ?: 0.0)
+                    credit * (gaps["HYPERTROPHY:${relation.relationValue}"] ?: 0.0)
                 }
                 val coreGain = if (coreCatalog.resolve(exercise.stableKey)?.coreClass == CoreClass.DIRECT)
-                    (need["CORE:DIRECT"] ?: 0.0) else 0.0
+                    (gaps["CORE:DIRECT"] ?: 0.0) else 0.0
                 return muscleGain * (importance[BBalancedGoal.HYPERTROPHY] ?: 0.0) +
                     coreGain * (importance[BBalancedGoal.CORE] ?: 0.0)
             }
             val candidates = eligible.asSequence()
                 .filter { it.stableKey !in CanonicalStrengthExposureCapability.approvedStableKeys &&
-                    badmintonCatalog.relations(it.stableKey).isEmpty() &&
                     listOf("DURATION", "TIME", "DISTANCE", "QUALITY", "SPEED", "JUMP")
                         .none { token -> token in it.progressMetricType.uppercase() } }
-                .map { it to addedValue(it) }
+                .map { it to addedValue(it, need) }
                 .filter { (_, gain) -> gain > 0.0 }
                 .sortedWith(compareByDescending<Pair<Exercise, Double>> { it.second }
                     .thenBy { it.first.stableKey })
                 .take(2).map { it.first }.toList()
             for (candidate in candidates) {
                 val proposed = mutableListOf<ProgramSkeletonItem>()
-                var possible = true
                 for ((week, weekItems) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
-                    val sameDay = weekItems.filter { it.dayOfWeek == day }
-                    val source = sameDay.firstOrNull()
-                    if (source == null) { possible = false; break }
+                    if (plan.weekPlans.any { it.weekIndex == week && (it.deloadFlag || "RECOVERY" in it.weekType ||
+                            "PEAK" in it.weekType) } || weekItems.any { "PEAK" in it.selectionRole }) continue
+                    if (addedValue(candidate, weeklyGaps[week].orEmpty()) <= 0.0) continue
+                    val sameDay = weekItems.groupBy { it.dayOfWeek }.values
+                        .minBy { BCoachV2ScheduleLoad.timeUpper(it, exercises) }
+                    val source = sameDay.first()
                     val added = reselectedItem(source, candidate, count = 2).let { item ->
                         item.copy(
-                            localId = "B_GOAL_W${week}_D${day}_${candidate.stableKey}",
+                            localId = "B_GOAL_W${week}_D${source.dayOfWeek}_${candidate.stableKey}",
                             orderIndex = (sameDay.maxOfOrNull(ProgramSkeletonItem::orderIndex) ?: 0) + 1,
                             reps = 10,
                             setPrescriptions = item.setPrescriptions.map { it.copy(reps = 10) },
@@ -713,12 +754,12 @@ internal object BCoachV2GlobalSelector {
                     }
                     if (BCoachV2ScheduleLoad.timeUpper(sameDay + added, exercises) >
                         (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES)) {
-                        possible = false; break
+                        continue
                     }
                     proposed += added
                 }
-                if (possible && proposed.isNotEmpty()) {
-                    changes += "INSERT_GOAL_${candidate.stableKey}_ON_DAY_$day" to
+                if (proposed.isNotEmpty()) {
+                    changes += "INSERT_GOAL_${candidate.stableKey}_ON_AVAILABLE_DAYS" to
                         plan.copy(items = plan.items + proposed)
                 }
             }
@@ -812,12 +853,19 @@ internal object BCoachV2GlobalSelector {
         coreCatalog: CanonicalCoreCatalog,
         goalWeights: List<BCoachGoalWeight>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
-        // Offer roster mutations first. A bounded on-device search must not
+        addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises, request.blockProgram?.let(::BBlockCalendar)))
+        // Offer roster mutations before generic dose tweaks. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,
             mainExerciseKeys, evaluation.sportObjectiveWeeks,
             evaluation.taskWeekDoses, muscleRelations, coreCatalog, goalWeights,
             request.bGoalImportance))
+        val reordered = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap {
+            BCoachSessionComposition.mainFirst(it, mainExerciseKeys)
+        }
+        val originalOrder = plan.items.associate { it.localId to it.orderIndex }
+        if (reordered.any { originalOrder[it.localId] != it.orderIndex })
+            add("PRIORITIZE_MAIN_LIFTS" to plan.copy(items = reordered))
         val priorities = mutationPriorities(plan, evaluation, muscleRelations,
             coreCatalog, badmintonCatalog, goalWeights)
         val uniqueKeys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
@@ -849,6 +897,12 @@ internal object BCoachV2GlobalSelector {
                 )
                 if (candidate !== plan) {
                     add("SPLIT_WEEKLY_SETS_${key}_TO_DAY_${targetDay}" to candidate)
+                    // Evaluate a third exposure even when the intermediate two-day plan
+                    // would be pruned from the beam.
+                    activeDays.filter { it > targetDay }.forEach { thirdDay ->
+                        val spread = splitAccessorySetsAcrossDays(candidate, key, thirdDay, mainExerciseKeys)
+                        if (spread !== candidate) add("SPLIT_WEEKLY_SETS_${key}_D${targetDay}_D${thirdDay}" to spread)
+                    }
                 }
             }
         }
@@ -916,7 +970,11 @@ internal object BCoachV2GlobalSelector {
         val replacements = mutableMapOf<String, ProgramSkeletonItem>()
         val inserted = mutableListOf<ProgramSkeletonItem>()
         for ((_, weekItems) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
-            val source = weekItems.filter { it.exerciseStableKey == key }.singleOrNull() ?: continue
+            val occurrences = weekItems.filter { it.exerciseStableKey == key }
+            if (occurrences.size !in 1..2) continue
+            val source = occurrences.maxWith(compareBy<ProgramSkeletonItem> { it.setCount }
+                .thenBy { it.dayOfWeek })
+            if (source.progressionBinding != null || source.progressionAnchorSetIndex != null) continue
             if (source.dayOfWeek == targetDay || "MAIN" in source.selectionRole.uppercase() ||
                 "PEAK" in source.selectionRole.uppercase() || source.directSportSession ||
                 BCoachV2DoseEvaluator.isExplicitUserExerciseLock(source.selectionReason)
@@ -924,7 +982,8 @@ internal object BCoachV2GlobalSelector {
             val targetItems = weekItems.filter { it.dayOfWeek == targetDay }
             if (targetItems.isEmpty() || targetItems.any { it.exerciseStableKey == key }) continue
             val all = ProgramSetPrescriptionResolver.resolve(source)
-            if (all.size < 4 || all.any {
+            val minimum = if (occurrences.size == 1) 4 else 2
+            if (all.size < minimum || all.any {
                 BCoachV2LoadCandidateResolver.isSetUserFixed(it, source.weightSource)
             }) continue
             val movedCount = all.size / 2
@@ -963,8 +1022,11 @@ internal object BCoachV2GlobalSelector {
         delta: Int,
         mainExerciseKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
-        if (item.exerciseStableKey != key || "PEAK" in item.selectionRole ||
-            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return@map item
+        if (item.exerciseStableKey != key) item else adjustSets(item, delta, mainExerciseKeys)
+    })
+
+    internal fun adjustSets(item: ProgramSkeletonItem, delta: Int, mainExerciseKeys: Set<String>): ProgramSkeletonItem {
+        if ("PEAK" in item.selectionRole || BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return item
         val old = ProgramSetPrescriptionResolver.resolve(item)
         val exception = item.seconds > 0 || item.directSportSession || item.rehabLikeActivation ||
             listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any {
@@ -972,13 +1034,13 @@ internal object BCoachV2GlobalSelector {
             }
         val minimum = when {
             exception -> 1
-            key in mainExerciseKeys || item.selectionRole.contains("MAIN", ignoreCase = true) -> 3
+            item.exerciseStableKey in mainExerciseKeys || item.selectionRole.contains("MAIN", ignoreCase = true) -> 3
             else -> 2
         }
         val target = (old.size + delta).coerceIn(minimum, BCoachV2Policy.MAX_PER_EXERCISE_SETS)
         if (target < old.size && old.drop(target).any {
                 BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
-            }) return@map item
+            }) return item
         val sets = when {
             target > old.size -> old + List(target - old.size) { index ->
                 old.last().copy(
@@ -995,27 +1057,31 @@ internal object BCoachV2GlobalSelector {
             }
             else -> old.take(target).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
         }
-        item.copy(
+        return item.copy(
             setCount = sets.size,
             reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0,
             weightKg = sets.map { it.weightKg }.distinct().singleOrNull() ?: 0.0,
             seconds = sets.map { it.seconds }.distinct().singleOrNull() ?: 0,
             setPrescriptions = sets
         )
-    })
+    }
 
     internal fun mutateReps(
         plan: GeneratedProgramSkeleton,
         key: String,
         delta: Int
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
-        if (item.exerciseStableKey != key || item.seconds > 0 || "PEAK" in item.selectionRole ||
-            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return@map item
-        val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
-            set.copy(reps = (set.reps + delta).coerceAtLeast(1))
-        }
-        item.copy(reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0, setPrescriptions = sets)
+        if (item.exerciseStableKey != key) item else adjustReps(item, delta)
     })
+
+    internal fun adjustReps(item: ProgramSkeletonItem, delta: Int): ProgramSkeletonItem {
+        if (item.seconds > 0 || "PEAK" in item.selectionRole ||
+            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return item
+        val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
+            if (set.reps <= 0 || set.seconds > 0) set else set.copy(reps = (set.reps + delta).coerceAtLeast(1))
+        }
+        return item.copy(reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0, setPrescriptions = sets)
+    }
 
     private fun markPareto(candidates: List<Candidate>) {
         candidates.forEach { candidate ->

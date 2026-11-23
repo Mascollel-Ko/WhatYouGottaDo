@@ -11,13 +11,7 @@ import com.training.trackplanner.data.TrainingDatabase
 import java.time.LocalDate
 import org.json.JSONObject
 
-/**
- * Gate G opt-in bridge for ONE future applied squat entry.
- * Re-evaluates inside the write transaction against the same evidence fingerprint.
- *
- * No user workout has to be auto-updated when the user opens a screen. Explicit approval
- * is required because the Gate F loss coefficients and later-set fatigue are not validated.
- */
+/** Re-evaluate the linked prescription and its evidence inside the write transaction. */
 internal class BCoachLinkedSquatNextWeekService(
     private val db: TrainingDatabase,
     private val evidenceReader: BCoachSquatShadowEvidenceReader,
@@ -43,44 +37,35 @@ internal class BCoachLinkedSquatNextWeekService(
                 notes = listOf("이전에 생성한 프로그램은 실제 원판 크기의 저장 정보가 없어 자동 변경하지 않습니다.")
             )
         }
+        val key = workoutDao.findEntryById(targetEntryId)?.exerciseStableKey
+            ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
+        if (key !in BCoachConfirmedLiftModel.keys ||
+            (key != BCoachLinkedSquatWeekPlanner.SQUAT && !metadata.optBoolean("bCoachIntegratedLifts")))
+            return BCoachLinkedSquatNextWeekProposal("LINK_OR_MODE_NOT_ELIGIBLE")
         val plate = metadata.optDouble("bCoachPlateOneSideKg", Double.NaN)
-        if (!plate.isFinite() || plate !in 0.1..25.0) {
+        val step = if (key == "ex_3a7d3eda") metadata.optDouble("bCoachDumbbellDisplayedIncrementKg", Double.NaN)
+            else plate * 2.0
+        if (!step.isFinite() || step <= 0.0 || (key != "ex_3a7d3eda" && plate !in 0.1..25.0)) {
             return BCoachLinkedSquatNextWeekProposal("INVALID_EQUIPMENT_SNAPSHOT")
         }
-        val evidence = evidenceReader.read(asOf)
-        val pipeline = BCoachSquatShadowPipeline.evaluate(
-            input = evidence,
-            rirPolicy = rirPolicy,
-            smallestPlateOneSideKg = plate,
-            targetRirMin = 1.0,
-            targetRirMax = 3.0,
-            policies = listOf(
-                BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-            ),
-            omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
-        )
+        val personal = if (key == BCoachLinkedSquatWeekPlanner.SQUAT)
+            evidenceReader.read(asOf) as? BCoachSquatEvidenceResult.Ready else null
+        val curve = personal?.evidence?.curve ?: curves.resolve(key)
         val records = workoutDao.allEntriesWithSets()
         val links = dao.links()
         val prescriptions = dao.prescriptions()
-        val targetSetCount = prescriptions.count {
-            it.entryId == targetEntryId && it.plannedSetIndex != null
-        }
-        val canonicalReport = pipeline as? BCoachSquatShadowPipelineResult.ShadowReport
-        // Use the canonical personal curve when available. Even if the async
-        // stored posterior has not caught up with the last confirmed workout,
-        // the canonical asset q(n) and existing RPE/RIR mixture are still available
-        // and can evaluate the actual same-track confirmed sets.
-        val curve = canonicalReport?.input?.curve
-            ?: curves.resolve(BCoachLinkedSquatWeekPlanner.SQUAT)
-        val evidenceForPlan = BCoachObservedSquatProgression.evaluate(
+        val integrated = metadata.optBoolean("bCoachIntegratedLifts")
+        val evidenceForPlan = if (integrated) null else BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
             links = links, records = records, prescriptions = prescriptions,
-            plateOneSideKg = plate,
+            plateOneSideKg = plate, displayedStepKg = step,
             curve = curve, rirPolicy = rirPolicy
         )
-        // The global Gate F ranker remains a separate diagnostic. This production
-        // decision is intentionally anchored to the immediate linked completed
-        // workout and requires a monotone improvement in projected RIR distance.
+        val decisions = dao.suggestions()
+        val coachOmissions = decisions.filter { it.resolution == ProgressionResolution.ACCEPTED &&
+            it.reasons.startsWith("B_COACH_") && it.reasons.contains("_REDUCE_LAST_SET_") }
+            .mapNotNull { decision -> decision.reasons.substringAfterLast("_OMIT_", "").toIntOrNull()
+                ?.let { decision.targetEntryId to it } }.toMap()
         val report = BCoachLinkedSquatWeekPlanner.inspect(
             asOf = asOf,
             targetEntryId = targetEntryId,
@@ -89,9 +74,13 @@ internal class BCoachLinkedSquatNextWeekService(
             links = links,
             prescriptions = prescriptions,
             anchor = evidenceForPlan?.anchor,
-            ranking = evidenceForPlan?.ranking
+            ranking = evidenceForPlan?.ranking,
+            coachOmissions = coachOmissions,
+            resolveDoses = if (integrated) { source, target ->
+                BCoachConfirmedLiftModel.nextDoses(source, target, curve, rirPolicy, step)
+            } else null
         )
-        if (report.canApply && dao.suggestions().any {
+        if (report.canApply && decisions.any {
                 it.targetEntryId == targetEntryId &&
                     it.resolution in setOf(
                         ProgressionResolution.ACCEPTED,
@@ -119,20 +108,21 @@ internal class BCoachLinkedSquatNextWeekService(
         if (LocalDate.parse(target.date) < asOf) return@withTransaction false
         val sets = workoutDao.setsForEntry(targetEntryId).sortedBy { it.setIndex }
         val targets = dao.prescriptions(targetEntryId)
-        if (sets.size != proposal.proposedSets || sets.isEmpty() ||
+        if (sets.size - (if (proposal.omittedSetIndex != null) 1 else 0) != proposal.proposedSets || sets.isEmpty() ||
             sets.any { it.confirmed } || targets.size != sets.size
         ) return@withTransaction false
         val patch = BCoachLinkedSquatPlanPatch.build(proposal, sets, targets)
             ?: return@withTransaction false
         val proposedKg = checkNotNull(proposal.proposedLoadKg)
         val proposedReps = checkNotNull(proposal.proposedReps)
-        val originalKg = sets.first().weightKg
+        val originalKg = sets.first { it.setIndex in proposal.affectedSetIndices || proposal.affectedSetIndices.isEmpty() }.weightKg
         // Write only explicitly approved set indices. A mixed-set Shadow first
         // set must never rewrite untouched follow-up set rows or their provenance.
         val affected = proposal.affectedSetIndices.ifEmpty { sets.map { it.setIndex } }.toSet()
         patch.nextSets.filter { it.setIndex in affected }
             .forEach { workoutDao.updateSet(it) }
-        patch.nextPrescriptions.filter { it.plannedSetIndex in affected }
+        proposal.omittedSetIndex?.let { omitted -> workoutDao.deleteSet(sets.single { it.setIndex == omitted }) }
+        patch.nextPrescriptions.filter { it.plannedSetIndex in affected || it.setIndex == proposal.omittedSetIndex }
             .forEach { dao.putPrescription(it) }
         // A legacy progression suggestion may have been created before the B-Coach
         // decision. Mark it stale in the same transaction so it cannot conflict with
@@ -155,9 +145,18 @@ internal class BCoachLinkedSquatNextWeekService(
             currentPlanKg = originalKg,
             suggestedKg = proposedKg,
             judgmentRpe = priorRpe,
-            direction = if (proposal.selectedAction == "HOLD") ProgressionDirection.HOLD
-                else ProgressionDirection.INCREASE,
-            reasons = "B_COACH_${if (automaticallyAfterConfirm) "GATE_H_AUTO_AFTER_CONFIRM" else "GATE_G_USER_APPROVED"}_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}",
+            direction = when (proposal.selectedAction) {
+                "REDUCE_LAST_SET", "LOAD_DOWN_ONE_STEP" -> ProgressionDirection.DECREASE
+                "LOAD_UP_ONE_STEP" -> ProgressionDirection.INCREASE
+                "SET_SPECIFIC" -> when {
+                    proposedKg > originalKg -> ProgressionDirection.INCREASE
+                    proposedKg < originalKg -> ProgressionDirection.DECREASE
+                    else -> ProgressionDirection.HOLD
+                }
+                else -> ProgressionDirection.HOLD
+            },
+            reasons = "B_COACH_${if (automaticallyAfterConfirm) "GATE_H_AUTO_AFTER_CONFIRM" else "GATE_G_USER_APPROVED"}_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}" +
+                (proposal.omittedSetIndex?.let { "_OMIT_$it" } ?: ""),
             evidenceHash = expectedFingerprint,
             resolution = ProgressionResolution.ACCEPTED,
             resolvedAt = System.currentTimeMillis(),

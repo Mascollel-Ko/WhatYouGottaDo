@@ -247,7 +247,8 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertFalse(exercise.badmintonSkillTargets.contains("DECELERATION"))
         val runtime = repository.runtimeMetadataCatalog().all().single { it.stableKey == key }
         assertEquals("NONE", runtime.badmintonTransferLevel)
-        assertEquals("NONE", runtime.badmintonSkillTargets)
+        assertEquals("NONE", runtime.badmintonSkillTargets.raw)
+        assertTrue(runtime.badmintonSkillTargets.values.isEmpty())
         assertEquals("DIRECT", repository.coreCatalog().resolve(key)?.coreClass?.name)
         val objectives = repository.badmintonObjectiveCatalog().relations(key)
         assertTrue(objectives.none { it.transferLevel.coefficient > 0.0 })

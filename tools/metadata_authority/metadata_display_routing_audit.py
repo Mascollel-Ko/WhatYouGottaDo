@@ -17,7 +17,7 @@ USER_VISIBLE_DISPOSITIONS = {"PRODUCTION_UI", "ADVANCED_EDITOR"}
 
 
 def rows(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8", newline="") as handle:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
 
 

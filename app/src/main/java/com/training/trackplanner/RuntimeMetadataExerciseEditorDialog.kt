@@ -59,7 +59,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
     var metadata by remember(initial) { mutableStateOf(initial.metadata) }
     var muscleRoles by remember(initial) { mutableStateOf(initial.muscleRoles) }
     val context = LocalContext.current
-    val muscleCatalogue = remember(context) { MetadataDisplayCatalogue.from(context) }
+    val muscleLabels = remember(context) { CanonicalMusclePresentation.from(context) }
     var restText by remember(initial) { mutableStateOf(initial.exercise.defaultRestSeconds.toString()) }
     var error by remember(initial) { mutableStateOf<String?>(null) }
     var showCopyDialog by remember { mutableStateOf(false) }
@@ -162,7 +162,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                             UserMuscleRoleCodec.MUSCLE_CODES.forEach { code ->
                                 val role = muscleRoles.firstOrNull { it.muscleCode == code }?.role
                                 MuscleRoleChoiceRow(
-                                    label = muscleCatalogue.option(MetadataDisplayField.MUSCLE_GROUP, code).label,
+                                    label = muscleLabels.option(code).label,
                                     selected = role,
                                     onChange = { next ->
                                         val key = exercise.stableKey
