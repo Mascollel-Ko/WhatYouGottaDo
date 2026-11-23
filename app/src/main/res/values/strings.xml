@@ -512,4 +512,8 @@
     <string name="cloud_conflict_completed">완료하였습니다. 선택한 데이터를 기준으로 백업 연결 정보가 갱신되었습니다.</string>
     <string name="cloud_conflict_error">처리를 완료하지 못했습니다. 기록은 보존되도록 설계되어 있습니다. 오류: %1$s</string>
     <string name="cloud_continue">계속하기</string>
+    <string name="program_show_item_controls">요일·순서·연결 조정</string>
+    <string name="program_close_item_controls">조정 닫기</string>
+    <string name="program_pair_load">각 %1$skg(합계 %2$skg)</string>
+    <string name="program_pair_input">양손 합계 중량</string>
 </resources>

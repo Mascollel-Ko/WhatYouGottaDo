@@ -1,5 +1,9 @@
 package com.training.trackplanner
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assert
@@ -46,6 +50,40 @@ abstract class BCoachReviewLayoutContract {
     private fun displayText(value: String) = com.training.trackplanner.localization.LocalizedPresentation.uiText(
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext, value
     )
+
+    @Test
+    fun pairedDumbbellLoadAndCollapsedEditorControls() {
+        val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val key = "ex_a61f1e96"
+        val plan = GeneratedProgramSkeleton(
+            suggestedName = "pair", durationDays = 7,
+            request = ProgramSkeletonRequest("pair", ProgramGoal.FUNCTIONAL_CONDITIONING, 2, 60,
+                emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1),
+            periodizationType = ProgramPeriodizationType.AUTO,
+            weekPlans = listOf(ProgramWeekPlan(1, "BUILD", 1.0, 1.0, 2, 8.0, 2, 1, false)),
+            weekDaySchedule = mapOf(1 to setOf(1, 4)),
+            planningMetadataJson = """{"engine":"B_BALANCED_BLOCK_PROGRAM_V1"}""",
+            items = listOf(ProgramSkeletonItem("press", 1, 1, 1, key, "인클라인 덤벨 프레스", "근력",
+                90, "test", 2, 8, 58.0, 0, "test", "USER_FIXED",
+                setPrescriptions = (1..2).map { ProgramSetPrescription(it, 8, 58.0, 0, 7.0, ProgramLoadState.EXPLICIT_LOAD) }))
+        )
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    ProgramSkeletonPreview(plan, emptyList(), emptyMap()) {}
+                }
+            }
+        }
+        compose.onNodeWithText(context.getString(R.string.program_pair_load, "29", "58"), substring = true)
+            .performScrollTo().assertIsDisplayed()
+        val moveUp = context.getString(R.string.program_move_up)
+        compose.onAllNodesWithText(moveUp).assertCountEquals(0)
+        compose.onNodeWithText(context.getString(R.string.program_show_item_controls)).performScrollTo().performClick()
+        compose.onNodeWithText(moveUp).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.program_close_item_controls)).performScrollTo().performClick()
+        compose.onAllNodesWithText(moveUp).assertCountEquals(0)
+        captureReviewScreen("paired-press-compact")
+    }
 
     @Test
     fun reviewActionsReachable() {

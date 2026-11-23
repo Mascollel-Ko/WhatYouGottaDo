@@ -9,6 +9,7 @@ import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.CanonicalRelationDomain
 import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramSetPrescription
@@ -72,7 +73,8 @@ internal object BCoachV2GlobalSelector {
         mainExerciseKeys: Set<String>,
         recommendedImportance: Map<BBalancedGoal, Int> = emptyMap(),
         modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
-        rirPolicy: RpeRirPolicy? = null
+        rirPolicy: RpeRirPolicy? = null,
+        runtimeMetadata: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): Result {
         val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
         val badmintonAtCutoff = badmintonHistory.filter { !it.date.isAfter(request.asOf) }
@@ -92,17 +94,30 @@ internal object BCoachV2GlobalSelector {
         } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}|badminton=" +
             BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonAtCutoff) +
             "|referenceCapacity=" + referenceCapacityByStableKey.toSortedMap())
+        fun prepareLayout(raw: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
+            val rows = raw.items.map { item ->
+                runtimeMetadata.resolveByStableKey(item.exerciseStableKey)?.let { meta ->
+                    item.copy(movementFamily = meta.movementFamily, redundancyGroup = meta.redundancyGroup,
+                        primaryStressProfile = meta.primaryStressProfile)
+                } ?: item
+            }
+            return raw.copy(items = if (raw === baseline) rows else
+                rows.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap {
+                    BCoachSessionComposition.mainFirst(it, mainExerciseKeys)
+                })
+        }
         val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
-            baseline, request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
+            prepareLayout(baseline), request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
         )
         val evaluationCache = mutableMapOf<String, ResolvedPlan>()
         fun evaluatePlan(rawSkeleton: GeneratedProgramSkeleton): ResolvedPlan {
-            val rawSignature = BCoachMultiobjectiveProduction.fingerprint(rawSkeleton)
+            val layout = prepareLayout(rawSkeleton)
+            val rawSignature = BCoachMultiobjectiveProduction.fingerprint(layout)
             val cacheKey = sha256("$rawSignature|$inputFingerprint|$loadEvidenceFingerprint")
             return evaluationCache.getOrPut(cacheKey) {
                 val loadData = if (rawSkeleton === baseline) baselineLoad else
                     BCoachV2LoadCandidateResolver.resolve(
-                        rawSkeleton, request, historyAtCutoff, exercises, modelSnapshots,
+                        layout, request, historyAtCutoff, exercises, modelSnapshots,
                         mainExerciseKeys, rirPolicy
                     )
                 val resolvedSkeleton = loadData.skeleton
@@ -537,13 +552,9 @@ internal object BCoachV2GlobalSelector {
             .thenBy(Exercise::stableKey)
 
         fun eligibleSource(item: ProgramSkeletonItem): Boolean =
-            item.exerciseStableKey !in mainExerciseKeys &&
+            !BCoachSessionComposition.isFixedInSession(item) && item.exerciseStableKey !in mainExerciseKeys &&
                 !item.selectionRole.contains("MAIN", ignoreCase = true) &&
-                !BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) &&
-                !item.weightSource.contains("USER_FIXED", ignoreCase = true) &&
-                ProgramSetPrescriptionResolver.resolve(item).none {
-                    BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
-                }
+                !item.weightSource.contains("USER_FIXED", ignoreCase = true)
 
         fun knownSeconds(source: ProgramSkeletonItem): Int =
             ProgramSetPrescriptionResolver.resolve(source)
@@ -601,9 +612,7 @@ internal object BCoachV2GlobalSelector {
         }
 
         val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
-        val missing = plan.items.filter { item -> eligibleSource(item) && item.progressionBinding == null &&
-            item.progressionAnchorSetIndex == null && !item.requiredTemplateAnchor && !item.directSportSession &&
-            !item.rehabLikeActivation && !item.selectionRole.contains("PEAK", ignoreCase = true) &&
+        val missing = plan.items.filter { item -> eligibleSource(item) &&
             BCoachV2DoseEvaluator.hasMissingTimedDose(item, exercises[item.exerciseStableKey])
         }
         if (missing.isNotEmpty()) {
@@ -836,25 +845,15 @@ internal object BCoachV2GlobalSelector {
         coreCatalog: CanonicalCoreCatalog,
         goalWeights: List<BCoachGoalWeight>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
-        // Offer roster mutations first. A bounded on-device search must not
+        addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises))
+        // Offer roster mutations before generic dose tweaks. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,
             mainExerciseKeys, evaluation.sportObjectiveWeeks,
             evaluation.taskWeekDoses, muscleRelations, coreCatalog, goalWeights,
             request.bGoalImportance))
-        // Compare a main-before-assistance order on the same days, with unchanged doses.
-        val reordered = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap { day ->
-            val ordered = day.sortedBy { it.orderIndex }
-            val editable = ordered.filter { item ->
-                !item.directSportSession && item.progressionBinding == null &&
-                    !BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) &&
-                    !item.selectionRole.contains("PEAK", true) &&
-                    (item.selectionRole.contains("MAIN", true) || item.selectionRole.contains("ACCESSORY", true) ||
-                        item.selectionRole.contains("ASSIST", true))
-            }
-            val byPriority = editable.sortedByDescending { it.exerciseStableKey in mainExerciseKeys ||
-                it.selectionRole.contains("MAIN", true) }.iterator()
-            ordered.map { item -> if (item in editable) byPriority.next().copy(orderIndex = item.orderIndex) else item }
+        val reordered = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap {
+            BCoachSessionComposition.mainFirst(it, mainExerciseKeys)
         }
         val originalOrder = plan.items.associate { it.localId to it.orderIndex }
         if (reordered.any { originalOrder[it.localId] != it.orderIndex })
@@ -1015,8 +1014,11 @@ internal object BCoachV2GlobalSelector {
         delta: Int,
         mainExerciseKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
-        if (item.exerciseStableKey != key || "PEAK" in item.selectionRole ||
-            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return@map item
+        if (item.exerciseStableKey != key) item else adjustSets(item, delta, mainExerciseKeys)
+    })
+
+    internal fun adjustSets(item: ProgramSkeletonItem, delta: Int, mainExerciseKeys: Set<String>): ProgramSkeletonItem {
+        if ("PEAK" in item.selectionRole || BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return item
         val old = ProgramSetPrescriptionResolver.resolve(item)
         val exception = item.seconds > 0 || item.directSportSession || item.rehabLikeActivation ||
             listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any {
@@ -1024,13 +1026,13 @@ internal object BCoachV2GlobalSelector {
             }
         val minimum = when {
             exception -> 1
-            key in mainExerciseKeys || item.selectionRole.contains("MAIN", ignoreCase = true) -> 3
+            item.exerciseStableKey in mainExerciseKeys || item.selectionRole.contains("MAIN", ignoreCase = true) -> 3
             else -> 2
         }
         val target = (old.size + delta).coerceIn(minimum, BCoachV2Policy.MAX_PER_EXERCISE_SETS)
         if (target < old.size && old.drop(target).any {
                 BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
-            }) return@map item
+            }) return item
         val sets = when {
             target > old.size -> old + List(target - old.size) { index ->
                 old.last().copy(
@@ -1047,27 +1049,31 @@ internal object BCoachV2GlobalSelector {
             }
             else -> old.take(target).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
         }
-        item.copy(
+        return item.copy(
             setCount = sets.size,
             reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0,
             weightKg = sets.map { it.weightKg }.distinct().singleOrNull() ?: 0.0,
             seconds = sets.map { it.seconds }.distinct().singleOrNull() ?: 0,
             setPrescriptions = sets
         )
-    })
+    }
 
     internal fun mutateReps(
         plan: GeneratedProgramSkeleton,
         key: String,
         delta: Int
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
-        if (item.exerciseStableKey != key || item.seconds > 0 || "PEAK" in item.selectionRole ||
-            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return@map item
-        val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
-            set.copy(reps = (set.reps + delta).coerceAtLeast(1))
-        }
-        item.copy(reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0, setPrescriptions = sets)
+        if (item.exerciseStableKey != key) item else adjustReps(item, delta)
     })
+
+    internal fun adjustReps(item: ProgramSkeletonItem, delta: Int): ProgramSkeletonItem {
+        if (item.seconds > 0 || "PEAK" in item.selectionRole ||
+            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return item
+        val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
+            if (set.reps <= 0 || set.seconds > 0) set else set.copy(reps = (set.reps + delta).coerceAtLeast(1))
+        }
+        return item.copy(reps = sets.map { it.reps }.distinct().singleOrNull() ?: 0, setPrescriptions = sets)
+    }
 
     private fun markPareto(candidates: List<Candidate>) {
         candidates.forEach { candidate ->

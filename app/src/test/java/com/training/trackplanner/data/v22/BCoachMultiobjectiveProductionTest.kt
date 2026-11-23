@@ -1684,6 +1684,71 @@ class BCoachMultiobjectiveProductionTest {
         })
     }
 
+    @Test fun `three horizontal press variants are redistributed and reviewed across the entire block`() {
+        val press = listOf("ex_1dbee10e", "barbell_bench_press", "ex_a61f1e96")
+        val days = setOf(1, 4)
+        val base = skeleton(3, everyWeek = true)
+        val plan = base.copy(request = base.request.copy(weeklyTrainingDays = 2),
+            weekDaySchedule = (1..2).associateWith { days }, items = (1..2).flatMap { week ->
+                press.mapIndexed { i, key ->
+                    item(key, week, 1, 3, if (i == 1) 5 else 8).copy(orderIndex = i + 1,
+                        movementFamily = "BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS",
+                        redundancyGroup = "HORIZONTAL_PUSH_COMPOUND", primaryStressProfile = "HORIZONTAL_PUSH_STRESS",
+                        selectionRole = if (i == 1) "MAIN_STRENGTH" else "ACCESSORY")
+                } + item(squat.stableKey, week, 4, 3, 5).copy(selectionRole = "MAIN_STRENGTH")
+            })
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            request().copy(days = 2, fixedWeekdays = days), history(),
+            (press + squat.stableKey).associateWith { exercise(it, "BARBELL") }, plan, plan,
+            muscleRelations = press.map { relation(it, "CHEST", "PRIMARY") },
+            mainExerciseKeys = setOf("barbell_bench_press", squat.stableKey))
+        val proposal = requireNotNull(outcome.proposal)
+        val alternatives = proposal.decision.alternatives.map { alternative ->
+            requireNotNull(proposal.candidateForReview(alternative.candidateId))
+        }
+        val report = java.io.File("build/reports/b-coach/three-press-layout.tsv")
+        report.parentFile.mkdirs()
+        report.printWriter().use { out ->
+            out.println("Candidate\tWeek\tDay\tKey\tSets\tReps")
+            for ((i, candidate) in alternatives.withIndex()) {
+                for (row in candidate.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
+                    out.println(listOf(i + 1, row.weekNumber, row.dayOfWeek, row.exerciseStableKey, row.setCount,
+                        ProgramSetPrescriptionResolver.resolve(row).joinToString(",") { it.reps.toString() }).joinToString("\t"))
+                }
+            }
+        }
+        for (candidate in alternatives) {
+            for (day in candidate.items.groupBy { it.weekNumber to it.dayOfWeek }.values) {
+                assertTrue(day.count { it.exerciseStableKey in press } <= 2)
+                val bench = day.find { it.exerciseStableKey == "barbell_bench_press" } ?: continue
+                assertTrue(day.none { it.exerciseStableKey == "ex_1dbee10e" && it.orderIndex < bench.orderIndex })
+            }
+        }
+        assertTrue(alternatives.any { candidate -> (1..2).all { week ->
+            val rows = candidate.items.filter { it.weekNumber == week && it.exerciseStableKey in press }
+            rows.map { it.exerciseStableKey }.toSet() == press.toSet() && rows.map { it.dayOfWeek }.toSet() == days
+        } })
+    }
+
+    @Test fun `redistribution keeps fixed exercises and compares moved set and repetition options`() {
+        val press = listOf("barbell_bench_press", "ex_1dbee10e", "ex_a61f1e96")
+        val fixed = item(press.first(), 1, 1, 3, 5, 80.0)
+        val day = (listOf(fixed) + press.drop(1).map { item(it, 1, 1, 3, 8) }).mapIndexed { i, row ->
+            row.copy(orderIndex = i + 1, movementFamily = "PRESS", redundancyGroup = "HORIZONTAL_PUSH_COMPOUND")
+        }
+        val plan = skeleton(3).copy(items = day + item(squat.stableKey, 1, 4, 3, 5))
+        val variations = BCoachSessionComposition.neighbors(plan, setOf(press.first()), emptyMap()).map { it.second }
+        assertTrue(variations.isNotEmpty())
+        assertTrue(variations.all { it.items.single { row -> row.localId == fixed.localId } == day.first() })
+        val moved = variations.flatMap { it.items }.filter { it.dayOfWeek == 4 && it.exerciseStableKey in press }
+        assertEquals(setOf(2, 3, 4), moved.map { it.setCount }.toSet())
+        assertEquals(setOf(7, 8, 9), moved.flatMap { it.setPrescriptions }.map { it.reps }.toSet())
+        val locked = plan.copy(items = plan.items.map { it.copy(selectionReason = "USER_EXERCISE_LOCK") })
+        assertTrue(BCoachSessionComposition.neighbors(locked, emptySet(), emptyMap()).isEmpty())
+        assertTrue(evaluate(locked).hardConstraints.any { it.id == "SESSION_SIMILAR_VARIANT_LIMIT" &&
+            it.status == BCoachConstraintStatus.FAIL })
+    }
+
     private fun prepare(
         request: V22GenerationRequest = request(),
         history: List<V22HistoryRow> = history(),

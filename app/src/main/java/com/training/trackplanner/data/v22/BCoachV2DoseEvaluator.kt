@@ -73,7 +73,8 @@ internal object BCoachV2DoseEvaluator {
         val strengthExposureKeys: Set<String>,
         val exercises: Map<String, Exercise>,
         val rirPolicy: RpeRirPolicy?,
-        val referenceCapacityByStableKey: Map<String, Double>
+        val referenceCapacityByStableKey: Map<String, Double>,
+        val hypertrophyCredit: Map<String, Double>
     )
 
     fun evaluate(
@@ -110,6 +111,13 @@ internal object BCoachV2DoseEvaluator {
             row.weightKg?.let { it.isFinite() && it > 0.0 } == true &&
                 referenceCapacityByStableKey[row.stableKey] == null
         }.mapTo(reasons) { "HISTORY_RELATIVE_INTENSITY_UNAVAILABLE:${it.stableKey}" }
+        val sessions = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
+        val repeated = sessions.values.flatMap(BCoachSessionComposition::families)
+            .flatMap { group -> group.sortedBy { it.orderIndex }.drop(1) }
+        val sets = plan.items.sumOf { it.setCount }.coerceAtLeast(1)
+        val overlap = repeated.sumOf { it.setCount }.toDouble() / sets
+        val concentration = plan.items.groupBy { it.weekNumber }.values
+            .map(BCoachSessionComposition::concentration).averageOrZero()
         val context = Context(
             muscleCredits = muscleCredits(muscleRelations),
             coreCatalog = coreCatalog,
@@ -118,7 +126,8 @@ internal object BCoachV2DoseEvaluator {
             strengthExposureKeys = CanonicalStrengthExposureCapability.approvedStableKeys,
             exercises = exercises,
             rirPolicy = rirPolicy,
-            referenceCapacityByStableKey = referenceCapacityByStableKey
+            referenceCapacityByStableKey = referenceCapacityByStableKey,
+            hypertrophyCredit = repeated.associate { it.localId to 0.8 }
         )
         val tasks = tasks(plan, baseline, historyAtCutoff, request, goalWeights, context)
         BBalancedGoal.entries.filter { goal -> tasks.none { it.goal == goal } }
@@ -279,7 +288,8 @@ internal object BCoachV2DoseEvaluator {
                 BCoachObjectiveAxis.GOAL_EXCESS to
                     if (doseWeight == 0.0) 0.0 else (excessWeighted / weeks.size).unitInterval(),
                 BCoachObjectiveAxis.PROGRESSION_FIT to progression,
-                BCoachObjectiveAxis.RECOVERY_LOAD to schedule.recoveryScore,
+                BCoachObjectiveAxis.RECOVERY_LOAD to (schedule.recoveryScore + 0.15 * overlap +
+                    0.10 * concentration).unitInterval(),
                 BCoachObjectiveAxis.RAMP_CHANGE to rampValues.averageOrZero().unitInterval(),
                 BCoachObjectiveAxis.EXECUTION to execution,
                 BCoachObjectiveAxis.PLAN_CHANGE to change,
@@ -450,7 +460,8 @@ internal object BCoachV2DoseEvaluator {
                 set.targetRpeMin?.let { 10.0 - it }
             val relativeIntensity = intensityBySetId[setId] ?: set.relativeIntensity
             setDose(item.exerciseStableKey, task.id, task.goal, scenario, context, item, set,
-                qEffort(workingRir), relativeIntensity)
+                qEffort(workingRir), relativeIntensity) * if (task.goal == BBalancedGoal.HYPERTROPHY)
+                    context.hypertrophyCredit[item.localId] ?: 1.0 else 1.0
         }
     }
 
@@ -692,6 +703,17 @@ internal object BCoachV2DoseEvaluator {
         add(constraint("DUPLICATE_EXERCISE_SESSION", if (plan.items.map {
                 Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey)
             }.distinct().size == plan.items.size) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
+        val days = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values
+        val overflow = days.flatMap(BCoachSessionComposition::families).firstOrNull {
+            it.distinctBy { row -> row.exerciseStableKey }.size > BCoachSessionComposition.MAX_VARIANTS
+        }
+        add(constraint("SESSION_SIMILAR_VARIANT_LIMIT", if (overflow == null) BCoachConstraintStatus.PASS
+            else BCoachConstraintStatus.FAIL, overflow?.first()?.let { "W${it.weekNumber}D${it.dayOfWeek}:${it.redundancyGroup}" }))
+        val inverted = days.any { day ->
+            BCoachSessionComposition.mainFirst(day, mainExerciseKeys).map { it.localId } !=
+                day.sortedBy { it.orderIndex }.map { it.localId }
+        }
+        add(constraint("MAIN_BEFORE_ASSISTANCE", if (inverted) BCoachConstraintStatus.FAIL else BCoachConstraintStatus.PASS))
         val fixed = request.fixedWeekdays
         if (fixed != null) add(constraint("FIXED_WEEKDAYS", if ((1..plan.request.durationWeeks).all { week ->
                 plan.items.filter { it.weekNumber == week }.map(ProgramSkeletonItem::dayOfWeek).toSet() == fixed

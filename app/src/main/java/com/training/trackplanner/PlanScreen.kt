@@ -248,12 +248,13 @@ internal fun BCoachProductionReviewDialog(
             else -> "계획 세부 조정"
         }
     }
-    fun loadText(set: com.training.trackplanner.data.ProgramSetPrescription): String = when {
+    @Composable
+    fun loadText(key: String, set: com.training.trackplanner.data.ProgramSetPrescription): String = when {
         set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && set.estimatedLoadKg != null ->
-            "약 ${"%.1f".format(set.estimatedLoadKg)}kg · 장비 단위 확인 필요"
+            "약 ${programLoadLabel(key, set.estimatedLoadKg, "%.1fkg".format(set.estimatedLoadKg))} · 장비 단위 확인 필요"
         set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED -> "중량 직접 확인 필요"
         set.loadState == ProgramLoadState.NOT_APPLICABLE -> "중량 적용 안 함"
-        else -> "${"%.1f".format(set.weightKg)}kg"
+        else -> programLoadLabel(key, set.weightKg, "%.1fkg".format(set.weightKg))
     }
     val windowBounds = bCoachReviewWindowBounds()
     Dialog(
@@ -389,7 +390,7 @@ internal fun BCoachProductionReviewDialog(
                                         set.reps > 0 -> "${set.reps}회"
                                         else -> "수행 시간·거리 확인 필요"
                                     }
-                                    Text("${set.setIndex}세트 · $volume · ${loadText(set)} · $effort · 휴식 ${exercise.restSeconds}초",
+                                    Text("${set.setIndex}세트 · $volume · ${loadText(exercise.exerciseStableKey, set)} · $effort · 휴식 ${exercise.restSeconds}초",
                                         style = MaterialTheme.typography.bodySmall)
                                 }
                             }

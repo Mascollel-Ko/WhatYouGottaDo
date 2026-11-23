@@ -65,11 +65,12 @@ internal class V22ProgramPlanningService(
         )
         val coreCatalog = canonicalMetadataRepository.coreCatalog()
         val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
+        val runtimeMetadata = canonicalMetadataRepository.runtimeMetadataCatalog()
         val badmintonHistory = V22HistoryInput.badmintonFromWorkoutHistory(
             recordedWorkouts,
             exercises,
             badmintonCatalog,
-            canonicalMetadataRepository.runtimeMetadataCatalog()
+            runtimeMetadata
         )
         // Include sport-category drill repetitions only in the B-Coach evaluator.
         // Keep A/C parity and B seed/roster generation on the original history.
@@ -131,6 +132,7 @@ internal class V22ProgramPlanningService(
                 badmintonHistory = badmintonHistory,
                 exercises = exercises,
                 baseline = fallbackSkeleton,
+                runtimeMetadata = runtimeMetadata,
                 candidate = candidateSkeleton,
                 muscleRelations = muscleRelations,
                 coreCatalog = coreCatalog,

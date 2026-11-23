@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgressionLinkMode
@@ -245,7 +246,8 @@ internal object BCoachMultiobjectiveProduction {
         recommendedImportance: Map<BBalancedGoal, Int> = emptyMap(),
         modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
         rirPolicy: RpeRirPolicy? = null,
-        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList(),
+        runtimeMetadata: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): Outcome {
         val result = BCoachV2GlobalSelector.select(
             request = request,
@@ -254,6 +256,7 @@ internal object BCoachMultiobjectiveProduction {
             exercises = exercises,
             baseline = baseline,
             jointCandidate = candidate,
+            runtimeMetadata = runtimeMetadata,
             muscleRelations = muscleRelations,
             coreCatalog = coreCatalog,
             badmintonCatalog = badmintonCatalog,

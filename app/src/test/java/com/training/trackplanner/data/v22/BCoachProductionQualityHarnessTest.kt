@@ -60,15 +60,22 @@ class BCoachProductionQualityHarnessTest {
         )
         val result = repository.generateV22Program(request)
         val proposal = requireNotNull(result.bCoachMultiobjectiveProposal)
+        val catalog = com.training.trackplanner.data.CanonicalExerciseMetadataRepository(context).runtimeMetadataCatalog()
         val report = File("build/reports/b-coach/cold-start-time.tsv")
         report.parentFile.mkdirs()
         report.printWriter().use { writer ->
-            writer.println("Candidate\tWeek\tDay\tSets\tOld display minutes\tExpected minutes\tUpper minutes\tGoal deficit\tRecovery")
+            writer.println("Candidate\tWeek\tDay\tSets\tOld display minutes\tExpected minutes\tUpper minutes\tGoal deficit\tRecovery\tOrdered exercises (sets x reps)")
             for (candidate in proposal.decision.alternatives) {
                 val plan = requireNotNull(proposal.candidateForReview(candidate.candidateId))
                 val days = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
                 assertEquals(days.keys, candidate.sessionTimes.keys)
                 for ((slot, items) in days) {
+                    for (item in items) {
+                        val authority = requireNotNull(catalog.resolveByStableKey(item.exerciseStableKey))
+                        assertEquals(authority.redundancyGroup, item.redundancyGroup)
+                        assertEquals(authority.movementFamily, item.movementFamily)
+                    }
+                    assertTrue(BCoachSessionComposition.families(items).all { it.size <= 2 })
                     val time = candidate.sessionTimes.getValue(slot)
                     val sets = items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
                     val legacy = items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size * (it.restSeconds + 45) } / 60.0
@@ -77,7 +84,10 @@ class BCoachProductionQualityHarnessTest {
                         com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys })
                     writer.println(listOf(candidate.candidateId, slot.first, slot.second, sets, legacy,
                         time.expectedMinutes, time.upperMinutes, candidate.axisScores[BCoachObjectiveAxis.GOAL_DEFICIT],
-                        candidate.axisScores[BCoachObjectiveAxis.RECOVERY_LOAD]).joinToString("\t"))
+                        candidate.axisScores[BCoachObjectiveAxis.RECOVERY_LOAD],
+                        items.sortedBy { it.orderIndex }.joinToString(";") { item ->
+                            "${item.exerciseStableKey}:${ProgramSetPrescriptionResolver.resolve(item).map { it.reps }}"
+                        }).joinToString("\t"))
                 }
             }
         }
