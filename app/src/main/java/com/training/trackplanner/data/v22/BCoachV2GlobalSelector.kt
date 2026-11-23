@@ -233,7 +233,7 @@ internal object BCoachV2GlobalSelector {
                 .thenBy { it.dayOfWeek }.thenBy { it.orderIndex }
                 .thenBy { it.exerciseStableKey })
             .joinToString("|") { item ->
-                "${item.weekNumber}/${item.dayOfWeek}/${item.orderIndex}/" +
+                "${item.weekNumber}/${item.dayOfWeek}/" +
                     "${item.exerciseStableKey}/${item.restSeconds}:" +
                     ProgramSetPrescriptionResolver.resolve(item).joinToString(";") { set ->
                         "${set.reps}/${set.seconds}/${set.loadState}/" +

@@ -1717,6 +1717,15 @@ class BCoachMultiobjectiveProductionTest {
                 }
             }
         }
+        val visible = alternatives.map { candidate ->
+            candidate.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex })).map { row ->
+                listOf(row.weekNumber, row.dayOfWeek, row.exerciseStableKey, row.restSeconds,
+                    ProgramSetPrescriptionResolver.resolve(row).map {
+                        listOf(it.reps, it.seconds, it.weightKg, it.estimatedLoadKg, it.targetRpeMin, it.expectedRir)
+                    })
+            }
+        }
+        assertEquals(visible.distinct().size, alternatives.size)
         for (candidate in alternatives) {
             for (day in candidate.items.groupBy { it.weekNumber to it.dayOfWeek }.values) {
                 assertTrue(day.count { it.exerciseStableKey in press } <= 2)

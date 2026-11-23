@@ -204,9 +204,10 @@ internal fun BCoachProductionReviewDialog(
                         "${set.expectedRir?.let { (it * 10).toInt() }}"
                 }
         } ?: "없음"
-        fun slots(skeleton: GeneratedProgramSkeleton) = skeleton.items.associateBy {
-            Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey)
-        }
+        fun slots(skeleton: GeneratedProgramSkeleton) = skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }
+            .values.flatMap { day -> day.sortedBy { it.orderIndex }.mapIndexed { index, item ->
+                item.copy(orderIndex = index + 1)
+            } }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey) }
         val prior = slots(reference)
         val later = slots(plan)
         val differences = (prior.keys + later.keys).toSet()
@@ -220,6 +221,8 @@ internal fun BCoachProductionReviewDialog(
             val label = newItem?.exerciseName ?: oldItem?.exerciseName ?: "운동"
             val change = if (oldItem?.setCount != newItem?.setCount)
                 "${oldItem?.setCount ?: 0}→${newItem?.setCount ?: 0}세트"
+            else if (oldItem?.orderIndex != newItem?.orderIndex)
+                "운동 순서 ${oldItem?.orderIndex}→${newItem?.orderIndex}번째"
             else "세트별 반복·중량·휴식 변경"
             "추천안 대비 ${differences.size}곳 차이 · ${first.first}주 ${first.second}요일 $label $change"
         }
