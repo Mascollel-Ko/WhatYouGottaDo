@@ -23,7 +23,8 @@ internal object ProgramWeekdayReorder {
             slots[t] = source
         } else {
             slots[s] = null
-            fun free(index: Int) = slots[index] !in active
+            // TreeSet rejects null lookups. A lifted source is a real vacancy.
+            fun free(index: Int): Boolean = slots[index]?.let { it !in active } ?: true
             // Place the moving session immediately after/before the target.
             val right = ((t + 1)..6).firstOrNull { free(it) }
             val left = (t - 1 downTo 0).firstOrNull { free(it) }

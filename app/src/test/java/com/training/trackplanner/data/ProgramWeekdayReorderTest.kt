@@ -28,7 +28,8 @@ class ProgramWeekdayReorderTest {
 
     @Test fun allMasksAllDropsAreReversibleAndPreserveRequestedInsertionOrder() {
         for (mask in 1..127) {
-            val active = (1..7).filter { mask and (1 shl (it - 1)) != 0 }.toSet()
+            // The production schedule is backed by a sorted set, which rejects null.
+            val active = (1..7).filter { mask and (1 shl (it - 1)) != 0 }.toSortedSet()
             for (source in active) for (target in 1..7) for (mode in WeekdayDropPosition.entries) {
                 val map = ProgramWeekdayReorder.permutation(active, source, target, mode)
                 assertEquals((1..7).toSet(), map.keys)
