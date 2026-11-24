@@ -224,7 +224,7 @@ internal fun BCoachProductionReviewDialog(
             else if (oldItem?.orderIndex != newItem?.orderIndex)
                 "운동 순서 ${oldItem?.orderIndex}→${newItem?.orderIndex}번째"
             else "세트별 반복·중량·휴식 변경"
-            "추천안 대비 ${differences.size}곳 차이 · ${first.first}주 ${first.second}요일 $label $change"
+            "추천안 대비 ${differences.size}곳 차이 · ${first.first}주 ${dayName(first.second)}요일 $label $change"
         }
     }
     val weeks = selectedPlan?.items.orEmpty().map(ProgramSkeletonItem::weekNumber).distinct().sorted()
@@ -236,7 +236,10 @@ internal fun BCoachProductionReviewDialog(
     fun changeText(code: String): String {
         val fields = code.substringAfter(':', "").split(':')
         val slot = fields.firstOrNull()?.split('/').orEmpty()
-        val location = slot.takeIf { it.size >= 2 }?.let { "${it[0]}주 ${it[1]}요일" }.orEmpty()
+        val location = slot.takeIf { it.size >= 2 }?.let {
+            val day = it[1].toIntOrNull()?.takeIf { value -> value in 1..7 }
+            if (day == null) "" else "${it[0]}주 ${dayName(day)}요일"
+        }.orEmpty()
         val key = fields.getOrNull(1)
         val exerciseName = selectedPlan?.items?.firstOrNull { it.exerciseStableKey == key }?.exerciseName
         val exercise = exerciseName ?: "운동"
@@ -321,7 +324,7 @@ internal fun BCoachProductionReviewDialog(
                     Column {
                         val weeklySets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
                             .toDouble() / plan.request.durationWeeks.coerceAtLeast(1)
-                        val trainingDays = plan.weekDaySchedule.values.flatten().distinct().sorted()
+                        val trainingDays = days
                         val restDays = (1..7).filterNot(trainingDays::contains)
                         val day = selectedDay
                         val time = selectedAlternative?.sessionTimes?.get(selectedWeek to day)
@@ -330,8 +333,8 @@ internal fun BCoachProductionReviewDialog(
                         }
                         Text("${plan.request.durationWeeks}주 · 주 ${plan.request.weeklyTrainingDays}일 · " +
                             "주당 평균 ${"%.1f".format(weeklySets)}세트")
-                        Text("훈련 요일: ${trainingDays.joinToString(" · ") { "${it}요일" }}")
-                        Text("휴식 요일: ${restDays.joinToString(" · ") { "${it}요일" }}")
+                        Text("${selectedWeek}주 훈련 요일: ${trainingDays.map { programWeekdayLabel(it) }.joinToString(" · ")}")
+                        Text("휴식 요일: ${restDays.map { programWeekdayLabel(it) }.joinToString(" · ")}")
                         Text("세션 가용 시간 ${plan.request.sessionMinutes}분")
                         if (time != null && day != null) {
                             Text("${selectedWeek}주 ${dayName(day)}요일 · 예상 %.1f분 · 여유 포함 상한 %.1f분"
@@ -364,13 +367,8 @@ internal fun BCoachProductionReviewDialog(
                         val daySets = plan.items.filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
                             .sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
                         Text("요일 · 선택한 날 총 ${daySets}세트", style = MaterialTheme.typography.titleMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            days.forEach { day ->
-                                if (day == selectedDay) Button({ selectedDay = day }) { Text("${day}요일") }
-                                else OutlinedButton({ selectedDay = day }) { Text("${day}요일") }
-                            }
-                        }
+                        ProgramTemporalSelector(days, setOfNotNull(selectedDay), "b_coach_review_day",
+                            { programWeekdayChipLabel(it) }, { selectedDay = it }, { programWeekdayLabel(it) })
                     }
                     plan.items.filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
                             .sortedBy(ProgramSkeletonItem::orderIndex).forEach { exercise ->

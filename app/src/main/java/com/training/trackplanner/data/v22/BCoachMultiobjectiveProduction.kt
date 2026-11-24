@@ -14,6 +14,7 @@ import com.training.trackplanner.data.ProgressionRole
 import com.training.trackplanner.data.ProgressionRule
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.resolvedWeekDaySchedule
+import com.training.trackplanner.data.ProgramWeekdayReorder
 import com.training.trackplanner.data.ProgramSkeletonItem
 import org.json.JSONArray
 import org.json.JSONObject
@@ -566,7 +567,7 @@ internal object BCoachMultiobjectiveProduction {
         }
         val acceptanceSchemaVersion = decision.optInt("acceptanceSchemaVersion", 1)
         val currentStructure = if (acceptanceSchemaVersion >= 3) {
-            persistenceStructureFingerprint(skeleton)
+            persistenceStructureFingerprint(beforeWeekdayDraftEdits(skeleton, decision))
         } else {
             legacyPersistenceStructureFingerprint(skeleton)
         }
@@ -590,6 +591,50 @@ internal object BCoachMultiobjectiveProduction {
         }
     }
 
+    private fun weekdayDraftMap(decision: JSONObject): Map<Int, Int> {
+        val encoded = decision.optJSONArray("userWeekdayPermutation")
+            ?: return (1..7).associateWith { it }
+        require(encoded.length() == 7) { "B_COACH_WEEKDAY_EDIT_INVALID" }
+        val mapping = (1..7).associateWith { encoded.getInt(it - 1) }
+        require(mapping.values.toSet() == (1..7).toSet()) { "B_COACH_WEEKDAY_EDIT_INVALID" }
+        return mapping
+    }
+
+    private fun beforeWeekdayDraftEdits(
+        plan: GeneratedProgramSkeleton, decision: JSONObject
+    ): GeneratedProgramSkeleton {
+        val mapping = weekdayDraftMap(decision)
+        if (mapping.all { it.key == it.value }) return plan
+        return ProgramWeekdayReorder.remap(plan, mapping.entries.associate { it.value to it.key })
+    }
+
+    /**
+     * Explicit user operation after review. Only a bijective weekday permutation
+     * is authorized. Persistence inverts it and checks the original approved
+     * structural fingerprint; arbitrary rep/roster/order changes still fail.
+     */
+    internal fun recordWeekdayDraftEdit(
+        original: GeneratedProgramSkeleton,
+        moved: GeneratedProgramSkeleton,
+        mapping: Map<Int, Int>
+    ): GeneratedProgramSkeleton {
+        val root = original.planningMetadataJson?.let { JSONObject(it) } ?: return moved
+        val decision = root.optJSONObject("bCoachMultiobjectiveDecision") ?: return moved
+        if (decision.optString("proposalAcceptance") != "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW") return moved
+        require(decision.optInt("acceptanceSchemaVersion", 1) >= 3) { "이전 후보는 다시 생성해 주세요." }
+        require(ProgramWeekdayReorder.remap(original, mapping) == moved)
+        require(persistenceStructureFingerprint(beforeWeekdayDraftEdits(original, decision)) ==
+            decision.optString("acceptedStructureFingerprint")) { "승인된 초안의 운동 구성이 변경되었습니다." }
+        val previous = weekdayDraftMap(decision)
+        val composed = (1..7).map { mapping.getValue(previous.getValue(it)) }
+        decision.put("userWeekdayPermutation", JSONArray(composed))
+            .put("postApprovalWeekdaysAdjusted", composed != (1..7).toList())
+            .put("scoresReflectCurrentPrescription", fingerprint(moved) == decision.optString("acceptedCandidateFingerprint"))
+            .put("currentPrescriptionFingerprint", fingerprint(moved))
+        root.put("userEdited", true)
+        return moved.copy(planningMetadataJson = root.toString())
+    }
+
     internal fun markAcceptedAndPersisted(
         skeleton: GeneratedProgramSkeleton
     ): GeneratedProgramSkeleton {
@@ -603,7 +648,8 @@ internal object BCoachMultiobjectiveProduction {
         val acceptedCandidate = decision.optString("acceptedCandidateFingerprint").takeIf { it.isNotBlank() }
         if (acceptedCandidate != null) {
             val adjusted = fingerprint(skeleton) != acceptedCandidate
-            decision.put("postApprovalLoadAdjusted", adjusted)
+            val originalWeekdays = beforeWeekdayDraftEdits(skeleton, decision)
+            decision.put("postApprovalLoadAdjusted", fingerprint(originalWeekdays) != acceptedCandidate)
             decision.put("scoresReflectCurrentPrescription", !adjusted)
             if (adjusted) decision.put("currentPrescriptionFingerprint", fingerprint(skeleton))
         }

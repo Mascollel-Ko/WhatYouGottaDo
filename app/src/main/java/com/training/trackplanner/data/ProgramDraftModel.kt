@@ -48,6 +48,12 @@ internal fun GeneratedProgramSkeleton.resolvedWeekDaySchedule(): Map<Int, Set<In
 internal fun GeneratedProgramSkeleton.withResolvedWeekDaySchedule(): GeneratedProgramSkeleton =
     copy(weekDaySchedule = resolvedWeekDaySchedule())
 
+/** Generated candidates must derive their active days from their actual sessions. */
+internal fun GeneratedProgramSkeleton.withGeneratedWeekdaysFromItems(): GeneratedProgramSkeleton =
+    copy(weekDaySchedule = (1..(weekPlans.size.takeIf { it > 0 } ?: request.durationWeeks)).associateWith { week ->
+        items.filter { it.weekNumber == week }.mapTo(sortedSetOf(), ProgramSkeletonItem::dayOfWeek)
+    })
+
 internal fun GeneratedProgramSkeleton.withWeekDays(weekNumber: Int, dayOfWeeks: Set<Int>): GeneratedProgramSkeleton {
     return ProgramDaySelector.replaceWeekdays(this, weekNumber, dayOfWeeks).reindexProgramDraft()
 }
