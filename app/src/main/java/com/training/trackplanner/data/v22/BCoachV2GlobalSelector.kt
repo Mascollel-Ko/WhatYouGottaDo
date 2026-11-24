@@ -449,15 +449,16 @@ internal object BCoachV2GlobalSelector {
         val jointState = register("JOINT_SEED", joint)
         if (BCoachV2DoseEvaluator.shouldEnforceNonClusteredSchedule(request) &&
             cache.values.none { state -> state.evaluation.hardConstraints.none {
-                it.id == "CONSECUTIVE_TRAINING_DAYS" && it.status == BCoachConstraintStatus.FAIL
+                it.status == BCoachConstraintStatus.FAIL
             } }) {
-            // The initial parity roster can be numbered 1..N. If the earlier
-            // weekday optimizer falls back, don't explore only those same days.
+            // A spaced joint seed can fail dose or time checks while the clustered baseline
+            // meets them. Give each clustered seed a chance on a spaced schedule.
             val allowed = (request.allowedWeekdays ?: (1..7).toSet()).filter { it in 1..7 }.sorted()
             for (seed in listOf(joint, baseline)) {
                 val patterns = seed.items.groupBy { it.weekNumber }.values
                     .map { rows -> rows.map { it.dayOfWeek }.distinct().sorted() }.distinct()
                 val old = patterns.singleOrNull() ?: continue
+                if (BCoachV2DoseEvaluator.longestConsecutiveRun(old.toSet()) < 3) continue
                 val count = old.size
                 val alternatives = (1..127).map { mask ->
                     (1..7).filter { day -> mask and (1 shl (day - 1)) != 0 }

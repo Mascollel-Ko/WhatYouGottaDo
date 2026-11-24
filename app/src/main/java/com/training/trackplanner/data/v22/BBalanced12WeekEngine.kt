@@ -64,7 +64,8 @@ internal object BBalanced12WeekEngine {
         coreCatalog: CanonicalCoreCatalog,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         taskCatalog: BBalancedTaskCatalog,
-        mainExerciseKeys: Set<String> = emptySet()
+        mainExerciseKeys: Set<String> = emptySet(),
+        reuseHistoryRoster: Boolean = true
     ): BBalanced12WeekPlan {
         require(request.mode == V22Mode.B) { "B engine only accepts mode B" }
         val specification = request.blockProgram
@@ -73,8 +74,10 @@ internal object BBalanced12WeekEngine {
         require(request.days in 1..7) { "days" }
         require(request.sessionMinutes == null || request.sessionMinutes > 0) { "minutes" }
 
-        val legacy = runCatching { V22PythonParityEngine.build(rows, request.copy(mode = V22Mode.B)) }.getOrNull()
-            ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
+        val legacy = if (reuseHistoryRoster) {
+            runCatching { V22PythonParityEngine.build(rows, request.copy(mode = V22Mode.B)) }.getOrNull()
+                ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
+        } else null
         val contributionCatalog = contributionMap(
             exercises.keys,
             muscleRelations,
@@ -463,7 +466,8 @@ internal object BBalanced12WeekEngine {
             blocks = blocks,
             weeks = weeks,
             search = search,
-            legacyComparatorSchema = legacy?.schema ?: "UNAVAILABLE_NO_ELIGIBLE_PERSONAL_HISTORY",
+            legacyComparatorSchema = if (!reuseHistoryRoster) "NOT_USED_METADATA_ROSTER_RETRY"
+                else legacy?.schema ?: "UNAVAILABLE_NO_ELIGIBLE_PERSONAL_HISTORY",
             limitations = limitations,
             metadataJson = metadata,
             reviewBaselineWeeks = reviewBaselineWeeks

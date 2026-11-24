@@ -50,7 +50,7 @@ internal fun MetadataSingleSelectField(
 ) {
     val translator = rememberMetadataTranslator()
     val displayOptions = remember(translator, fieldKey, options, value) {
-        translator.options(fieldKey, options + value)
+        translator.editorOptions(fieldKey, options, setOf(value))
     }
     val selected = displayOptions.firstOrNull { option -> option.code == value }
         ?: translator.option(fieldKey, value)
@@ -87,7 +87,7 @@ internal fun MetadataMultiSelectField(
 ) {
     val translator = rememberMetadataTranslator()
     val displayOptions = remember(translator, fieldKey, options, selected) {
-        translator.options(fieldKey, options + selected)
+        translator.editorOptions(fieldKey, options, selected.toSet())
     }
     val selectedOptions = displayOptions.filter { option -> option.code in selected }
     var open by remember { mutableStateOf(false) }

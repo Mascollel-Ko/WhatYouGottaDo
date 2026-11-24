@@ -80,7 +80,7 @@ internal class V22ProgramPlanningService(
         val mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
             .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
             .mapTo(linkedSetOf()) { it.exerciseStableKey }
-        val balanced = BBalanced12WeekEngine.build(
+        fun buildBalanced(reuseHistoryRoster: Boolean = true) = BBalanced12WeekEngine.build(
             rows = history,
             request = coachRequest,
             exercises = exercises,
@@ -88,16 +88,12 @@ internal class V22ProgramPlanningService(
             coreCatalog = coreCatalog,
             badmintonCatalog = badmintonCatalog,
             taskCatalog = bBalancedTaskCatalog,
-            mainExerciseKeys = mainExerciseKeys
+            mainExerciseKeys = mainExerciseKeys,
+            reuseHistoryRoster = reuseHistoryRoster
         )
+        val balanced = buildBalanced()
         val comparator = runCatching { V22PythonParityEngine.build(history, coachRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        val candidateBaseSkeleton = balanced.toSkeleton(coachRequest, exercises)
-        val fallbackBaseSkeleton = balanced.toSkeleton(
-            coachRequest,
-            exercises,
-            balanced.reviewBaselineWeeks.ifEmpty { balanced.weeks }
-        )
         val confirmedModels = BCoachConfirmedLiftModel.snapshots(coachRequest.asOf, recordedWorkouts, repetitionCurves, rirPolicy)
         // Preserve the actual plate size the user entered at generation time. The profile
         // can change later; an applied program must never silently pick up a different grid.
@@ -118,15 +114,22 @@ internal class V22ProgramPlanningService(
                 coachRequest.bShadowMachineIncrementKg ?: org.json.JSONObject.NULL)
             return value.copy(planningMetadataJson = metadata.toString())
         }
-        val candidateSkeleton = withEquipmentSnapshot(candidateBaseSkeleton)
-        val fallbackSkeleton = withEquipmentSnapshot(fallbackBaseSkeleton)
-        val v2StableKeys = (fallbackSkeleton.items + candidateSkeleton.items)
-            .mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
-        val v2LoadSnapshots = v2LoadEvidenceReader?.read(
-            coachRequest.asOf, history, v2StableKeys
-        ).orEmpty()
-        val production = coachRequest.blockProgram?.let {
-            BCoachMultiobjectiveProduction.prepare(
+        if (coachRequest.blockProgram == null) {
+            return V22GeneratedProgram(
+                comparator, withEquipmentSnapshot(balanced.toSkeleton(coachRequest, exercises)), balanced
+            )
+        }
+        suspend fun prepare(plan: BBalanced12WeekPlan): BCoachMultiobjectiveProduction.Outcome {
+            val candidateSkeleton = withEquipmentSnapshot(plan.toSkeleton(coachRequest, exercises))
+            val fallbackSkeleton = withEquipmentSnapshot(plan.toSkeleton(
+                coachRequest, exercises, plan.reviewBaselineWeeks.ifEmpty { plan.weeks }
+            ))
+            val v2StableKeys = (fallbackSkeleton.items + candidateSkeleton.items)
+                .mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+            val v2LoadSnapshots = v2LoadEvidenceReader?.read(
+                coachRequest.asOf, history, v2StableKeys
+            ).orEmpty()
+            return BCoachMultiobjectiveProduction.prepare(
                 request = coachRequest,
                 history = coachHistory,
                 badmintonHistory = badmintonHistory,
@@ -138,7 +141,7 @@ internal class V22ProgramPlanningService(
                 coreCatalog = coreCatalog,
                 badmintonCatalog = badmintonCatalog,
                 mainExerciseKeys = mainExerciseKeys,
-                recommendedImportance = balanced.goalTargets.associate { it.goal to it.importance },
+                recommendedImportance = plan.goalTargets.associate { it.goal to it.importance },
                 modelSnapshots = v2LoadSnapshots + confirmedModels.filter { (key, _) ->
                     val stored = v2LoadSnapshots[key]
                     stored == null || stored.stale || stored.tier == "PROFILE_PR_PRIOR"
@@ -146,13 +149,22 @@ internal class V22ProgramPlanningService(
                 rirPolicy = rirPolicy
             )
         }
-        val skeleton = production?.skeleton ?: candidateSkeleton
+        val production = prepare(balanced)
+        if (production.proposal == null && comparator != null) {
+            // A historical roster can be too dense for the current budget. Use the metadata
+            // roster as a new starting point while evaluating it against the same actual history.
+            val metadataSeed = buildBalanced(reuseHistoryRoster = false)
+            val retry = prepare(metadataSeed)
+            if (retry.proposal != null) {
+                return V22GeneratedProgram(comparator, retry.skeleton, metadataSeed, retry.decision, retry.proposal)
+            }
+        }
         return V22GeneratedProgram(
             comparator,
-            skeleton,
+            production.skeleton,
             balanced,
-            bCoachMultiobjectiveDecision = production?.decision,
-            bCoachMultiobjectiveProposal = production?.proposal
+            bCoachMultiobjectiveDecision = production.decision,
+            bCoachMultiobjectiveProposal = production.proposal
         )
     }
 

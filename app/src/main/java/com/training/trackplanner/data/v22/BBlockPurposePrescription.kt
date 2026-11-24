@@ -59,9 +59,9 @@ internal object BBlockPurposePrescription {
                 // Recorded one-set exposures are not sufficient authority to
                 // prescribe one-set normal training. Only explicit peak testing
                 // may reduce the working sets in finishWeek().
-                item.sets.size.coerceAtLeast(
-                    if (role == BBlockGoal.PEAK_EVALUATION && isMain) 2
-                    else if (isMain) 3 else 2
+                item.sets.size.coerceIn(
+                    if (role == BBlockGoal.PEAK_EVALUATION && isMain) 2 else if (isMain) 3 else 2,
+                    BCoachV2Policy.MAX_PER_EXERCISE_SETS
                 )
             }
             val prototype = item.sets.firstOrNull()

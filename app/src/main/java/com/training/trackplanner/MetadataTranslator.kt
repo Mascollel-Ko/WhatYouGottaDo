@@ -53,12 +53,23 @@ internal class MetadataTranslator private constructor(
         }
     }
 
-    fun options(fieldKey: String, canonicalCodes: Collection<String>): List<MetadataDisplayOption> =
-        canonicalCodes
+    fun editorOptions(
+        fieldKey: String,
+        canonicalCodes: Collection<String>,
+        selectedCodes: Set<String>
+    ): List<MetadataDisplayOption> {
+        val field = definition(fieldKey)
+        return (canonicalCodes + selectedCodes)
             .filter(String::isNotBlank)
             .distinct()
+            .filter { code ->
+                code in selectedCodes ||
+                    field.localizationMode != ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE ||
+                    catalogue.registeredLabel(domain(field), code) != null
+            }
             .map { option(fieldKey, it) }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER, MetadataDisplayOption::label))
+    }
 
     private fun tokens(
         field: ExerciseMetadataFieldDefinition,

@@ -90,6 +90,21 @@ class MetadataTranslatorTest {
     }
 
     @Test
+    fun movementFamilyPickerListsNamedOptionsAndRetainsTheCurrentLegacyValue() {
+        val field = "runtime.movementFamily"
+        val saved = "LEGACY_FAMILY_A"
+        val codes = listOf(saved, "LEGACY_FAMILY_B", "DIP_TRICEPS_PUSH", "DEADLIFT_HINGE_VARIANTS")
+        assertEquals(
+            listOf("데드리프트 힌지 계열", "딥 삼두근 밀기"),
+            korean.editorOptions(field, codes, emptySet()).map { it.label }
+        )
+        assertEquals(
+            setOf("DIP_TRICEPS_PUSH", "DEADLIFT_HINGE_VARIANTS", saved),
+            korean.editorOptions(field, codes, setOf(saved)).map { it.code }.toSet()
+        )
+    }
+
+    @Test
     fun exerciseReferencesAndOrdinaryFreeTextRemainUnchanged() {
         assertEquals("벤치프레스", korean.translate("exercise.name", "벤치프레스"))
         assertEquals(

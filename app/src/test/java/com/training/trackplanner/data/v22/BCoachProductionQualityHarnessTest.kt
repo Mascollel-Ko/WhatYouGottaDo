@@ -10,7 +10,10 @@ import com.training.trackplanner.data.SeedData
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.WorkoutEntry
+import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.data.reconcileProgression
+import com.training.trackplanner.data.resolvedWeekDaySchedule
 import com.training.trackplanner.data.withResolvedWeekDaySchedule
 import com.training.trackplanner.skeletonFromProgram
 import java.io.File
@@ -45,6 +48,82 @@ class BCoachProductionQualityHarnessTest {
         val fixedDays: Set<Int>? = null,
         val fullEquipment: Boolean = true
     )
+
+    @Test
+    fun `reported four day sixty minute settings produce an approvable draft`() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build().also { database = it }
+        val repository = TrainingRepository(db, context)
+        repository.seedIfNeeded()
+        val request = newBBalancedGenerationRequest(
+            name = "Four-day default",
+            days = 4,
+            asOf = LocalDate.of(2026, 11, 24),
+            sessionMinutes = 60,
+            allowFourthDay = true,
+            importance = BBalancedGoalImportance(4, 2, 5, 5),
+            availableEquipment = setOf("BODYWEIGHT", "맨몸", "BARBELL", "바벨", "플레이트", "랙", "벤치",
+                "DUMBBELL", "덤벨", "KETTLEBELL", "케틀벨", "MACHINE", "머신", "케이블", "케이블 머신",
+                "PULL-UP BAR", "철봉", "셔틀콕", "코트", "콘", "마커", "콘/마커"),
+            shadowPlateOneSideKg = 0.75,
+            shadowDumbbellIncrementKg = 1.0,
+            shadowMachineIncrementKg = 5.0
+        )
+        val result = repository.generateV22Program(request)
+        val proposal = requireNotNull(result.bCoachMultiobjectiveProposal) {
+            buildString {
+                appendLine(result.bCoachMultiobjectiveDecision?.fallbackReason)
+                appendLine("Base: " + result.skeleton.items.filter { it.weekNumber == 1 }
+                    .groupBy { it.dayOfWeek }.mapValues { (_, items) -> items.map { it.exerciseStableKey to it.setCount } })
+                appendLine("Joint: " + result.balanced12WeekPlan?.weeks?.firstOrNull()?.sessions?.associate {
+                    it.session to it.items.map { item -> item.stableKey to item.setCount }
+                })
+            }
+        }
+        val decision = proposal.decision
+        val candidate = decision.alternatives.single { it.candidateId == decision.recommendedCandidateId }
+        assertEquals(16, candidate.sessionTimes.size)
+        assertTrue(candidate.sessionTimes.values.all { it.upperMinutes <= 60.0 })
+        assertTrue(proposal.accept(requireNotNull(decision.proposalFingerprint), result.skeleton).accepted)
+
+        val exercises = db.exerciseDao().allExercises()
+            .filter { it.category == "근력운동" && it.isActive && !it.needsReview &&
+                it.progressMetricType == "ESTIMATED_1RM" }
+            .take(14)
+        assertEquals(14, exercises.size)
+        repeat(4) { week ->
+            exercises.forEachIndexed { index, exercise ->
+                val date = request.asOf.minusWeeks((week + 1).toLong()).plusDays((index % 4).toLong())
+                val entryId = db.workoutDao().insertEntry(
+                    WorkoutEntry(date = date.toString(), exerciseStableKey = exercise.stableKey,
+                        exerciseName = exercise.name, category = exercise.category, completedAt = 1L)
+                )
+                repeat(6) { set ->
+                    db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = set + 1,
+                        reps = 8, weightKg = 30.0, rpe = 7.0, confirmed = true))
+                }
+            }
+        }
+        val withHistory = repository.generateV22Program(request)
+        val historicalProposal = requireNotNull(withHistory.bCoachMultiobjectiveProposal) {
+            withHistory.bCoachMultiobjectiveDecision?.fallbackReason.orEmpty()
+        }
+        val historicalDecision = historicalProposal.decision
+        assertEquals("336", historicalDecision.inputAudit["recordedHistoryRowsAtCutoff"])
+        val accepted = requireNotNull(historicalProposal.accept(
+            requireNotNull(historicalDecision.proposalFingerprint), withHistory.skeleton
+        ).skeleton)
+        val historicalCandidate = historicalDecision.alternatives.single { it.recommended }
+        assertEquals(16, historicalCandidate.sessionTimes.size)
+        assertTrue(historicalCandidate.sessionTimes.values.all { it.upperMinutes <= 60.0 })
+        val id = repository.saveGeneratedProgram(null, accepted)
+        val reopened = skeletonFromProgram(repository.programEditorSnapshot(id))
+        assertEquals(accepted.resolvedWeekDaySchedule(), reopened.resolvedWeekDaySchedule())
+        assertEquals(accepted.items.size, reopened.items.size)
+        repository.applyProgramToDates(id, "2026-11-30", ProgramApplyMode.Append)
+        assertEquals(16, db.workoutDao().entriesWithSetsBetween("2026-11-30", "2026-12-27")
+            .map { it.entry.date }.distinct().size)
+    }
 
     @Test
     fun `cold start sixty minute review uses the scheduled work and the same time limit as search`() = runBlocking {
