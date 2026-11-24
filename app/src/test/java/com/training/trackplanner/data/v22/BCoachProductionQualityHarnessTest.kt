@@ -50,7 +50,7 @@ class BCoachProductionQualityHarnessTest {
     )
 
     @Test
-    fun `reported four day sixty minute settings produce an approvable draft`() = runBlocking {
+    fun reportedFourDaySixtyMinuteSettingsProduceAnApprovableDraft() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build().also { database = it }
         val repository = TrainingRepository(db, context)
