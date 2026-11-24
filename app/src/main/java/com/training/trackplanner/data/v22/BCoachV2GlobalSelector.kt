@@ -11,6 +11,8 @@ import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.withGeneratedWeekdaysFromItems
+import com.training.trackplanner.data.ProgramWeekdayReorder
 import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgressionRole
@@ -112,7 +114,7 @@ internal object BCoachV2GlobalSelector {
             return raw.copy(items = if (raw === baseline) rows else
                 rows.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap {
                     BCoachSessionComposition.mainFirst(it, mainExerciseKeys)
-                })
+                }).withGeneratedWeekdaysFromItems()
         }
         val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
             prepareLayout(baseline), request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
@@ -445,6 +447,35 @@ internal object BCoachV2GlobalSelector {
         }
         val baselineState = register("SAFE_BASELINE", baseline)!!
         val jointState = register("JOINT_SEED", joint)
+        if (BCoachV2DoseEvaluator.shouldEnforceNonClusteredSchedule(request) &&
+            cache.values.none { state -> state.evaluation.hardConstraints.none {
+                it.id == "CONSECUTIVE_TRAINING_DAYS" && it.status == BCoachConstraintStatus.FAIL
+            } }) {
+            // The initial parity roster can be numbered 1..N. If the earlier
+            // weekday optimizer falls back, don't explore only those same days.
+            val allowed = (request.allowedWeekdays ?: (1..7).toSet()).filter { it in 1..7 }.sorted()
+            for (seed in listOf(joint, baseline)) {
+                val patterns = seed.items.groupBy { it.weekNumber }.values
+                    .map { rows -> rows.map { it.dayOfWeek }.distinct().sorted() }.distinct()
+                val old = patterns.singleOrNull() ?: continue
+                val count = old.size
+                val alternatives = (1..127).map { mask ->
+                    (1..7).filter { day -> mask and (1 shl (day - 1)) != 0 }
+                }.filter { days ->
+                    days.size == count && days.all { it in allowed } &&
+                        BCoachV2DoseEvaluator.longestConsecutiveRun(days.toSet()) < 3
+                }
+                alternatives.forEach { days ->
+                    val mapping = (old.zip(days) +
+                        (1..7).filterNot(old::contains).zip((1..7).filterNot(days::contains))).toMap()
+                    val normalized = seed.withGeneratedWeekdaysFromItems()
+                    val moved = ProgramWeekdayReorder.remap(normalized, mapping)
+                    if (ProgramWeekdayReorder.respectsBlockBoundaries(normalized, moved)) {
+                        register("WEEKDAY_REPAIR_" + days.joinToString("_"), moved)
+                    }
+                }
+            }
+        }
         var beam = cache.values.sortedWith(searchComparator()).take(BCoachV2Policy.SEARCH_BEAM_WIDTH)
         repeat(BCoachV2Policy.SEARCH_ROUNDS) {
             val added = mutableListOf<SearchState>()

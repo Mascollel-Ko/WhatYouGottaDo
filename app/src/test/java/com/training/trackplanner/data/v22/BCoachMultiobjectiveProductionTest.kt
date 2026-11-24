@@ -1204,6 +1204,31 @@ class BCoachMultiobjectiveProductionTest {
         }.message)
     }
 
+    @Test fun `approved weekday changes preserve original structure authority and reject unrelated edits`() {
+        val outcome = prepare()
+        val proposal = requireNotNull(outcome.proposal)
+        val reviewed = requireNotNull(proposal.candidateForReview(requireNotNull(outcome.decision.recommendedCandidateId)))
+        val accepted = requireNotNull(proposal.accept(requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton).skeleton)
+        assertEquals(reviewed.items, accepted.items)
+        assertEquals(reviewed.weekDaySchedule, accepted.weekDaySchedule)
+        val day = accepted.items.first().dayOfWeek
+        val target = (1..7).first { it != day }
+        val moved = com.training.trackplanner.data.ProgramWeekdayReorder.moveAllWeeks(
+            accepted, 1, day, target, com.training.trackplanner.data.WeekdayDropPosition.CENTER)
+        assertEquals(accepted.items.map { it.copy(dayOfWeek = target) }, moved.items)
+        val linked = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(moved, history(), mapOf(squat.stableKey to squat), linked)
+        val edited = moved.copy(items = moved.items.map { row -> row.copy(
+            setPrescriptions = row.setPrescriptions.map { it.copy(reps = it.reps + 1) }) })
+        assertEquals("B_COACH_ACCEPTANCE_STRUCTURE_STALE", assertThrows(IllegalStateException::class.java) {
+            BCoachMultiobjectiveProduction.validateAcceptedForPersistence(edited, history(), mapOf(squat.stableKey to squat), linked)
+        }.message)
+        val returned = com.training.trackplanner.data.ProgramWeekdayReorder.moveAllWeeks(
+            moved, 1, target, day, com.training.trackplanner.data.WeekdayDropPosition.CENTER)
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(returned, history(), mapOf(squat.stableKey to squat), linked)
+        assertEquals(accepted.items, returned.items)
+    }
+
     @Test fun `T62 derived schedule and progression do not invalidate an otherwise unchanged proposal`() {
         val outcome = prepare(history = emptyList())
         val proposal = requireNotNull(outcome.proposal)

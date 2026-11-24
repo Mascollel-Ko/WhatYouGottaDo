@@ -53,6 +53,8 @@ import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
 import com.training.trackplanner.data.ProgramEditScope
 import com.training.trackplanner.data.ProgramScopedEditor
+import com.training.trackplanner.data.ProgramWeekdayReorder
+import com.training.trackplanner.data.WeekdayDropPosition
 import com.training.trackplanner.data.PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE
 import com.training.trackplanner.data.v22.reassessBBalancedAfterEdit
 import androidx.compose.ui.platform.testTag
@@ -89,6 +91,12 @@ internal fun ProgramSkeletonPreview(
     val editWeek=if(scope==ProgramEditScope.ALL_WEEKS) 1 else selectedWeek
     LaunchedEffect(supportsAll) { if(!supportsAll) allWeeks=false }
     val schedule = skeleton.resolvedWeekDaySchedule()
+    val canReorderWeekdays = skeleton.planningMetadataJson?.let { raw ->
+        runCatching {
+            org.json.JSONObject(raw).optJSONObject("bCoachMultiobjectiveDecision")
+                ?.optString("proposalAcceptance") == "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"
+        }.getOrDefault(false)
+    } == true
     val selectedDays = schedule[editWeek].orEmpty().sorted()
 
     LaunchedEffect(schedule, selectedWeek) {
@@ -221,6 +229,16 @@ internal fun ProgramSkeletonPreview(
                     selectedDays = selectedDays,
                     onSelectWeek = { selectedWeek = it },
                     onSelectDay = { selectedDay = it },
+                    onMoveDay = if (canReorderWeekdays) { source, target, position ->
+                        runCatching {
+                            val mapping = ProgramWeekdayReorder.permutation(selectedDays.toSet(), source, target, position)
+                            val moved = ProgramWeekdayReorder.moveAllWeeks(skeleton, editWeek, source, target, position)
+                            onSkeletonChange(moved)
+                            selectedDay = mapping.getValue(source)
+                        }.onFailure {
+                            Toast.makeText(context, it.message ?: "요일 이동을 적용할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        }
+                    } else null,
                     onToggleDay = { day ->
                         val currentDays = schedule[editWeek].orEmpty()
                         if (day in currentDays) {
@@ -284,20 +302,25 @@ private fun ProgramDraftEditTab(
     onProgressionChange: (GeneratedProgramSkeleton) -> Unit,
     onDeleteItem: (ProgramSkeletonItem) -> Unit,
     onMoveItem: ((ProgramSkeletonItem,Int)->Unit)? = null,
-    onReorderItem: ((ProgramSkeletonItem,Int)->Unit)? = null
+    onReorderItem: ((ProgramSkeletonItem,Int)->Unit)? = null,
+    onMoveDay: ((Int, Int, WeekdayDropPosition) -> Unit)? = null
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if(showWeekSelector) ProgramTemporalSelector(skeleton.weekPlans.map { it.weekIndex }, setOf(selectedWeek),
             "program-week", { programWeekChipLabel(it) }, onSelectWeek, { programWeekLabel(it) })
         MaterialText(stringResource(R.string.program_week_training_days, selectedWeek), fontWeight = FontWeight.SemiBold)
-        ProgramTemporalSelector((1..7).toList(), selectedDays.toSet(),
-            "program-day-toggle", { programWeekdayChipLabel(it) }, onToggleDay, { programWeekdayLabel(it) })
+        if (onMoveDay != null) {
+            BCoachDraftWeekdayRow(selectedDays.toSet(), selectedDay, onSelectDay, onMoveDay, onToggleDay)
+        } else {
+            ProgramTemporalSelector((1..7).toList(), selectedDays.toSet(),
+                "program-day-toggle", { programWeekdayChipLabel(it) }, onToggleDay, { programWeekdayLabel(it) })
+            if (selectedDays.isNotEmpty()) ProgramTemporalSelector(selectedDays, setOf(selectedDay),
+                "program-day-view", { programWeekdayChipLabel(it) }, onSelectDay, { programWeekdayLabel(it) })
+        }
         if (selectedDays.isEmpty()) {
             Text("이 주차에 운동 요일을 선택하세요.")
             return@Column
         }
-        ProgramTemporalSelector(selectedDays, setOf(selectedDay),
-            "program-day-view", { programWeekdayChipLabel(it) }, onSelectDay, { programWeekdayLabel(it) })
         val dayItems = skeleton.items
             .filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
             .sortedWith(compareBy<ProgramSkeletonItem> { it.orderIndex }.thenBy { it.localId })
