@@ -32,7 +32,12 @@ data class BCoachLinkedSquatNextWeekProposal(
     val proposedSets: Int? = null,
     val selectedAction: String? = null,
     val evidenceFingerprint: String? = null,
-    val notes: List<String> = emptyList()
+    val notes: List<String> = emptyList(),
+    /** Sets approved for change; omitted for old whole-session proposals. */
+    val affectedSetIndices: List<Int> = emptyList(),
+    val loadsBySetIndex: Map<Int, Double> = emptyMap(),
+    val repsBySetIndex: Map<Int, Int> = emptyMap(),
+    val omittedSetIndex: Int? = null
 ) {
     val canApply: Boolean get() = status == "READY_FOR_USER_APPROVAL" &&
         evidenceFingerprint != null && proposedLoadKg != null &&
@@ -52,7 +57,9 @@ internal object BCoachLinkedSquatWeekPlanner {
         links: List<ProgramWorkoutLink>,
         prescriptions: List<ProgramPrescriptionSet>,
         anchor: BCoachSquatAnchorSession?,
-        ranking: BCoachSquatCurveProgressionReport?
+        ranking: BCoachSquatCurveProgressionReport?,
+        coachOmissions: Map<Long, Int> = emptyMap(),
+        resolveDoses: ((WorkoutEntryWithSets, WorkoutEntryWithSets) -> Map<Int, BCoachConfirmedLiftModel.SetDose>?)? = null
     ): BCoachLinkedSquatNextWeekProposal {
         val byEntry = workouts.associateBy { it.entry.id }
         val target = byEntry[targetEntryId] ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
@@ -63,7 +70,7 @@ internal object BCoachLinkedSquatWeekPlanner {
                 status = status, sourceEntryId = sourceEntryId,
                 targetEntryId = targetEntryId, targetWeek = targetLink.weekNumber, notes = notes
             )
-        if (target.entry.exerciseStableKey != SQUAT || targetLink.trackId == "untracked" ||
+        if (target.entry.exerciseStableKey !in BCoachConfirmedLiftModel.keys || targetLink.trackId == "untracked" ||
             targetLink.mode in setOf(ProgressionMode.OFF, ProgressionMode.DIRECT) ||
             (targetLink.needsReview && targetLink.basePolicy != ProgressionBase.REVIEW)
         ) return result("LINK_OR_MODE_NOT_ELIGIBLE")
@@ -114,7 +121,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         val sourceLink = checkNotNull(predecessor.link)
         val sourceRecord = byEntry[sourceLink.entryId]
             ?: return result("LINKED_PREDECESSOR_RECORD_MISSING")
-        if (sourceRecord.entry.exerciseStableKey != SQUAT) {
+        if (sourceRecord.entry.exerciseStableKey != target.entry.exerciseStableKey) {
             return result("TRACK_EXERCISE_MISMATCH")
         }
         val sourceDate = runCatching { LocalDate.parse(sourceRecord.entry.date) }.getOrNull()
@@ -124,6 +131,59 @@ internal object BCoachLinkedSquatWeekPlanner {
         }
         val sourceSets = sourceRecord.sets.sortedBy { it.setIndex }
         val sourceTargets = prescriptions.filter { it.entryId == sourceLink.entryId }
+        if (resolveDoses != null) {
+            val sourceIndices = sourceSets.map { it.setIndex }
+            val omittedPreviously = coachOmissions[sourceLink.entryId]
+            val activeTargets = sourceTargets.filterNot {
+                it.setIndex == omittedPreviously && it.plannedSetIndex == null && it.originalExists
+            }
+            if (sourceIndices.isEmpty() || sourceIndices.distinct().size != sourceIndices.size ||
+                activeTargets.any { !it.originalExists } ||
+                activeTargets.map { it.plannedSetIndex }.toSet() != sourceIndices.toSet() ||
+                activeTargets.size != sourceIndices.size) return result("SOURCE_STRUCTURE_CHANGED")
+            if (targets.any { it.originalTargetRpeMin != it.plannedTargetRpeMin } ||
+                sets.any { set -> targets.single { it.plannedSetIndex == set.setIndex }.plannedTargetRpeMin != set.targetRpeMin })
+                return result("USER_EDIT_PROTECTED")
+            val doses = resolveDoses(sourceRecord, target) ?: return result("SET_SCHEME_REVIEW")
+            val targetIndices = sets.map { it.setIndex }.toSet()
+            val unmatched = targetIndices - doses.keys
+            // A previously omitted final set may resume its original approved dose.
+            // It has no corresponding observation and is never assigned a borrowed load.
+            if (doses.isEmpty() || doses.keys.any { it !in targetIndices } ||
+                (unmatched.isNotEmpty() && (unmatched != setOf(omittedPreviously) ||
+                    unmatched.single() != sets.last().setIndex || omittedPreviously in sourceIndices)) ||
+                doses.values.any { !it.kg.isFinite() || it.kg <= 0 || it.reps !in 1..20 }) return result("SET_SCHEME_REVIEW")
+            val last = sets.last()
+            val lastActual = sourceSets.singleOrNull { it.setIndex == last.setIndex }
+            val omitLast = sets.size >= 4 && sets.map { it.setIndex } == (1..sets.size).toList() &&
+                last.setIndex != targetLink.anchorSetIndex && targetLink.basePolicy != ProgressionBase.ANCHOR &&
+                targetLink.role in setOf(com.training.trackplanner.data.ProgressionRole.MAIN, com.training.trackplanner.data.ProgressionRole.ASSISTANCE) &&
+                last.targetRpeMin?.let { it > 8.0 } != true &&
+                (lastActual?.rpe ?: sourceRecord.entry.rpe ?: 0.0) >= 9.5 &&
+                (doses[last.setIndex]?.failureRisk ?: 0.0) >= 0.75 &&
+                sets.dropLast(1).all { (doses[it.setIndex]?.failureRisk ?: 1.0) <= 0.10 }
+            val omitted = last.setIndex.takeIf { omitLast }
+            val changed = sets.filter { set ->
+                val dose = doses[set.setIndex] ?: return@filter false
+                set.setIndex != omitted && (set.loadState != ProgramLoadState.EXPLICIT_LOAD ||
+                    abs(set.weightKg - dose.kg) > EPS || set.reps != dose.reps)
+            }
+            if (changed.isEmpty() && omitted == null) return result("CURRENT_PLAN_FITS", sourceLink.entryId)
+            val first = doses.getValue((changed.firstOrNull() ?: sets.first()).setIndex)
+            val updated = changed.associate { it.setIndex to doses.getValue(it.setIndex) }.toSortedMap()
+            return result("READY_FOR_USER_APPROVAL", sourceLink.entryId).copy(
+                sourceWeek = sourceLink.weekNumber,
+                sourceText = sourceSets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
+                originalPlanText = sets.joinToString(" / ") { "${it.weightKg}kg×${it.reps}" },
+                proposedLoadKg = first.kg, proposedReps = first.reps,
+                proposedSets = sets.size - if (omitLast) 1 else 0,
+                selectedAction = if (omitLast) "REDUCE_LAST_SET" else "SET_SPECIFIC", omittedSetIndex = omitted,
+                affectedSetIndices = updated.keys.toList() + listOfNotNull(omitted),
+                loadsBySetIndex = updated.mapValues { it.value.kg },
+                repsBySetIndex = updated.mapValues { it.value.reps },
+                evidenceFingerprint = fingerprint(asOf, application, sourceLink, sourceRecord,
+                    sourceTargets, targetLink, target, targets, null, "$updated/omit=$omitted"))
+        }
         val session = ProgressionSession(sourceLink, sourceSets, sourceTargets)
         // Set edits made immediately before confirmation can change plannedReps/plannedKg.
         // They cannot turn a failed original B prescription into a synthetic success.
@@ -155,8 +215,18 @@ internal object BCoachLinkedSquatWeekPlanner {
         // Connecting two program items does not authorize flattening deliberately
         // different heavy/volume repetition schemes. A different target pattern is
         // acceptable only if the ranked candidate already exactly matches it.
-        val performedReps = sourceSets.map { it.reps }.distinct().singleOrNull()
-        val targetReps = targets.map { it.originalReps }.distinct().singleOrNull()
+        val affectedIndices = ranking.targetSetIndices
+            .ifEmpty { sets.map { it.setIndex } }.distinct().sorted()
+        if (affectedIndices.isEmpty() || affectedIndices.any { index ->
+                index !in sets.map { it.setIndex }
+            } || (affectedIndices.size > 1 && sourceSets.map { it.reps }.distinct().size != 1)
+        ) return result("LINKED_SET_SCHEME_REVIEW", sourceLink.entryId)
+        val performedReps = if (affectedIndices.size == 1)
+            sourceSets.singleOrNull { it.setIndex == affectedIndices.first() }?.reps
+        else sourceSets.map { it.reps }.distinct().singleOrNull()
+        val targetReps = if (affectedIndices.size == 1)
+            targets.singleOrNull { it.plannedSetIndex == affectedIndices.first() }?.originalReps
+        else targets.map { it.originalReps }.distinct().singleOrNull()
         if (performedReps == null || targetReps == null ||
             (targetReps != performedReps && targetReps != candidate.reps)
         ) return result("LINKED_TARGET_REP_SCHEME_REVIEW", sourceLink.entryId)
@@ -185,6 +255,7 @@ internal object BCoachLinkedSquatWeekPlanner {
             proposedReps = candidate.reps,
             proposedSets = candidate.sets,
             selectedAction = candidate.action,
+            affectedSetIndices = affectedIndices,
             evidenceFingerprint = fingerprint,
             notes = listOf(
                 "같은 프로그램에서 명시적으로 연결한 세션의 직전 운동 순서만 사용했습니다.",
@@ -200,7 +271,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         sourceTargets: List<ProgramPrescriptionSet>,
         targetLink: ProgramWorkoutLink, target: WorkoutEntryWithSets,
         targetTargets: List<ProgramPrescriptionSet>,
-        ranking: BCoachSquatCurveProgressionReport,
+        ranking: BCoachSquatCurveProgressionReport?,
         action: String
     ): String {
         val raw = listOf(asOf, application, sourceLink, source.entry,

@@ -22,7 +22,9 @@ data class BCoachSquatCurveProgressionReport(
     val targetRir: Double,
     val doseTargetSets: Int?,
     val ranked: List<Candidate>,
-    val notes: List<String>
+    val notes: List<String>,
+    /** Empty means the existing uniform whole-session protocol; otherwise explicit set indices. */
+    val targetSetIndices: List<Int> = emptyList()
 ) {
     data class Candidate(
         val action: String,

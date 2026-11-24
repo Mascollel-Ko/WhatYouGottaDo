@@ -17,7 +17,7 @@ import com.training.trackplanner.data.ProgramTrainingSlot
 import com.training.trackplanner.data.WorkoutDao
 import com.training.trackplanner.data.ProgramProgressionDao
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
-import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.personalized.BBalancedTaskCatalog
 
 internal class V22ProgramPlanningService(
@@ -27,9 +27,9 @@ internal class V22ProgramPlanningService(
     private val bBalancedTaskCatalog: BBalancedTaskCatalog,
     private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null,
     private val progressionDao: ProgramProgressionDao? = null,
-    private val squatShadowReader: BCoachSquatShadowEvidenceReader? = null,
+    private val v2LoadEvidenceReader: BCoachV2LoadEvidenceReader? = null,
     private val rirPolicy: RpeRirPolicy? = null,
-    private val strengthRegistry: StrengthPerformanceRegistry? = null
+    private val repetitionCurves: RepetitionCurveRegistry? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
         val effectiveRequest = if (request.mode == V22Mode.B && request.blockProgram == null) {
@@ -60,124 +60,157 @@ internal class V22ProgramPlanningService(
             val plan = V22PythonParityEngine.build(history, effectiveRequest)
             return V22GeneratedProgram(plan, plan.toSkeleton(effectiveRequest, exercises))
         }
+        val muscleRelations = UserMuscleRoleCodec.effectiveRelations(
+            canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises.values.toList()
+        )
+        val coreCatalog = canonicalMetadataRepository.coreCatalog()
+        val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
+        val runtimeMetadata = canonicalMetadataRepository.runtimeMetadataCatalog()
+        val badmintonHistory = V22HistoryInput.badmintonFromWorkoutHistory(
+            recordedWorkouts,
+            exercises,
+            badmintonCatalog,
+            runtimeMetadata
+        )
+        // Include sport-category drill repetitions only in the B-Coach evaluator.
+        // Keep A/C parity and B seed/roster generation on the original history.
+        val coachHistory = history + V22HistoryInput.sportDrillHistory(
+            recordedWorkouts, badmintonCatalog
+        )
+        val mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
+            .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
+            .mapTo(linkedSetOf()) { it.exerciseStableKey }
         val balanced = BBalanced12WeekEngine.build(
             rows = history,
             request = coachRequest,
             exercises = exercises,
-            muscleRelations = UserMuscleRoleCodec.effectiveRelations(
-                canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises.values.toList()
-            ),
-            coreCatalog = canonicalMetadataRepository.coreCatalog(),
-            badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog(),
+            muscleRelations = muscleRelations,
+            coreCatalog = coreCatalog,
+            badmintonCatalog = badmintonCatalog,
             taskCatalog = bBalancedTaskCatalog,
-            mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
-                .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
-                .mapTo(linkedSetOf()) { it.exerciseStableKey }
+            mainExerciseKeys = mainExerciseKeys
         )
-        val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
+        val comparator = runCatching { V22PythonParityEngine.build(history, coachRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        val candidateBaseSkeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        val candidateBaseSkeleton = balanced.toSkeleton(coachRequest, exercises)
         val fallbackBaseSkeleton = balanced.toSkeleton(
-            effectiveRequest,
+            coachRequest,
             exercises,
             balanced.reviewBaselineWeeks.ifEmpty { balanced.weeks }
         )
+        val confirmedModels = BCoachConfirmedLiftModel.snapshots(coachRequest.asOf, recordedWorkouts, repetitionCurves, rirPolicy)
         // Preserve the actual plate size the user entered at generation time. The profile
         // can change later; an applied program must never silently pick up a different grid.
         fun withEquipmentSnapshot(value: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
             val metadata = org.json.JSONObject(value.planningMetadataJson ?: "{}")
-            effectiveRequest.bShadowPlateOneSideKg
+            metadata.put("bCoachIntegratedLifts", true)
+            metadata.put("bCoachConfirmedModelEvidence", confirmedModelEvidence(confirmedModels))
+            metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
+            coachRequest.bShadowPlateOneSideKg
                 ?.takeIf { it.isFinite() && it in 0.1..25.0 }
                 ?.let { plate ->
                 metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
                 metadata.put("bCoachPlateOneSideKg", plate)
             }
             metadata.put("bCoachDumbbellDisplayedIncrementKg",
-                effectiveRequest.bShadowDumbbellIncrementKg ?: org.json.JSONObject.NULL)
+                coachRequest.bShadowDumbbellIncrementKg ?: org.json.JSONObject.NULL)
             metadata.put("bCoachMachineDisplayedIncrementKg",
-                effectiveRequest.bShadowMachineIncrementKg ?: org.json.JSONObject.NULL)
+                coachRequest.bShadowMachineIncrementKg ?: org.json.JSONObject.NULL)
             return value.copy(planningMetadataJson = metadata.toString())
         }
         val candidateSkeleton = withEquipmentSnapshot(candidateBaseSkeleton)
         val fallbackSkeleton = withEquipmentSnapshot(fallbackBaseSkeleton)
-        val production = effectiveRequest.blockProgram?.let {
+        val v2StableKeys = (fallbackSkeleton.items + candidateSkeleton.items)
+            .mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+        val v2LoadSnapshots = v2LoadEvidenceReader?.read(
+            coachRequest.asOf, history, v2StableKeys
+        ).orEmpty()
+        val production = coachRequest.blockProgram?.let {
             BCoachMultiobjectiveProduction.prepare(
-                effectiveRequest, history, exercises, fallbackSkeleton, candidateSkeleton
+                request = coachRequest,
+                history = coachHistory,
+                badmintonHistory = badmintonHistory,
+                exercises = exercises,
+                baseline = fallbackSkeleton,
+                runtimeMetadata = runtimeMetadata,
+                candidate = candidateSkeleton,
+                muscleRelations = muscleRelations,
+                coreCatalog = coreCatalog,
+                badmintonCatalog = badmintonCatalog,
+                mainExerciseKeys = mainExerciseKeys,
+                recommendedImportance = balanced.goalTargets.associate { it.goal to it.importance },
+                modelSnapshots = v2LoadSnapshots + confirmedModels.filter { (key, _) ->
+                    val stored = v2LoadSnapshots[key]
+                    stored == null || stored.stale || stored.tier == "PROFILE_PR_PRIOR"
+                },
+                rirPolicy = rirPolicy
             )
         }
         val skeleton = production?.skeleton ?: candidateSkeleton
-        // Gate D is strictly a side-channel. No exception, missing posterior, or score may
-        // modify or prevent the existing B program from being generated and saved as before.
-        val shadow = effectiveRequest.bShadowPlateOneSideKg
-            ?.takeIf { it.isFinite() && it in 0.1..25.0 }
-            ?.let { plate ->
-                runCatching {
-                    val reader = squatShadowReader ?: return@runCatching null
-                    val policy = rirPolicy ?: return@runCatching null
-                    val observed = reader.read(effectiveRequest.asOf)
-                    val pipeline = BCoachSquatShadowPipeline.evaluate(
-                        input = observed,
-                        rirPolicy = policy,
-                        smallestPlateOneSideKg = plate,
-                        // Experimental RIR band only. Neither user preference nor approved default.
-                        targetRirMin = 1.0,
-                        targetRirMax = 3.0,
-                        policies = listOf(
-                            BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0),
-                            BCoachSquatShadowSelector.Weights(1.0, 0.5, 0.25, 1.0, 0.5, 0.1),
-                            BCoachSquatShadowSelector.Weights(0.25, 0.25, 0.1, 3.0, 2.0, 0.5)
-                        ),
-                        omegaBands = listOf(
-                            BCoachSquatShadowSelector.OmegaBand.CENTRAL_80,
-                            BCoachSquatShadowSelector.OmegaBand.CENTRAL_90
-                        )
-                    )
-                    BCoachSquatShadowProgramComparator.compare(
-                        asOf = effectiveRequest.asOf,
-                        plannedItems = skeleton.items,
-                        pipeline = pipeline,
-                        userConfirmedEquipmentStep = true
-                    )
-                }.getOrElse {
-                    BCoachSquatShadowProgramComparison(
-                        status = "SHADOW_COMPARISON_ERROR",
-                        snapshotDate = effectiveRequest.asOf,
-                        observedReference = null,
-                        plannedSquatRows = emptyList(),
-                        experimentCandidates = emptyList(),
-                        experiments = emptyList(),
-                        notices = listOf("Shadow 비교를 계산하지 못했습니다. 기존 프로그램 생성 결과에는 영향이 없습니다.")
-                    )
-                }
-            }
-        // Gate E is informational coverage, not a second B generator or automatic load selector.
-        val otherCoverage = runCatching {
-            val registry = strengthRegistry ?: return@runCatching emptyList()
-            val increments = runCatching {
-                BBlockEquipmentIncrements(
-                    effectiveRequest.bShadowPlateOneSideKg ?: Double.NaN,
-                    effectiveRequest.bShadowDumbbellIncrementKg ?: Double.NaN,
-                    effectiveRequest.bShadowMachineIncrementKg ?: Double.NaN
-                )
-            }.getOrNull()
-            BCoachExerciseShadowCoverage.inspect(
-                asOf = effectiveRequest.asOf,
-                plannedItems = skeleton.items,
-                confirmedHistory = history,
-                registry = registry,
-                exercises = exercises,
-                increments = increments
-            )
-        }.getOrDefault(emptyList())
         return V22GeneratedProgram(
             comparator,
             skeleton,
             balanced,
-            shadow,
-            otherCoverage,
-            production?.decision,
-            production?.proposal
+            bCoachMultiobjectiveDecision = production?.decision,
+            bCoachMultiobjectiveProposal = production?.proposal
         )
+    }
+
+    private fun confirmedModelEvidence(models: Map<String, BCoachV2LoadModelSnapshot>) =
+        models.toSortedMap().entries.joinToString("|") { (key, model) -> "$key=${model.sourceVersion}:${model.evidenceIds}" }
+
+    /** Rechecks the evidence snapshot before an accepted B proposal can enter persistence. */
+    suspend fun validateAcceptedForPersistence(
+        skeleton: GeneratedProgramSkeleton
+    ): GeneratedProgramSkeleton {
+        val snapshot = BCoachMultiobjectiveProduction.acceptedPersistenceSnapshot(skeleton)
+            ?: return skeleton
+        val recordedWorkouts = workoutDao.entriesWithSetsUntil(snapshot.cutoff.toString())
+        val metadata = org.json.JSONObject(skeleton.planningMetadataJson ?: "{}")
+        if (metadata.has("bCoachConfirmedModelEvidence")) {
+            val current = BCoachConfirmedLiftModel.snapshots(snapshot.cutoff, recordedWorkouts, repetitionCurves, rirPolicy)
+            require(metadata.getString("bCoachConfirmedModelEvidence") == confirmedModelEvidence(current)) {
+                "B_COACH_HISTORY_CHANGED_REGENERATE_REQUIRED"
+            }
+        }
+        val history = V22HistoryInput.fromWorkoutHistory(recordedWorkouts)
+        val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+        val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
+        val badmintonHistory = V22HistoryInput.badmintonFromWorkoutHistory(
+            recordedWorkouts,
+            exercises,
+            badmintonCatalog,
+            canonicalMetadataRepository.runtimeMetadataCatalog()
+        )
+        val coachHistory = history + V22HistoryInput.sportDrillHistory(
+            recordedWorkouts, badmintonCatalog
+        )
+        val linked = snapshot.sourceProgramStableKey?.let { source ->
+            progressionDao?.let { dao ->
+                BCoachLinkedExecutionReader.read(
+                    sourceProgramStableKey = source,
+                    asOf = snapshot.cutoff,
+                    workouts = recordedWorkouts,
+                    applications = dao.applications(),
+                    links = dao.links(),
+                    prescriptions = dao.prescriptions()
+                )
+            }
+        }
+        val linkedFingerprint = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(
+            snapshot.sourceProgramStableKey,
+            linked?.applicationId,
+            linked?.duePlannedSets,
+            linked?.confirmedSets
+        )
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+            skeleton = skeleton,
+            history = coachHistory,
+            badmintonHistory = badmintonHistory,
+            exercises = exercises,
+            currentLinkedEvidenceFingerprint = linkedFingerprint
+        )
+        return BCoachMultiobjectiveProduction.markAcceptedAndPersisted(skeleton)
     }
 }
 
@@ -192,8 +225,8 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         name = request.name,
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
         weeklyTrainingDays = input.days,
-        sessionMinutes = request.sessionMinutes ?: 0,
-        availableEquipment = emptySet(),
+        sessionMinutes = request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES,
+        availableEquipment = request.availableEquipment.orEmpty(),
         excludedExerciseText = "",
         badmintonTransferRatio = 0.0,
         sportStrengthRatio = "AUTO",
@@ -243,7 +276,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
                     trainingSlot = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
                     dayIntensity = ProgramDayIntensity.MODERATE.name,
                     stableKey = item.stableKey,
-                    selectionRole = "B12_FOCUS_${focus.name}",
+                    selectionRole = "${item.role}|B12_FOCUS_${focus.name}",
                     setPrescriptions = sets
                 )
             }
@@ -345,7 +378,7 @@ internal fun V22Plan.toSkeleton(
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
         weeklyTrainingDays = request.days,
         sessionMinutes = request.sessionMinutes ?: 0,
-        availableEquipment = emptySet(),
+        availableEquipment = request.availableEquipment.orEmpty(),
         excludedExerciseText = "",
         badmintonTransferRatio = 0.0,
         sportStrengthRatio = "AUTO",

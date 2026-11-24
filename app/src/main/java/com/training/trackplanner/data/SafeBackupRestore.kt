@@ -403,7 +403,13 @@ internal fun WorkoutEntryWithSets.toRestoreGraph(): RestoreWorkoutGraph = Restor
             secondaryWeightKg = set.secondaryWeightKg,
             setRestSecondsOverride = set.restSecondsOverride,
             setLoadState = set.loadState,
-            targetRpeMin = set.targetRpeMin
+            targetRpeMin = set.targetRpeMin,
+            estimatedLoadKg = set.estimatedLoadKg,
+            loadSource = set.loadSource,
+            freshRir = set.freshRir,
+            expectedRir = set.expectedRir,
+            relativeIntensity = set.relativeIntensity,
+            evidenceVersion = set.evidenceVersion
         )
     }
 )

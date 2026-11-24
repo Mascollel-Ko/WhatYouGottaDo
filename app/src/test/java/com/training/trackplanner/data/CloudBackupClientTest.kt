@@ -47,7 +47,7 @@ class CloudBackupClientTest {
         val backupId = "11111111-1111-4111-8111-111111111111"
         val result = CloudBackupClient(
             db = db,
-            canonicalBackup = { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList()) },
+            canonicalBackup = { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v15"), emptyList()) },
             config = CloudBackupConfig("https://example.supabase.co", "publishable"),
             http = RecordingTransport(backupId)
         ).uploadNow(session, now = 1234L)
@@ -63,8 +63,8 @@ class CloudBackupClientTest {
                 "current", JSONObject()
                     .put("backup_id", "11111111-1111-4111-8111-111111111111")
                     .put("status", "CURRENT")
-                    .put("backup_format_version", 14)
-                    .put("schema_version", 13)
+                    .put("backup_format_version", 15)
+                    .put("schema_version", 14)
                     .put("local_revision", 4)
             ).toString())
         )
@@ -101,7 +101,7 @@ class CloudBackupClientTest {
         val session = CloudAuthSession("user-1", "token")
         val backupId = "11111111-1111-4111-8111-111111111111"
         val transport = RecordingTransport(backupId)
-        val content = CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList())
+        val content = CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v15"), emptyList())
         val result = CloudBackupClient(
             db = db,
             canonicalBackup = { content },
@@ -111,8 +111,8 @@ class CloudBackupClientTest {
         assertEquals(backupId, result.backupId)
         assertTrue(result.acknowledged)
         assertEquals(2, transport.posts.size)
-        assertEquals(14, transport.posts[0].getInt("backup_format_version"))
-        assertEquals(13, transport.posts[0].getInt("schema_version"))
+        assertEquals(15, transport.posts[0].getInt("backup_format_version"))
+        assertEquals(14, transport.posts[0].getInt("schema_version"))
         assertEquals(backupId, transport.posts[1].getString("backup_id"))
         assertEquals(backupId, db.cloudBackupStateDao().get()!!.localBaseBackupId)
         assertEquals(0L, db.cloudBackupStateDao().get()!!.localRevision)
@@ -126,7 +126,7 @@ class CloudBackupClientTest {
             db = db(),
             canonicalBackup = {
                 CanonicalBackupContent("canonical csv",
-                    RecordCsvTransferResult("restore-v14"), emptyList())
+                    RecordCsvTransferResult("restore-v15"), emptyList())
             },
             config = CloudBackupConfig("https://example.supabase.co", "publishable"),
             http = transport
@@ -145,7 +145,7 @@ class CloudBackupClientTest {
             db = db(),
             canonicalBackup = {
                 CanonicalBackupContent("canonical csv",
-                    RecordCsvTransferResult("restore-v14"), emptyList())
+                    RecordCsvTransferResult("restore-v15"), emptyList())
             },
             config = CloudBackupConfig("https://example.supabase.co", "publishable"),
             http = ordinary
@@ -169,7 +169,7 @@ class CloudBackupClientTest {
         val state = dao.get()!!
         val transport = RecoveryTransport(next, verifiedChild(confirmed, old, state.installId, 1L))
         val result = CloudBackupClient(
-            db, { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList()) },
+            db, { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v15"), emptyList()) },
             CloudBackupConfig("https://example.supabase.co", "publishable"), transport
         ).uploadNow(CloudAuthSession("user-1", "token"), 104L)
 
@@ -205,7 +205,7 @@ class CloudBackupClientTest {
             val transport = RecoveryTransport(next, candidate)
             val failure = runCatching {
                 CloudBackupClient(
-                    db, { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList()) },
+                    db, { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v15"), emptyList()) },
                     CloudBackupConfig("https://example.supabase.co", "publishable"), transport
                 ).uploadNow(CloudAuthSession("user-1", "token"), 104L)
             }.exceptionOrNull()
@@ -220,8 +220,8 @@ class CloudBackupClientTest {
         JSONObject()
             .put("backup_id", id)
             .put("status", "CURRENT")
-            .put("backup_format_version", 14)
-            .put("schema_version", 13)
+            .put("backup_format_version", 15)
+            .put("schema_version", 14)
             .put("local_revision", revision)
             .put("parent_backup_id", parent)
             .put("install_id", install)

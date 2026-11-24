@@ -1,121 +1,259 @@
-# B-Coach multi-objective production completion
+# B-Coach v2.2.1 precision repair completion
 
-## Scope and source drift
+## Scope and release identity
 
-- Work started from `main` at `a41bf89e4b27fc38c1bf4d116d1ea09bbb95b04f` (`Merge B-Coach progression and orphan-safe backup cleanup into main`).
-- The reviewed implementation and executable evidence are recorded in local commit `49d5ccef`.
-- The user explicitly requested work on `main`, overriding the attached prompt's dedicated-branch instruction.
-- The supporting audit `WhatYouGottaDo_BCoach_미적용_설계_수식_총정리_2026-11-14.md` was available and reviewed. Its `LIVE`, `SHADOW`, `PENDING`, `DESIGN`, and `TOY` labels remain authority boundaries.
-- This change does not promote the v1.2 equations to a universal automatic optimizer. It ships the production-safe, explicit-review route requested by the audit.
+- Branch: `feat/b-coach-v2-global-optimizer`
+- v2.2.1 starting commit: `03036a9b34b266ca24e2783724ec3d43dd64f82c`
+- Original v2.2 base commit: `4aef2bc0fed3969c53bdc4bf04106db07ea1047e`
+- Engine: `B_COACH_V2_2_1_GLOBAL_OPT`
+- Frozen policy: `B_COACH_V2_2_1_POLICY_2026_11_15`
+- Coefficient provenance: `PRODUCT_HEURISTIC_NOT_CLINICAL`
+- Request authority: `WhatYouGottaDo — B-Coach v2.2.1 정밀 보완 Codex 작업 지시`; `BCOACH_V2_2_1_REPAIR_NOTES.md` supplies [주1]-[주4]. The earlier v2.2 design and implementation instructions remain reference material.
 
-## Architecture and authoritative call chain
+This keeps the v2.2 production optimizer, Need model, six recovery axes, eight objectives, three scenarios, Pareto frontier, minimax regret, Room 42/backup formats, and explicit candidate approval. v2.2.1 repairs three verified evidence paths without changing those policies. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
 
-`PlanScreen.generateV22` → `TrainingViewModel.generateV22Program` → `TrainingRepository.generateV22Program` → `V22ProgramPlanningService.generate` → `BBalanced12WeekEngine.build` → independent safe baseline and joint candidate skeletons → `BCoachMultiobjectiveProduction.prepare` → safe baseline preview plus an optional fingerprint-bound proposal → explicit user acceptance in `PlanScreen` → edited draft → `TrainingRepository.saveGeneratedProgram` → `ProgramPlanService.saveGeneratedProgram` → reopen/apply through the existing program and calendar services.
+## v2.2.1 precision repair record
 
-The engine now retains the pre-joint-search block result as `reviewBaselineWeeks`. The joint optimizer can still produce a materially different whole-block candidate, but generation returns the safe baseline until the user accepts the exact candidate fingerprint against the unchanged baseline fingerprint. An edit, regeneration, or stale draft invalidates acceptance.
+- Set-level `loadSource` is now authoritative. `USER_FIXED` preserves only that set's positive finite kilograms; known automatic sources are recalculated even if the legacy item source says manual. The item source is consulted only for `LEGACY_UNKNOWN`. Invalid fixed kilograms fail closed to typed calibration rather than being silently replaced.
+- Candidate set addition clears copied kilograms, source, RIR, intensity, and evidence to a calibration-required set. Removing a tail that contains a user-fixed set is rejected. Repetition mutation retains fixed kilograms but runs capacity/RIR evaluation again. Mixed fixed/automatic sets retain the exact source split through approval, Room persistence, reopen, and calendar application.
+- Calendar application now requires and uses the same canonical metadata repository already held by `TrainingRepository`. The live badminton objective catalog, runtime metadata, cutoff, generic-session authority, direct-drill de-duplication, and six-axis aggregation therefore match generation. Missing metadata fails explicitly before workout mutation.
+- Historical and planned effective dose share one set-dose function and one relative-intensity credit. Historical relative intensity uses the highest valid, cutoff-bounded same-`stableKey` e1RM from the existing load resolver/model evidence; it is computed once per optimizer input, not per candidate. Missing RPE remains a labeled neutral-effort uncertainty and never becomes invented `RIR=0`; missing capacity keeps neutral relative-intensity credit with an explicit reason code.
+- Proposal validation recomputes a fingerprint with the engine/policy/owner stored in the accepted decision. Already accepted v2.2 proposals therefore remain replay-valid after the v2.2.1 version bump while tampered, stale-history, stale-metadata, and structurally edited proposals still fail.
 
-The decision metadata records engine/policy version, source owner, evidence cutoff, baseline/candidate/input SHA-256 fingerprints, normalized explicit goal weights, all eight objective axes, input audit, changes, alternatives, unknowns, adverse scenario, acceptance state, and fallback reason. Metadata is backward-compatible JSON stored in the existing planning metadata field.
+## v2.2 correction record
 
-## Authority and promotion matrix
+- Capacity and training load are separate. All valid completed rows for the exact `stableKey` compete by e1RM; the highest is retained even when it is more than 20% above the center. Invalid units, repetitions, non-finite values, and duplicates are excluded. A no-RPE single is the lifted weight itself (`180×1 -> 180 kg`), while other no-RPE rows are labeled completed-repetition lower bounds.
+- A current personal repetition curve remains preferred. When direct evidence exceeds the stored model center, capacity bounds are scaled to the higher valid direct capacity without discarding the personal curve. Otherwise Epley uses `capacity / (1 + (reps + RIR)/30)`.
+- First-set training load is `0.97 * capacity * relativeLoad`. A known equipment grid floors the result and creates a prescribed load; a missing grid retains the unrounded `estimatedLoadKg` and never copies the historical load. For `180×1`, no RPE, target `12@RIR3`, no grid, the result is `116.4 kg estimated`, not `180×12`.
+- Default follow-up factors are `0.985` for sets 2-3 and `0.97` for sets 4-5, floored again to the actual equipment grid. Two or more matching same-exercise sessions replace the default with the median observed set-to-first-set ratio.
+- `setPrescriptions` is authoritative. `USER_FIXED`, `PERSONAL_MODEL`, `DIRECT_HISTORY_ESTIMATE`, `HISTORY_HOLD`, `CALIBRATION_REQUIRED`, `NON_LOAD_METRIC`, and `LEGACY_UNKNOWN` are persisted set sources; `EXPLICIT_LOAD` alone is not manual authority. An automatic positive load reaches calendar rows with `manualWeight=false`; an actual user weight edit changes the source to `USER_FIXED` and clears stale calculated RIR/intensity.
+- Each resistance set stores `freshRir` and fatigue-adjusted `expectedRir` (working RIR), relative intensity, estimated load, and evidence version. The same set-level working RIR/intensity maps feed both dose and recovery. The working-RIR heuristic uses set index, repetitions, relative intensity, and rest, with bounded fatigue rather than assuming that a back-off load equalizes all sets.
+- Effective dose uses calculated working RIR before target RIR. Effort credit is continuous: `1.0` through RIR 4, linear to `.75` at RIR 6, linear to `.50` at RIR 8, then `.50`. Strength and hypertrophy receive bounded relative-intensity credit; hypertrophy is not made directly proportional to absolute kilograms.
+- Recovery is now `Σ(axis coefficient × set adjustment)` rather than set count alone. The adjustment uses relative intensity, repetitions/exposure, and working RIR; each factor is bounded to `0.5..1.5`. Recent resistance history uses actual weight/repetitions/RPE-derived effort, and the existing six axes, four-day kernels, scenarios, and application-date refresh remain intact.
+- Confirmed badminton duration, RPE, and direct drill metadata are converted through `BadmintonPracticeLoadCalculator`, added to same-day resistance load, and distributed over the six axes. A generic session row is authoritative for total duration/load when detailed drills share its session identity, preventing generic-plus-drill double counting. Badminton history is part of input/history fingerprints and therefore invalidates candidate caches.
+- Room schema 42 adds the six provenance fields to `training_program_item_sets` and `workout_sets`. CSV restore schema 14 / backup format 15 / program snapshot schema 6 carry the same fields; older rows import without guessing and become `LEGACY_UNKNOWN` at persistence.
+- Candidate search resolves loads after every set/repetition mutation. Its local cache key binds the full raw prescription, request/history/equipment input fingerprint, model source/evidence versions, staleness, and RIR-policy version. Progression scoring reads per-set RIR/intensity maps.
+- Need personalization now admits a week only when that specific task has positive related evidence. Unrelated lower-body weeks therefore cannot lower chest/back/direct-core Need, while a new plan's zero dose still produces a real deficit.
+- Recovery dates use an explicit planning start when supplied; otherwise the audit records and uses the next Monday after the cutoff. Monday remains `1` and Sunday `7`. Calendar application recalculates all three recovery scenarios for the actual applied start date and stores them under `applicationRecoveryAudit` without pretending that this recovery-only refresh reran Pareto selection.
+- `V22ProgramPlanningService` passes the linked-evidence-enriched `coachRequest` through skeleton construction, model reading, optimization, and diagnostics. Accepted alternatives store their own set-load instructions and full fingerprint. Post-approval load edits are preserved and mark `scoresReflectCurrentPrescription=false` unless the plan is regenerated.
 
-| Component | Production status | Implemented boundary |
-|---|---|---|
-| Pre-joint safe B plan | `AUTO` | Always materialized independently and returned by default. |
-| Roster/set/repetition whole-block candidate | `USER_REVIEW` | Can change saved items only after exact fingerprint acceptance. |
-| User session minutes, fixed/allowed weekdays, program bounds, set integrity | `AUTO` hard gate | Any failure suppresses the proposal and keeps the safe plan. |
-| Explicit goal importance 1–5 | `USER_REVIEW` input | Explicit values normalize; `NULL` remains missing, never zero. |
-| Fixed block goal/pattern | `AUTO` constraint | Fixed goals are not replaced; `BALANCED` has one neutral compatibility label and no hidden focus allocation; only `AUTO` searches multiple goals. |
-| Goal Need intervals and direct/secondary credit equations | `UNSUPPORTED` for automatic scoring | Raw axis is present with unit, provenance, and missing reason; no invented Need values. |
-| Six-axis planned/recent recovery load | `SHADOW` diagnostic | Raw maximum/mean/recent values are visible. Approved caps and decay are unavailable. |
-| Cross-axis normalizers, lambdas, epsilon | `UNSUPPORTED` for automatic winner selection | Candidate stays explicit review; no fabricated weighted sum. |
-| Engineering session-time estimate | `AUTO` hard limit, `SHADOW` explanation | User limit is enforced on every modeled day; estimate is not called measured time. |
-| Unknown starting load | `HOLD_CALIBRATE` | Remains `USER_CALIBRATION_REQUIRED`; 0 kg is never represented as a real prescribed load. |
-| Main-exercise linked load progression | Existing `LIVE-RECORD` path | Requires confirmed linked evidence and its existing policy. This change grants no blanket kg authority. |
-| Non-main automatic load steps | `HOLD_CALIBRATE` | Always zero, even when an equipment grid is known. Reps/sets may progress. |
-| Squat curve/comparison and other exercise coverage | Existing `SHADOW` | Preserved as diagnostics; not treated as approval for the whole V22 B plan. |
-| Future weighted-pull-up bodyweight | `UNSUPPORTED` | Recorded as unavailable and never fabricated. |
-| Multi-set independent success probability | `UNSUPPORTED` | Follow-up sets are targets, not multiplied independent probabilities. |
+Epley regression fixture for capacity `180 kg`, `2.5 kg` grid, factor `0.97`: `5@RIR3=137.5`, `8@RIR3=127.5`, `10@RIR3=120`, `12@RIR3=115`, and `8@RIR4=122.5 kg`. The default three-set `8@RIR3` prescription is `127.5 / 125 / 125 kg`.
 
-## Before/after production example
+## Production call chain
 
-The deterministic review-gate fixture uses a 14-day B plan applied with a start date of 2026-11-16. The candidate is not active until acceptance.
+`PlanScreen` → `TrainingRepository` → `V22ProgramPlanningService` → safe/joint seed generation → `BCoachV2LoadCandidateResolver` → `BCoachV2DoseEvaluator` / `BCoachV2ScheduleLoad` → `BCoachV2GlobalSelector` → review dialog → exact candidate approval → transactional evidence/structure replay → save/reopen/calendar flow.
 
-| State | Calendar slot | Exercise | Prescription | Load state | Key objective values |
+The proposal fingerprint binds the baseline, recommended candidate, full request, evidence cutoff, history, relevant exercise metadata, and linked evidence. The accepted structure fingerprint excludes only program naming and explicit post-approval kg calibration. Exercise identity, weekday, order, sets, repetitions, rest, and evidence drift reject persistence.
+
+## Frozen policy boundary
+
+| Area | Production rule |
+|---|---|
+| Goal importance | Missing values use the existing B recommendation when confirmed history exists; otherwise `3`. All four effective values are normalized. |
+| Need | Task-level center `D0`, up to four complete history weeks, max 0.5 personal blend, stage/recovery multiplier, and `[floor(0.85D), ceil(1.20D)]`. PEAK is explicitly exempt with zero Need. |
+| Effective dose | Canonical muscle/core/badminton relations; repeated aliases use max credit per muscle. Unknown resistance receives `0.75` set credit, never zero. |
+| Load | Exact stableKey only. Tier A/B use current personal models and curves. Direct same-exercise history supplies the highest valid e1RM. A known grid creates a down-rounded prescription; a missing grid creates a labeled estimate, never a history copy. Tier D uses a non-load metric; otherwise typed calibration. |
+| Weighted pull-up | A future/current bodyweight is never fabricated. Without current bodyweight, a model-derived total-system load is downgraded to calibration; external added load is never confused with total-system load. |
+| Recovery | Six canonical axes, per-set `0.5..1.5` adjustment, actual resistance/badminton history, four-day kernels, next-Monday or explicit-start calendar mapping, planned/recent separation, q75 normalization, and max/mean pressure diagnostics. No clinical cap or injury probability is claimed. |
+| Objectives | Goal deficit `.40`, excess `.09`, progression `.16`, recovery `.14`, ramp `.07`, execution `.06`, plan change `.04`, uncertainty `.04`; sum `1.0`. |
+| Scenarios | `LOW_STRESS`, `BASE`, `HIGH_STRESS`; Need, indirect credit, recovery kernels, and model capacity/RIR vary by scenario. |
+| Selection | Hard-constraint filter → Pareto frontier → three-scenario minimax regret → deterministic ties by base loss, anchors, change count, and canonical hash. |
+| Search budget | Frozen ceiling: beam `10`, rounds `12`, candidate evaluations `4000`, finalists `12`, displayed alternatives `2`. Current local action lattice changes set/repetition prescriptions while preserving fixed focus, rest, and order; the existing joint seed supplies exercise/day structure. |
+| UI/persistence | The review shows actual or `~estimated` load, target/fresh/working RIR, source, and equipment-grid requirement inside the scrollable prescription summary; it retains at most two alternatives and requires select + approve. Room/calendar/CSV preserve set provenance. `INPUT_CONFLICT` is not silently saved. |
+
+Exact visible disclaimer:
+
+> 이 추천은 운동 기록·선택한 목표와 시범 계산 규칙을 바탕으로 생성한 훈련 계획입니다. 일부 자극·회복 점수는 아직 과학적으로 검증된 개인 예측값이 아니며, 미확정 중량은 직접 입력할 수 있습니다.
+
+## Historical v2 three-candidate decision fixture
+
+The following values were emitted by `T44` before the v2.1 prescription correction. They are retained only as the v2 baseline comparison; v2.1 deliberately changes versioned fingerprints and may change losses when an equipment grid permits calculated loads.
+
+| Candidate | Prescription and load evidence | Eight BASE losses `(deficit, excess, progression, recovery, ramp, execution, change, uncertainty)` | Scenario weighted losses `(low, base, high)` | Pareto / regret | Result |
 |---|---|---|---|---|---|
-| Safe baseline | 2026-11-16 (week 1/day 1) | `barbell_back_squat` | 2 × 5 | `USER_CALIBRATION_REQUIRED`, no kg | work sets 2; systemic daily max 2; set delta 0 |
-| Proposed | 2026-11-16 (week 1/day 1) | `barbell_back_squat` | 3 × 5 | `USER_CALIBRATION_REQUIRED`, no kg | work sets 3; systemic daily max 3; set delta +1 |
-| Accepted and saved | same | same | 3 × 5 | unchanged manual calibration | metadata `ACCEPTED_AFTER_EXPLICIT_USER_REVIEW`; save/reopen/calendar path preserves the accepted plan |
+| `C01_32307a7021` `SAFE_BASELINE` | `barbell_back_squat`, week 1/day 1, `2×5`, `100 kg`, `EXPLICIT_LOAD`, Tier C same-stableKey hold | `(0.416667, 0, 0.35, 0.284062, 0.265, 0, 0, 0.4)` | `(0.276611, 0.296985, 0.300284)` | yes / `0.000000` | recommended |
+| `C02_a57f50abd5` `JOINT_SEED` | same identity/day, `3×5`, `100 kg`, same evidence | `(0.375, 0, 0.35, 0.348471, 0.2525, 0, 0.25, 0.4)` | `(0.294565, 0.298461, 0.301848)` | yes / `0.017954` | alternative 1 |
+| `C04_fce0689849` `SAFE_BASELINE>REMOVE_ONE_SET_barbell_back_squat` | same identity/day, `1×5`, `100 kg`, same evidence | `(0.458333, 0, 0.35, 0.186175, 0.265, 0, 0.25, 0.4)` | `(0.298649, 0.309948, 0.312690)` | yes / `0.022038` | alternative 2 |
 
-The public cold-start engine test also asserts that the actual joint candidate differs materially from `reviewBaselineWeeks`. A public synthetic integration case accepts a material proposal, saves, reopens, and applies it to a calendar date. The optional private real-history integration case additionally performs explicit starting-load calibration when its fixture is available.
+This fixture intentionally recommends the unchanged plan: the three-set alternative reduces deficit but raises recovery/change loss, while the one-set alternative lowers recovery but raises deficit/change loss. That is a valid global result, not a forced-change rule.
 
-## T01–T44 counterexample matrix
+## Counterexample matrix T01–T44
 
-Status means the behavior is executable and regression-tested; it does not upgrade an unapproved physiological formula.
+All rows are executable methods in `BCoachMultiobjectiveProductionTest`. `PASS` means the final local run completed the assertion; it does not promote product heuristics to clinical claims.
 
-| ID | Status | Executable evidence |
+| ID | Covered counterexample | Result |
 |---|---|---|
-| T01 | `AUTO` isolation | `BCoachJointBlockOptimizerTest.T01 another program observations cannot change linked-plan completion` |
-| T02 | `AUTO` identity | `WorkoutSessionIdentityTest.eachProgramApplicationCreatesNewSessionsPerScheduledDay` |
-| T03 | `AUTO` hard constraint | `BCoachJointBlockOptimizerTest.fixedWeekdaysMustRemainFixedAndUnapprovedEquipmentCannotBeInvented` |
-| T04 | `AUTO` hard constraint | `BCoachMultiobjectiveProductionTest.T04 a candidate over the per-session limit is held rather than offered` |
-| T05 | `AUTO` evidence isolation | `BJointExerciseSetOptimizerTest.provisionalStabilizerMetadataDoesNotFreezeReviewedPrimaryAccessory` |
-| T06 | `USER_REVIEW` input semantics | `BCoachMultiobjectiveProductionTest.null importance stays missing while explicit weights normalize only explicit values` |
-| T07 | `AUTO` fixed goal | `BBalancedFocusSearchPolicyTest.T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` |
-| T08 | `AUTO` balanced constraint | same test; asserts `BALANCED_NO_HIDDEN_FOCUS` and one focus evaluation |
-| T09 | `AUTO` explicit peak mode | `BBlockPurposePrescriptionTest.finalPeakWeekUsesOneRepOneSetOfMainExercise` preserves explicit 3-rep evaluation unless one-rep mode is chosen |
-| T10 | `AUTO` calendar mapping | `BBlockPeriodizationTest.recoveryOnlyOccupiesBlockBoundaries`; `V22ProgramIntegrationTest.new block program with partial recovery survives load calibration and save restore` |
-| T11 | `AUTO` fixed pattern | `BBlockPrescriptionApplicatorTest.fourWeekPatternsChangeActualSetAndRepPrescriptions`; `BBlockPeriodizationTest.supportedWaveLengthsHaveTheAgreedShapes` |
-| T12 | `AUTO` search boundary | `BBalancedFocusSearchPolicyTest.T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` |
-| T13 | Existing `SHADOW` authority boundary | `BCoachExerciseShadowCoverageTest.only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` |
-| T14 | Existing `SHADOW` fail closed | `BCoachSquatCurveProgressionRankerTest.missing RPE does not fabricate reference e1rm or automatic winner` |
-| T15 | Existing `SHADOW` fail closed | `BCoachSquatShadowProgramComparisonTest.unavailable posterior still preserves baseline and does not invent weight` |
-| T16 | Existing `SHADOW` conflict audit | `BCoachSquatRelativeShadowTest.T16 observed 205kg one-rep limit is retained as a posterior conflict` |
-| T17 | `TOY` test only | `RepetitionCurveRegistryTest.canonical assets are finite monotone and invert deterministically` checks monotonicity and unsupported domain |
-| T18 | `TOY` test only | `RepetitionCurveRegistryTest.T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` checks the documented RIR table |
-| T19 | `TOY` test only | same test checks conditional per-scenario regret and minimax choice |
-| T20 | Existing `SHADOW` fail closed | `BCoachSquatCurveProgressionRankerTest.unknown set target never rewards extra sets` |
-| T21 | Existing `LIVE-RECORD` gate | `BCoachLinkedSquatWeekPlannerTest.unconfirmed or missed previous sets cannot cause progression`; confirmed case also tested |
-| T22 | Existing `SHADOW`/`LIVE-RECORD` hold | `BCoachObservedSquatProgressionTest.load step above two percent falls back to hold`; high-RPE hold in ranker test |
-| T23 | Existing `SHADOW` uncertainty | `RpeRirPolicyTest.known RPE likelihood represents RIR uncertainty exactly once`; RPE 8 is a distribution, not exact RIR 2 |
-| T24 | Existing equipment-grid rule | `BBlockEquipmentIncrementsTest.oneStepUsesEquipmentDisplayUnit`; one-side 1.25 kg means total 2.5 kg and arbitrary 147.3 kg is not generated |
-| T25 | Existing `SHADOW` typed load | `StrengthPerformanceLikelihoodTest.weighted pull-up resolves total load with bodyweight priority and age uncertainty` |
-| T26 | `UNSUPPORTED` future value | `BCoachExerciseShadowCoverageTest.only exact canonical keys receive canonical tier and weighted pullup demands bodyweight`; production input audit records no fabricated future bodyweight |
-| T27 | Existing `SHADOW` fail closed | repetition-curve registry rejects unsupported repetitions/relative load; task reps above 20 are not passed through e1RM |
-| T28 | Existing `SHADOW` boundary | `BCoachSquatRelativeShadowTest.multiset scenarios do not invent predictive performance for later sets` |
-| T29 | Existing `SHADOW` boundary | `BCoachExerciseShadowCoverageTest.reviewed RDL proxy relation cannot pretend to be a canonical posterior` |
-| T30 | Existing `LIVE-RECORD` identity | `BCoachObservedSquatProgressionTest.mismatched exercise track cannot source an increment` |
-| T31 | Existing `SHADOW` observation route | `BCoachExerciseShadowCoverageTest.ordinary barbell lift receives only unranked hold reps and configured-grid actions` |
-| T32 | Existing `SHADOW` task route | `BCoachExerciseShadowCoverageTest.time hold without mechanical load is task-specific and never uses RIR` |
-| T33 | Existing fail closed | exact-key coverage tests plus `BCoachExerciseShadowCoverageTest.no observed evidence is explicit unknown rather than zero performance` |
-| T34 | `USER_REVIEW` | `BCoachMultiobjectiveProductionTest.T34 approved Need is absent so extra sets never become an automatic reward` |
-| T35 | `SHADOW` raw recovery | `BCoachMultiobjectiveProductionTest.T35 raw recent six-axis load is retained while residual decay remains missing` |
-| T36 | `SHADOW` raw recovery | `BCoachMultiobjectiveProductionTest.T36 recovery maximum and mean remain distinct raw values` |
-| T37 | `UNSUPPORTED` without an approved cap | Test proves no candidate claims a cap pass while caps are unavailable; therefore no fabricated exclusion or auto-approval occurs |
-| T38 | `USER_REVIEW` | `BCoachMultiobjectiveProductionTest.T38 an unapproved fatigue cap does not hard-reject a reviewable candidate` |
-| T39 | `SHADOW` explanation | `BCoachMultiobjectiveProductionTest.T39 execution axis reports engineering time without inventing a time-pressure cause` |
-| T40 | `USER_REVIEW` | `BCoachMultiobjectiveProductionTest.T40 missing lambda epsilon and Need keep the candidate in review` |
-| T41 | `UNSUPPORTED` action | `BCoachMultiobjectiveProductionTest.T41 rest-only mutation is not an active production candidate` |
-| T42 | `USER_REVIEW` active action | `BCoachMultiobjectiveProductionTest.T42 set action changes both validity route and evaluated ramp value` |
-| T43 | `USER_REVIEW` mapping trace | `BCoachMultiobjectiveProductionTest.T43 changing only user goal changes mapped input fingerprint deterministically` |
-| T44 | `USER_REVIEW` audit | `BCoachMultiobjectiveProductionTest.T44 fixed inputs equipment and unavailable bodyweight are traceable` |
+| T01 | Linked evidence remains source-program scoped. | PASS |
+| T02 | Copied plan identity cannot mutate recorded evidence. | PASS |
+| T03 | Fixed weekdays are a hard constraint across every program week. | PASS |
+| T04 | Session-time overflow is checked on every week/day. | PASS |
+| T05 | Unreviewed automatic exercise is rejected and baseline preserved. | PASS |
+| T06 | Missing goal values become finite defaults/recommendations, never zero. | PASS |
+| T07 | Fixed-block focus boost is exactly `0.25`. | PASS |
+| T08 | BALANCED uses the normalized effective goal vector. | PASS |
+| T09 | PEAK stores zero Need and is score-exempt. | PASS |
+| T10 | Select → approve → calibrate → persistence replay preserves exact structure. | PASS |
+| T11 | Volume patterns retain distinct stage sequences. | PASS |
+| T12 | Search cannot rewrite a fixed block focus. | PASS |
+| T13 | Tier A is restricted to four exact stable keys. | PASS |
+| T14 | Missing RPE creates a conservative typed estimate without copying history. | PASS |
+| T15 | Stale posterior downgrades one exercise without blocking the plan. | PASS |
+| T16 | Stale model is reported while usable direct history remains a typed estimate. | PASS |
+| T17 | Canonical curve is monotone and inversion deterministic. | PASS |
+| T18 | A `1.25 kg` plate becomes a `2.5 kg` total barbell grid. | PASS |
+| T19 | Model load stays below capacity and is viable in all capacity scenarios. | PASS |
+| T20 | Nine and eleven effective sets both satisfy Need `[8,12]`. | PASS |
+| T21 | Unconfirmed/unusable rows cannot create Tier C load. | PASS |
+| T22 | Existing explicit manual load is preserved exactly. | PASS |
+| T23 | RPE policy keeps a probability distribution over RIR. | PASS |
+| T24 | Barbell uses `2×plate`; dumbbell/machine use display units. | PASS |
+| T25 | Missing future bodyweight is not fabricated; weighted pull-up model load calibrates. | PASS |
+| T26 | Local posterior is consumed only for the exact same stableKey. | PASS |
+| T27 | Repetitions above 20 do not enter the canonical curve. | PASS |
+| T28 | Metadata contains no invented multi-set success probability. | PASS |
+| T29 | Duplicate muscle aliases use max, not additive credit. | PASS |
+| T30 | Another exercise history cannot replace same-exercise evidence. | PASS |
+| T31 | Tier C estimates from recent same-stableKey evidence or calibrates. | PASS |
+| T32 | Duration work uses a non-load metric without forced RIR. | PASS |
+| T33 | No history still yields a concrete four-week review proposal. | PASS |
+| T34 | Hypertrophy importance 4 blends to center 10 and Need `[8,12]`. | PASS |
+| T35 | Confirmed history and future planned load stay separate in recovery. | PASS |
+| T36 | Spaced sessions have no higher interference than adjacent sessions. | PASS |
+| T37 | No clinical recovery cap or injury probability is emitted. | PASS |
+| T38 | Recovery is a finite soft objective, not an invented hard ban. | PASS |
+| T39 | Time upper bound includes setup, active, rest, warm-up, and factor. | PASS |
+| T40 | All eight objectives are finite in all three scenarios. | PASS |
+| T41 | Rest/order are preserved and are not search actions. | PASS |
+| T42 | Set mutation reevaluates Need, time, recovery, and ramp. | PASS |
+| T43 | Reversed goal importance changes effective input and is explainable. | PASS |
+| T44 | Identical inputs reproduce hashes, recommendation, alternatives, and audit. | PASS |
+
+## Worked checks S01–S08
+
+| ID | Worked check | Result |
+|---|---|---|
+| S01 | No history: missing four-goal vector becomes `3/3/3/3`. | PASS |
+| S02 | Hypertrophy importance 4: `D0=10`, Need `[8,12]`. | PASS |
+| S03 | Strength importance 5: `D0=6`, Need `[5,8]`. | PASS |
+| S04 | Primary + secondary duplicate uses max; another secondary muscle contributes `0.5`. | PASS |
+| S05 | Ramp: `10→12 = 0`, `10→15 = 0.6`. | PASS |
+| S06 | Eight objective coefficients sum to `1.0`. | PASS |
+| S07 | Given losses select candidate B by minimax regret (`A=.20`, `B=.15`). | PASS |
+| S08 | Missing resistance is typed calibration and never displayed as `0 kg`/`null`. | PASS |
+
+An additional persistence test rejects both evidence drift (`B_COACH_ACCEPTANCE_HISTORY_STALE`) and post-approval structural edits (`B_COACH_ACCEPTANCE_STRUCTURE_STALE`). The Compose UI test verifies the exact disclaimer, concrete prescription and axis detail, selectable alternatives, and explicit approval.
+
+## v2.1 counterexamples T45-T54
+
+| ID | Covered counterexample | Result |
+|---|---|---|
+| T45 | Epley intermediate calculation, 0.97 factor, down-grid, and all five 180 kg fixtures. | PASS |
+| T46 | A personal repetition curve wins over Epley and capacity remains 180 kg. | PASS |
+| T47 | No-RPE direct history becomes a labeled completed-reps lower bound, not a failure claim. | PASS |
+| T48 | User-fixed `60/80/100 kg` sets remain distinct and item-level weight cannot overwrite them. | PASS |
+| T49 | Default automatic three-set output is `127.5/125/125 kg`. | PASS |
+| T50 | `8 -> 10` reps recomputes load, per-set RIR, and progression score; repeated input is deterministic. | PASS |
+| T51 | Two lower-body weeks personalize quads but leave chest Need at its default; zero chest plan dose still creates deficit. | PASS |
+| T52 | Wednesday/Sunday generation maps to the same next Monday; explicit start changes recovery and input fingerprint. | PASS |
+| T53 | Each chosen alternative persists its own set loads/fingerprint; later manual kg edits invalidate the old score claim. | PASS |
+| T54 | Two matching multi-set sessions replace the default follow-up factor with the observed median. | PASS |
+
+## v2.2 counterexamples 01-46
+
+The new assertions are grouped by the six authority sections while retaining every numbered case. They run in `BCoachMultiobjectiveProductionTest`, `V22BadmintonHistoryIntegrationTest`, `ProgramEffortPersistenceTest`, and `TrainingDatabaseMigrationTest`.
+
+| IDs | Coverage | Result |
+|---|---|---|
+| 01-10 | Highest valid e1RM, >20% high record retention, no-RPE single, RPE/RIR capacity, `180×1 -> 116.4 estimated`, no history copy, grid floor, personal curve priority, unchanged capacity, weighted-pull-up guard. | PASS |
+| 11-17 | Three per-set loads/RIR values, 8→10 recomputation, `60/80/100` manual preservation, automatic source, fresh vs working RIR, observed back-off personalization, deterministic replay. | PASS |
+| 18-23 | Working-RIR effort, target-vs-calculated precedence, strength relative intensity, non-proportional hypertrophy load, continuous RIR boundaries, non-load/core-compatible handling. | PASS |
+| 24-30 | Repetition/intensity/effort axis differences, speed/deceleration exposure, `0.5..1.5` bounds, nonzero unknown-set load, actual-start recovery refresh. | PASS |
+| 31-36 | Real badminton duration/RPE, same-day combination, generic/drill de-duplication, drill-axis metadata, no-history generation, fingerprint/cache invalidation. | PASS |
+| 37-42 | Automatic/manual flags, user edit transition, program reopen, calendar propagation, CSV round trip, old backup parse. | PASS |
+| 43 | Room 41→42 migration and `LEGACY_UNKNOWN` defaults for both set tables. | PASS (compiled; device execution depends on connection) |
+| 44-46 | Approved alternative prescription/RIR preservation, approval/structure replay guard, progression/copy/calendar regression suite. | PASS |
+
+## v2.2.1 repair counterexamples
+
+| Authority | Covered counterexample | Result |
+|---|---|---|
+| [주1] / T60 | Mixed `USER_FIXED`/automatic sets, item-manual with set-auto, legacy fallback, fixed-set add/remove/repetition mutation, invalid fixed load, and select/approve replay. | PASS |
+| [주1] / persistence | Mixed set kilograms, manual flags, and sources survive Room save/reopen and calendar application. | PASS |
+| [주2] | Direct-drill-only history, generic session plus drill de-duplication, two application start dates, matching history fingerprint/count, and missing-metadata fail-before-mutation. | PASS |
+| [주3] / T61 | Equal plan/history relative intensity, no-RPE labeling, missing-reference neutral fallback, highest valid reference, future-row exclusion, candidate-independent reference, and Need regression. | PASS |
+| Compatibility | An accepted v2.2 proposal validates under its recorded version tuple after the v2.2.1 version bump. | PASS |
 
 ## Validation record
 
-Environment: Android Studio JBR 21, Android SDK at `C:/Users/pki08/AppData/Local/Android/Sdk`, repository `gradlew.bat`, and task-local `GRADLE_USER_HOME`.
+Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData/Local/Android/Sdk`.
 
-- `gradlew.bat :app:testDebugUnitTest --no-daemon` initially reached the test task but the Windows Robolectric native runtime crashed outside the JVM with `EXCEPTION_ACCESS_VIOLATION` in `robolectric-nativeruntime.dll`; this was not an assertion failure.
-- The documented local isolation (`forkEvery=1`, `maxParallelForks=2`, `--max-workers=2`) was applied temporarily and removed after validation. Final clean rerun: `gradlew.bat :app:testDebugUnitTest --no-daemon --max-workers=2 --rerun-tasks` — **PASS**, 2,797 tests, 0 failures, 0 errors, 25 skips, 430 XML suites, 12m28s. The skips require private real-history/backup fixtures not present in this checkout; the new focus-policy and acceptance/persistence tests use public synthetic fixtures and ran rather than skipped.
-- Targeted production, TOY curve, narrow/large-text UI, hard-gate, actual engine material-difference, equipment snapshot, and acceptance/persistence tests also passed individually after the final review edits. The last post-review run covered 23 tests: 21 passed and 2 private-fixture integration cases skipped, with 0 failures and 0 errors.
-- `gradlew.bat :app:lintDebug :app:assembleDebug --no-daemon --max-workers=2` — **PASS**, final rerun 2m56s. Lint: 0 errors, 209 warnings, 22 information findings (existing repository findings; largest groups are unused resources, plurals candidates, typography, and dependency updates).
-- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 72,775,986 bytes, SHA-256 `26E0EE1317158EB56B80A82573208D3DFA49D4827BBDD9A9A6B93CB00B183498`.
+- Final normal-worker targeted and Gradle run (`BCoachMultiobjectiveProductionTest`, `BCoachApplicationRecoveryMetadataTest`, `ProgramEffortPersistenceTest`, `lintDebug`, `assembleDebug`, `compileReleaseKotlin`, `compileDebugAndroidTestKotlin`): **PASS**, 79 targeted tests, 0 failures, 0 errors, 0 skips, 6m33s. Lint: 0 errors, 209 warnings.
+- Final full `testDebugUnitTest --no-daemon --max-workers=2`: **PASS**, 2,857 tests, 0 failures, 0 errors, 25 skips, 432 XML suites, 9m24s with temporary `forkEvery=1` / `maxParallelForks=2` worker isolation. The first unisolated run terminated in the known Windows `robolectric-nativeruntime.dll` `EXCEPTION_ACCESS_VIOLATION`, outside the JVM and without an assertion failure. Both temporary isolation lines were removed immediately after the final full pass; they are not part of the delivered diff.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 76,434,235 bytes, SHA-256 `A3D4D3BFD415302D223B454AFCE425DF29252BF17BCAE0891BA270FC0573C44F`.
 - `adb devices -l` returned no connected device, so `connectedDebugAndroidTest` and real-device interaction were not run.
-- Hosted GitHub Actions was inspected read-only. The starting `main` SHA `a41bf89e4b27fc38c1bf4d116d1ea09bbb95b04f` passed workflow `Android Debug Build` (run `43566793803`). Local completion commits were not pushed, so no hosted run exists for the local changes.
 
-## Deliberately withheld automatic decisions
+## Explicit limitations
 
-- No automatic Need-band deficit/excess optimization until reviewed task mappings and numeric ranges exist.
-- No automatic recovery-cap rejection or residual decay until reviewed six-axis caps and decay are supplied.
-- No automatic cross-axis winner from invented normalizers, lambda weights, or epsilon.
-- No universal initial training kg, no Epley fallback, no proxy-exercise posterior, no cross-exercise kg transfer, and no future bodyweight fabrication.
-- No automatic non-main load step. Unknown loads remain manual even after a roster/set/rep candidate is accepted.
-- No claim that engineering session-time estimates are observed duration or that missed final work proves time pressure.
+- Need, recovery, effort, and uncertainty coefficients are frozen product heuristics, not clinical or injury predictions.
+- Unknown starting loads without usable capacity remain calibration-required. Usable exact-stableKey capacity with an unknown equipment increment produces a visible estimate, not a prescription. Direct-history Epley estimates remain labeled lower bounds when RPE is absent.
+- `freshRir`/working-RIR and per-set recovery adjustments are explicit bounded product heuristics, not observed physiology. They are invalidated by a user load edit until recalculated.
+- Badminton drill-axis distribution depends on reviewed exercise metadata. When metadata is missing, conservative nonzero systemic/local or generic axis fallbacks are used rather than fabricating a detailed exposure.
+- The optimizer does not invent future bodyweight, unavailable equipment, cross-exercise capacity, or independent follow-up-set success probabilities.
+- Real-device interaction is outside the local JVM/Compose validation unless a device is connected.
+- Calendar application refreshes the recovery axis for the actual start date, but it does not rerun candidate search or Pareto/minimax selection after approval.
+
+## 2026-11-15 emergency correction: A1–A9 and generation quality
+
+Baseline: `61cfc29a23a9e2be09bc96021e8606fc6d0b391e` on `feat/b-coach-v2-global-optimizer`.
+
+### Approval and persistence fingerprint (A9)
+
+- Fingerprint schema 3 compares meaningful exercise identity, resolved weekday, order, prescription, load/source, and explicit progression intent.
+- Automatically inferred progression UUID/session state and schedule normalization are derived state and no longer create a false `STALE_INPUT_REGENERATE_REQUIRED`.
+- Explicit user grouping, link mode, role override, progression mode, or rule remains part of the semantic fingerprint.
+- Persistence replays schema 2 acceptances with the legacy fingerprint and schema 3 acceptances with the semantic fingerprint.
+- The review screen pauses automatic progression reconciliation while a proposal is pending. After acceptance, automatic reconciliation and persistence validation use the same policy.
+- Failure reasons remain distinct: `PROPOSAL_FINGERPRINT_MISMATCH`, `STALE_INPUT_REGENERATE_REQUIRED`, `UNKNOWN_CANDIDATE`, `PROPOSAL_CONTENT_MISMATCH`, and persistence stale errors.
+
+Regression T62/T63 covers unchanged recommendation and both alternatives, automatic reconciliation before approval and before save, schema compatibility, explicit progression edits, and real structural/load edits.
+
+### Load evidence and display (A1–A3, A8)
+
+- `BCoachV2LoadEvidenceReader` reads the initial profile only as a lower-confidence `PROFILE_PR_PRIOR` for exact squat/deadlift targets when no compatible usable posterior exists. A compatible posterior still wins.
+- The safe fallback is the same resolved-load plan used for approval, rather than the pre-resolution 0 kg skeleton.
+- Dismissing review restores the pre-generation editor draft. It does not silently retain an unapproved fallback.
+- `estimatedLoadKg` is visible in the preview and review UI. Manual confirmation changes the set source to `USER_FIXED`; clearing it retains the estimate and calibration-required state.
+- Mixed set loads are rendered per set instead of using the item-level 0 kg compatibility summary.
+
+The cold-start integration fixture with squat 170 kg/deadlift 210 kg and no posterior produced visible per-set estimates (for example squat `124.6/122.7/122.7 kg`) and preserved calibration-required status for exercises with no exact evidence.
+
+### SPORT universe, recruitment, and equipment (A4–A5)
+
+- SPORT task identity now comes from the whole reviewed badminton objective catalog, so absent objectives contribute zero dose and all candidates use one denominator.
+- `V22GenerationRequest.availableEquipment` is an explicit, fingerprinted input. Unknown non-bodyweight equipment fails closed.
+- Joint search has a goal-importance-sized SPORT recruitment lane in addition to general coverage ranking.
+- Audit metadata records metadata presence, DB activity, program selectability, equipment status, recruitment, shortlist, scoring, and final selection/exclusion for every DIRECT/SUPPORTIVE catalog candidate.
+- The five audited stableKeys are asserted in the generated diagnostics. Full-equipment SPORT 5 reaches scoring for all three random shuttle drills; the bodyweight fixture reports `CONE_MARKER` unavailable instead of admitting them.
+
+### Schedule, effective sets, and review UI (A6–A7)
+
+- Non-fixed schedules with a feasible alternative reject cyclic runs of three or more training days, including the Sunday-to-Monday boundary. Explicit fixed weekdays remain authoritative.
+- General main work has a three-set floor and general accessory work a two-set floor; recovery, mobility, tests, drills, and time/distance work retain a one-set exception.
+- Cold-start strength anchors are marked as main work and start at three sets. Final set mutation uses the same floors and cannot delete a user-fixed set.
+- The candidate review is a full-screen structured view backed by the exact `GeneratedProgramSkeleton` for the selected candidate. It displays recommendation A/alternatives, rest and training days, week stages, estimated time, all weeks/days/exercises/sets, per-set load and effort, and a fixed approval/cancel footer.
+- Stable keys, candidate IDs, regret, scenario loss, and unresolved codes appear only in the collapsed advanced diagnostics.
+- The Compose regression uses a 320 dp × 640 dp viewport, font scale 1.3, a long Korean exercise name, mixed confirmed/estimated sets, all 12 weeks, candidate switching, approval, cancel, scrolling, and footer bounds.
+
+### Deterministic production harness
+
+`BCoachProductionQualityHarnessTest` executes six real repository fixtures (4/12 weeks, 30/60/90 minutes, fixed/non-fixed weekdays, SPORT 1/5 and 5/5, full/bodyweight-only equipment). Every displayed candidate is approved; the recommended candidate is reconciled, stored, reopened, and applied to calendar. The complete generated table is written to `app/build/reports/b-coach/b_coach_generation_fixtures.md`.
+
+Representative output and the A1–A9 result table are in `docs/audits/b_coach_generation_quality_2026-11-15.md`.
+
+### Final local validation for this correction
+
+- Core B-Coach/v2.2.1 selection, persistence, badminton, UI, and fixture group: 100 tests, 0 failures, 2 skips.
+- Full debug unit suite with temporary Windows Robolectric worker isolation: 433 suites, 2,865 tests, 0 failures, 0 errors, 25 skips, 15m59s. The final proof run used `forkEvery=1` / `maxParallelForks=1`; the temporary lines and native crash log were removed before delivery. A preceding two-worker run completed all 2,865 tests but had one environment-only `.robolectric-download-lock` creation failure; that class then passed 6/6 standalone and in the final serialized suite.
+- `lintDebug`, `assembleDebug`, `compileReleaseKotlin`, and `compileDebugAndroidTestKotlin`: PASS in the final 4m33s incremental run. Lint contains 0 errors and 209 warnings.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 78,634,831 bytes, SHA-256 `69D5D9A2F6A1CA3CADFC258637F1E46B9A15FE01828063356F9FA8CB8C291C24`.
+- No device was returned by `adb devices -l`; connected tests and physical-device interaction were not run.

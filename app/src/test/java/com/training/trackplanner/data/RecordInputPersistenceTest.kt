@@ -85,8 +85,13 @@ class RecordInputPersistenceTest {
         val repository = TrainingRepository(first, context)
         val changed = sets.first().copy(reps = 9, weightKg = 42.5, seconds = 37, confirmed = true,
             manualWeight = true, rpe = 8.5, restSecondsOverride = 83)
+        val persisted = changed.copy(
+            estimatedLoadKg = 42.5,
+            loadSource = ProgramLoadSource.USER_FIXED,
+            evidenceVersion = "USER_WEIGHT_EDIT"
+        )
         val result = checkNotNull(repository.updateSet(changed))
-        assertEquals(changed, first.workoutDao().findSetById(changed.id))
+        assertEquals(persisted, first.workoutDao().findSetById(changed.id))
         assertEquals(StrengthSessionCompletionState(2, 0), result.beforeCompletionState)
         assertEquals(StrengthSessionCompletionState(1, 1), result.afterCompletionState)
         assertFalse(result.dateJustCompleted)
@@ -98,7 +103,7 @@ class RecordInputPersistenceTest {
         first.close() // No derived job was launched.
         val reopened = database()
         val recreated = TrainingRepository(reopened, context)
-        assertEquals(changed, reopened.workoutDao().findSetById(changed.id))
+        assertEquals(persisted, reopened.workoutDao().findSetById(changed.id))
         assertFalse(checkNotNull(recreated.updateSet(changed)).derivedAnalysisDirty)
         assertEquals(entry, reopened.workoutDao().findEntryById(changed.entryId))
     }
@@ -151,7 +156,11 @@ class RecordInputPersistenceTest {
             started.await()
             val changed = set.copy(rpe = 9.0, manualWeight = true)
             withContext(Dispatchers.IO) { RecordMutationService(db, db.exerciseDao(), db.workoutDao()).updateSet(changed) }
-            assertEquals(changed, db.workoutDao().findSetById(changed.id))
+            assertEquals(changed.copy(
+                estimatedLoadKg = 30.0,
+                loadSource = ProgramLoadSource.USER_FIXED,
+                evidenceVersion = "USER_WEIGHT_EDIT"
+            ), db.workoutDao().findSetById(changed.id))
         } finally { release.complete(Unit); heavy.join() }
     }
 

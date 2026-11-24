@@ -1,20 +1,30 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgressionLinkMode
+import com.training.trackplanner.data.ProgressionMode
+import com.training.trackplanner.data.ProgressionRole
+import com.training.trackplanner.data.ProgressionRule
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.resolvedWeekDaySchedule
 import com.training.trackplanner.data.ProgramSkeletonItem
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
-import kotlin.math.max
 
 enum class BCoachProductionStatus {
     BOUNDED_AUTO_APPLIED,
     USER_REVIEW_PROPOSED,
     HOLD_CALIBRATE,
-    SHADOW_DIAGNOSTIC_ONLY
+    SHADOW_DIAGNOSTIC_ONLY,
+    INPUT_CONFLICT
 }
 
 enum class BCoachObjectiveAxis {
@@ -28,12 +38,19 @@ enum class BCoachObjectiveAxis {
     UNCERTAINTY
 }
 
+enum class BCoachValueStatus { READY, PARTIAL, UNKNOWN, NOT_APPLICABLE }
+
+enum class BCoachConstraintStatus { PASS, FAIL, UNKNOWN }
+
 data class BCoachObjectiveValue(
     val name: String,
     val value: Double?,
     val unit: String,
     val provenance: String,
-    val missingReason: String? = null
+    val missingReason: String? = null,
+    val status: BCoachValueStatus = if (value == null) BCoachValueStatus.UNKNOWN
+        else BCoachValueStatus.READY,
+    val reasonCodes: List<String> = listOfNotNull(missingReason)
 )
 
 data class BCoachAxisEvaluation(
@@ -45,14 +62,58 @@ data class BCoachGoalWeight(
     val goal: BBalancedGoal,
     val explicitImportance: Int?,
     val normalizedImportance: Double?,
-    val source: String
+    val source: String,
+    val effectiveImportance: Int = explicitImportance ?: BCoachV2Policy.DEFAULT_GOAL_IMPORTANCE
 )
+
+data class BCoachNeedEnvelope(
+    val goal: BBalancedGoal,
+    val block: Int,
+    val week: Int,
+    val lower: Double?,
+    val upper: Double?,
+    val source: String,
+    val status: BCoachValueStatus,
+    val reasonCodes: List<String>,
+    val taskId: String = goal.name,
+    val center: Double? = null,
+    val exemptFromNeedScoring: Boolean = false
+)
+
+data class BCoachConstraintResult(
+    val id: String,
+    val status: BCoachConstraintStatus,
+    val reasonCodes: List<String> = emptyList()
+)
+
+data class BCoachSessionTime(
+    val warmupMinutes: Double,
+    val setupAndTransitionMinutes: Double,
+    val workMinutes: Double,
+    val restMinutes: Double,
+    val upperMinutes: Double
+) {
+    val expectedMinutes: Double get() = warmupMinutes + setupAndTransitionMinutes + workMinutes + restMinutes
+}
 
 data class BCoachPlanAlternative(
     val status: BCoachProductionStatus,
     val label: String,
     val weeklySetAverage: Double,
-    val changeCount: Int
+    val changeCount: Int,
+    val candidateId: String = label,
+    val candidateFingerprint: String? = null,
+    val recommended: Boolean = false,
+    val axisScores: Map<BCoachObjectiveAxis, Double> = emptyMap(),
+    val scenarioLosses: Map<String, Double> = emptyMap(),
+    val robustRegret: Double = 0.0,
+    val paretoFrontier: Boolean = false,
+    val reasonCodes: List<String> = emptyList(),
+    val prescriptionSummary: List<String> = emptyList(),
+    /** Structured review uses these codes without parsing the legacy summary text. */
+    val changeSummary: List<String> = emptyList(),
+    val sessionTimes: Map<Pair<Int, Int>, BCoachSessionTime> = emptyMap(),
+    val weeklyGoalGaps: Map<Int, List<BBalancedGoal>> = emptyMap()
 )
 
 data class BCoachMultiobjectiveDecision(
@@ -63,16 +124,30 @@ data class BCoachMultiobjectiveDecision(
     val status: BCoachProductionStatus,
     val baselineFingerprint: String,
     val candidateFingerprint: String?,
+    val proposalFingerprint: String?,
     val inputFingerprint: String,
+    val historyFingerprint: String,
+    val exerciseFingerprint: String,
+    val linkedEvidenceFingerprint: String,
     val goalWeights: List<BCoachGoalWeight>,
+    val needEnvelopes: List<BCoachNeedEnvelope>,
     val baselineObjectives: List<BCoachAxisEvaluation>,
     val candidateObjectives: List<BCoachAxisEvaluation>,
+    val hardConstraints: List<BCoachConstraintResult>,
     val changes: List<String>,
     val alternatives: List<BCoachPlanAlternative>,
+    val rejectedActionReasons: List<String>,
     val inputAudit: Map<String, String>,
     val unknowns: List<String>,
     val mostAdverseModeledScenario: String,
-    val fallbackReason: String?
+    val fallbackReason: String?,
+    val coefficientSource: String = "LEGACY_REVIEW_GATE",
+    val baselineAndCandidatesCanonicalHash: String = "",
+    val effectiveSetBreakdown: List<String> = emptyList(),
+    val paretoFrontierCandidateIds: List<String> = emptyList(),
+    val recommendedCandidateId: String? = null,
+    val loadInstructions: Map<String, String> = emptyMap(),
+    val scenarioFlip: Boolean = false
 )
 
 data class BCoachProposalAcceptance(
@@ -83,21 +158,50 @@ data class BCoachProposalAcceptance(
 
 class BCoachMultiobjectiveProposal internal constructor(
     val decision: BCoachMultiobjectiveDecision,
-    private val proposedSkeleton: GeneratedProgramSkeleton
+    private val candidatesById: Map<String, GeneratedProgramSkeleton>,
+    private val loadInstructionsByCandidateId: Map<String, Map<String, String>>,
+    private val recommendedCandidateId: String,
+    internal val sportShadowReport: BCoachSportShadowReport? = null,
+    private val shadowCandidatesById: Map<String, GeneratedProgramSkeleton> = emptyMap()
 ) {
-    /** Revalidates the displayed fallback and the selected candidate before applying it. */
+    /** Read-only structured candidate access for the explicit review UI. */
+    fun candidateForReview(candidateId: String): GeneratedProgramSkeleton? =
+        candidatesById[candidateId]
+
+    /** Read-only shadow candidate, never passed to accept() or persistence. */
+    internal fun shadowCandidateForReview(candidateId: String): GeneratedProgramSkeleton? =
+        shadowCandidatesById[candidateId]
+
+    internal constructor(
+        decision: BCoachMultiobjectiveDecision,
+        proposedSkeleton: GeneratedProgramSkeleton
+    ) : this(
+        decision,
+        mapOf("RECOMMENDED" to proposedSkeleton),
+        mapOf("RECOMMENDED" to decision.loadInstructions),
+        "RECOMMENDED"
+    )
+
+
     fun accept(
-        expectedCandidateFingerprint: String,
-        currentSkeleton: GeneratedProgramSkeleton
+        expectedProposalFingerprint: String,
+        currentSkeleton: GeneratedProgramSkeleton,
+        candidateId: String = recommendedCandidateId
     ): BCoachProposalAcceptance {
         val candidate = decision.candidateFingerprint
-        if (candidate == null || expectedCandidateFingerprint != candidate) {
-            return BCoachProposalAcceptance(false, null, "CANDIDATE_FINGERPRINT_MISMATCH")
+        val proposal = decision.proposalFingerprint
+        if (candidate == null || proposal == null || expectedProposalFingerprint != proposal) {
+            return BCoachProposalAcceptance(false, null, "PROPOSAL_FINGERPRINT_MISMATCH")
         }
         if (BCoachMultiobjectiveProduction.fingerprint(currentSkeleton) != decision.baselineFingerprint) {
             return BCoachProposalAcceptance(false, null, "STALE_INPUT_REGENERATE_REQUIRED")
         }
-        if (BCoachMultiobjectiveProduction.fingerprint(proposedSkeleton) != candidate) {
+        val proposedSkeleton = candidatesById[candidateId]
+            ?: return BCoachProposalAcceptance(false, null, "UNKNOWN_CANDIDATE")
+        val selectedFingerprint = decision.alternatives.firstOrNull { it.candidateId == candidateId }
+            ?.candidateFingerprint ?: candidate.takeIf { candidateId == recommendedCandidateId }
+        if (selectedFingerprint == null ||
+            BCoachMultiobjectiveProduction.fingerprint(proposedSkeleton) != selectedFingerprint) {
             return BCoachProposalAcceptance(false, null, "PROPOSAL_CONTENT_MISMATCH")
         }
         return BCoachProposalAcceptance(
@@ -105,7 +209,13 @@ class BCoachMultiobjectiveProposal internal constructor(
             skeleton = BCoachMultiobjectiveProduction.withDecisionMetadata(
                 proposedSkeleton,
                 decision,
-                "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"
+                "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW",
+                acceptedStructureFingerprint = BCoachMultiobjectiveProduction.persistenceStructureFingerprint(
+                    proposedSkeleton
+                ),
+                acceptedCandidateFingerprint = BCoachMultiobjectiveProduction.fingerprint(proposedSkeleton),
+                chosenAlternativeId = candidateId,
+                chosenLoadInstructions = loadInstructionsByCandidateId.getValue(candidateId)
             ),
             reason = "ACCEPTED"
         )
@@ -113,9 +223,9 @@ class BCoachMultiobjectiveProposal internal constructor(
 }
 
 internal object BCoachMultiobjectiveProduction {
-    const val ENGINE_VERSION = "B_COACH_MULTI_OBJECTIVE_V1"
-    const val POLICY_VERSION = "B_COACH_REVIEW_GATE_V1"
-    const val SOURCE_OWNER = "V22_B_COACH_MULTI_OBJECTIVE_REVIEW_GATE"
+    const val ENGINE_VERSION = BCoachV2Policy.ENGINE_VERSION
+    const val POLICY_VERSION = BCoachV2Policy.POLICY_VERSION
+    const val SOURCE_OWNER = BCoachV2Policy.SOURCE_OWNER
 
     data class Outcome(
         val skeleton: GeneratedProgramSkeleton,
@@ -128,271 +238,43 @@ internal object BCoachMultiobjectiveProduction {
         history: List<V22HistoryRow>,
         exercises: Map<String, Exercise>,
         baseline: GeneratedProgramSkeleton,
-        candidate: GeneratedProgramSkeleton
-    ): Outcome {
-        val baselineFingerprint = fingerprint(baseline)
-        val candidateFingerprint = fingerprint(candidate)
-        val changes = changes(baseline, candidate)
-        val changed = materialFingerprint(baseline) != materialFingerprint(candidate)
-        val goalWeights = goalWeights(request.bGoalImportance)
-        val unknowns = listOf(
-            "APPROVED_TASK_NEED_INTERVALS_UNAVAILABLE",
-            "APPROVED_SIX_AXIS_RECOVERY_CAPS_AND_DECAY_UNAVAILABLE",
-            "APPROVED_CROSS_AXIS_NORMALIZERS_WEIGHTS_AND_EPSILON_UNAVAILABLE",
-            "FUTURE_BODYWEIGHT_UNAVAILABLE",
-            "MULTI_SET_SUCCESS_PROBABILITY_NOT_MODELED"
-        )
-        val baselineAxes = evaluateAxes(baseline, baseline, request, history, exercises)
-        val candidateAxes = evaluateAxes(candidate, baseline, request, history, exercises)
-        val hardConstraintFailures = hardConstraintFailures(candidate, candidateAxes, request)
-        val reviewable = changed && hardConstraintFailures.isEmpty()
-        val status = if (reviewable) BCoachProductionStatus.USER_REVIEW_PROPOSED
-            else BCoachProductionStatus.HOLD_CALIBRATE
-        val adverse = if (hardConstraintFailures.isNotEmpty())
-            hardConstraintFailures.joinToString(prefix = "HARD_CONSTRAINT_FAILED:", separator = ",")
-        else "NEED_AND_RECOVERY_LIMITS_UNKNOWN_NO_PHYSIOLOGICAL_WORST_CASE_CLAIM"
-        val decision = BCoachMultiobjectiveDecision(
-            engineVersion = ENGINE_VERSION,
-            policyVersion = POLICY_VERSION,
-            sourceOwner = SOURCE_OWNER,
-            evidenceCutoff = request.asOf.toString(),
-            status = status,
-            baselineFingerprint = baselineFingerprint,
-            candidateFingerprint = candidateFingerprint.takeIf { reviewable },
-            inputFingerprint = inputFingerprint(request, history),
-            goalWeights = goalWeights,
-            baselineObjectives = baselineAxes,
-            candidateObjectives = candidateAxes,
-            changes = changes,
-            alternatives = buildList {
-                add(alternative(BCoachProductionStatus.HOLD_CALIBRATE, "KEEP_SAFE_BASELINE", baseline, 0))
-                if (reviewable) add(alternative(BCoachProductionStatus.USER_REVIEW_PROPOSED,
-                    "APPLY_REVIEWED_WHOLE_BLOCK_CANDIDATE", candidate, changes.size))
-            },
-            inputAudit = linkedMapOf(
-                "goalImportance" to request.bGoalImportance.toString(),
-                "blockGoals" to (request.blockProgram?.blocks?.map { it.goal.name }?.toString() ?: "LEGACY_B12"),
-                "volumePatterns" to (request.blockProgram?.blocks?.map { it.pattern.name }?.toString()
-                    ?: "LEGACY_B12"),
-                "fixedWeekdays" to (request.fixedWeekdays?.sorted()?.toString() ?: "UNSET"),
-                "allowedWeekdays" to (request.allowedWeekdays?.sorted()?.toString() ?: "ALL"),
-                "plateOneSideKg" to (request.bShadowPlateOneSideKg?.toString() ?: "UNSET"),
-                "dumbbellDisplayedIncrementKg" to
-                    (request.bShadowDumbbellIncrementKg?.toString() ?: "UNSET"),
-                "machineDisplayedIncrementKg" to
-                    (request.bShadowMachineIncrementKg?.toString() ?: "UNSET"),
-                "futureBodyweight" to "UNAVAILABLE_NOT_FABRICATED",
-                "recordedHistoryRowsAtCutoff" to history.count { !it.date.isAfter(request.asOf) }.toString()
-            ),
-            unknowns = unknowns,
-            mostAdverseModeledScenario = adverse,
-            fallbackReason = if (hardConstraintFailures.isNotEmpty())
-                "CANDIDATE_HARD_CONSTRAINT_FAILED:" + hardConstraintFailures.joinToString(",")
-            else if (changed)
-                "UNAPPROVED_NEED_RECOVERY_AND_TRADEOFF_PARAMETERS_REQUIRE_USER_REVIEW"
-            else "NO_MATERIAL_AUTHORIZED_CANDIDATE_KEEP_AND_CALIBRATE"
-        )
-        val persistedFallback = withDecisionMetadata(
-            baseline,
-            decision,
-            if (reviewable) "NOT_ACCEPTED_SAFE_FALLBACK_PERSISTED" else "NO_PROPOSAL"
-        )
-        val proposal = if (reviewable) BCoachMultiobjectiveProposal(
-            decision,
-            withDecisionMetadata(candidate, decision, "PROPOSED_NOT_ACCEPTED")
-        ) else null
-        return Outcome(persistedFallback, decision, proposal)
-    }
-
-    private fun hardConstraintFailures(
         candidate: GeneratedProgramSkeleton,
-        axes: List<BCoachAxisEvaluation>,
-        request: V22GenerationRequest
-    ): List<String> = buildList {
-        val daysOverLimit = objective(axes, BCoachObjectiveAxis.EXECUTION, "daysOverUserLimit") ?: 0.0
-        if (daysOverLimit > 0.0) add("SESSION_TIME_LIMIT")
-        if (candidate.items.any { it.weekNumber !in 1..request.weeks || it.dayOfWeek !in 1..7 }) {
-            add("PROGRAM_BOUNDS")
-        }
-        if (candidate.items.any { item ->
-                item.setCount <= 0 || ProgramSetPrescriptionResolver.resolve(item).size != item.setCount
-            }) {
-            add("SET_PRESCRIPTION_INTEGRITY")
-        }
-        if (candidate.items.map { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }.distinct().size !=
-            candidate.items.size) {
-            add("DUPLICATE_ORDER_SLOT")
-        }
-        if (candidate.items.map { Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey) }.distinct().size !=
-            candidate.items.size) {
-            add("DUPLICATE_EXERCISE_SESSION")
-        }
-        request.fixedWeekdays?.let { fixed ->
-            val mismatched = candidate.items.groupBy(ProgramSkeletonItem::weekNumber).values.any { week ->
-                week.map(ProgramSkeletonItem::dayOfWeek).toSet() != fixed
-            }
-            if (mismatched) add("FIXED_WEEKDAYS")
-        }
-        request.allowedWeekdays?.let { allowed ->
-            if (candidate.items.any { it.dayOfWeek !in allowed }) add("ALLOWED_WEEKDAYS")
-        }
-    }
-
-    private fun goalWeights(importance: BBalancedGoalImportance): List<BCoachGoalWeight> {
-        val explicitTotal = BBalancedGoal.entries.sumOf { importance.value(it) ?: 0 }
-        return BBalancedGoal.entries.map { goal ->
-            val value = importance.value(goal)
-            BCoachGoalWeight(
-                goal = goal,
-                explicitImportance = value,
-                normalizedImportance = value?.takeIf { explicitTotal > 0 }
-                    ?.let { it.toDouble() / explicitTotal },
-                source = if (value == null) "MISSING_NOT_ZERO" else "EXPLICIT_USER_1_TO_5"
+        muscleRelations: List<CanonicalMetadataRelation> = emptyList(),
+        coreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+        mainExerciseKeys: Set<String> = candidate.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey),
+        recommendedImportance: Map<BBalancedGoal, Int> = emptyMap(),
+        modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
+        rirPolicy: RpeRirPolicy? = null,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList(),
+        runtimeMetadata: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+    ): Outcome {
+        val result = BCoachV2GlobalSelector.select(
+            request = request,
+            history = history,
+            badmintonHistory = badmintonHistory,
+            exercises = exercises,
+            baseline = baseline,
+            jointCandidate = candidate,
+            runtimeMetadata = runtimeMetadata,
+            muscleRelations = muscleRelations,
+            coreCatalog = coreCatalog,
+            badmintonCatalog = badmintonCatalog,
+            mainExerciseKeys = mainExerciseKeys,
+            recommendedImportance = recommendedImportance,
+            modelSnapshots = modelSnapshots,
+            rirPolicy = rirPolicy
+        )
+        val proposal = result.recommendedCandidateId?.let { id ->
+            BCoachMultiobjectiveProposal(
+                result.decision, result.candidatesById, result.loadInstructionsByCandidateId, id,
+                result.sportShadowReport, result.shadowCandidatesById
             )
         }
+        return Outcome(result.fallback, result.decision, proposal)
     }
 
-    private fun evaluateAxes(
-        plan: GeneratedProgramSkeleton,
-        baseline: GeneratedProgramSkeleton,
-        request: V22GenerationRequest,
-        history: List<V22HistoryRow>,
-        exercises: Map<String, Exercise>
-    ): List<BCoachAxisEvaluation> {
-        val sets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
-        val calibration = plan.items.sumOf { item ->
-            ProgramSetPrescriptionResolver.resolve(item).count {
-                it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
-            }
-        }
-        val effort = plan.items.sumOf { item ->
-            ProgramSetPrescriptionResolver.resolve(item).count { it.targetRpeMin != null }
-        }
-        val days = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
-        val dayMinutes = days.values.map { estimateMinutes(it, exercises) }
-        val lastWeek = plan.items.maxOfOrNull(ProgramSkeletonItem::weekNumber)
-        val lastWeekMax = days.filterKeys { it.first == lastWeek }.values
-            .maxOfOrNull { estimateMinutes(it, exercises) } ?: 0.0
-        val timeLimit = request.sessionMinutes?.toDouble()
-        val baselineKeys = baseline.items.map { Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey) }
-            .groupingBy { it }.eachCount()
-        val planKeys = plan.items.map { Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey) }
-            .groupingBy { it }.eachCount()
-        val addedOccurrences = planKeys.entries.sumOf { (key, count) ->
-            max(0, count - (baselineKeys[key] ?: 0))
-        }
-        val removedOccurrences = baselineKeys.entries.sumOf { (key, count) ->
-            max(0, count - (planKeys[key] ?: 0))
-        }
-        val setDelta = sets - baseline.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
-        val recovery = recoveryValues(plan, history.filter { !it.date.isAfter(request.asOf) }, exercises)
-        val unknownExercises = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
-            .count { exercises[it] == null || exercises[it]?.metadataConfidence == "UNKNOWN" }
-        val unknownEquipment = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
-            .count { BBlockEquipmentIncrements.kind(it, exercises[it]) == BEquipmentIncrementKind.UNKNOWN }
-        fun missingNeed(name: String) = BCoachObjectiveValue(
-            name, null, "TASK_SPECIFIC_EFFECTIVE_DOSE_RATIO", "NO_APPROVED_NEED_POLICY",
-            "APPROVED_NEED_INTERVAL_UNAVAILABLE"
-        )
-        return listOf(
-            BCoachAxisEvaluation(BCoachObjectiveAxis.GOAL_DEFICIT, listOf(
-                missingNeed("maximumShortfall"), missingNeed("priorityWeightedMeanShortfall"),
-                missingNeed("undersuppliedTaskShare")
-            )),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.GOAL_EXCESS, listOf(
-                missingNeed("maximumExcess"), missingNeed("priorityWeightedMeanExcess"),
-                missingNeed("aboveIntervalTaskShare")
-            )),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.PROGRESSION_FIT, listOf(
-                value("plannedWorkSets", sets.toDouble(), "sets", "SKELETON_SET_PRESCRIPTIONS"),
-                value("knownEffortTargetSets", effort.toDouble(), "sets", "EXPLICIT_TARGET_RPE_ONLY"),
-                value("calibrationRequiredSets", calibration.toDouble(), "sets", "PROGRAM_LOAD_STATE"),
-                BCoachObjectiveValue("supportedRirFit", null, "RIR_DISTANCE",
-                    "NO_UNIVERSAL_V22_RIR_AUTHORITY", "SUPPORTED_CURVE_AND_POLICY_NOT_AVAILABLE_FOR_ALL_SETS")
-            )),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.RECOVERY_LOAD, recovery),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.RAMP_CHANGE, listOf(
-                value("workSetDeltaFromFallback", setDelta.toDouble(), "sets", "PLAN_DIFF"),
-                value("exerciseOccurrencesAdded", addedOccurrences.toDouble(), "occurrences", "PLAN_DIFF"),
-                value("exerciseOccurrencesRemoved", removedOccurrences.toDouble(), "occurrences", "PLAN_DIFF"),
-                BCoachObjectiveValue("approvedRelativeJumpExcess", null, "ratio",
-                    "NO_APPROVED_RAMP_THRESHOLD", "APPROVED_THRESHOLD_UNAVAILABLE")
-            )),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.EXECUTION, listOf(
-                value("maximumDayMinutes", dayMinutes.maxOrNull() ?: 0.0, "minutes",
-                    "B_ENGINEERING_TIME_UPPER_ESTIMATE_NOT_MEASURED"),
-                value("meanDayMinutes", dayMinutes.averageOrZero(), "minutes",
-                    "B_ENGINEERING_TIME_UPPER_ESTIMATE_NOT_MEASURED"),
-                value("lastWeekMaximumDayMinutes", lastWeekMax, "minutes",
-                    "B_ENGINEERING_TIME_UPPER_ESTIMATE_NOT_MEASURED"),
-                value("daysOverUserLimit", if (timeLimit == null) 0.0
-                    else dayMinutes.count { it > timeLimit }.toDouble(), "days",
-                    if (timeLimit == null) "NO_USER_TIME_LIMIT" else "USER_SESSION_MINUTES")
-            )),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.PLAN_CHANGE, listOf(
-                value("exerciseOccurrencesAdded", addedOccurrences.toDouble(), "occurrences", "PLAN_DIFF"),
-                value("exerciseOccurrencesRemoved", removedOccurrences.toDouble(), "occurrences", "PLAN_DIFF"),
-                value("absoluteWorkSetChange", kotlin.math.abs(setDelta).toDouble(), "sets", "PLAN_DIFF")
-            )),
-            BCoachAxisEvaluation(BCoachObjectiveAxis.UNCERTAINTY, listOf(
-                value("missingApprovedNeedAxes", 2.0, "axes", "AUTHORITY_GATE"),
-                value("calibrationRequiredSets", calibration.toDouble(), "sets", "PROGRAM_LOAD_STATE"),
-                value("unknownMetadataExercises", unknownExercises.toDouble(), "exercises", "CANONICAL_METADATA"),
-                value("unknownEquipmentIncrementExercises", unknownEquipment.toDouble(), "exercises", "EQUIPMENT_GRID")
-            ))
-        )
-    }
-
-    private fun recoveryValues(
-        plan: GeneratedProgramSkeleton,
-        history: List<V22HistoryRow>,
-        exercises: Map<String, Exercise>
-    ): List<BCoachObjectiveValue> {
-        val channels = linkedMapOf<String, (Exercise) -> Double>(
-            "systemic" to Exercise::systemicLoadWeight,
-            "neuralHeavy" to Exercise::neuralHeavyWeight,
-            "neuralSpeed" to Exercise::neuralSpeedWeight,
-            "localMuscular" to Exercise::localLoadWeight,
-            "deceleration" to Exercise::decelerationWeight,
-            "elasticSsc" to Exercise::elasticSscWeight
-        )
-        val dayItems = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
-        return buildList {
-            channels.forEach { (name, selector) ->
-                val daily = dayItems.values.map { items ->
-                    items.sumOf { item ->
-                        val exercise = exercises[item.exerciseStableKey]
-                        if (exercise == null) 0.0 else item.setCount * selector(exercise)
-                    }
-                }
-                val observed = history.sumOf { row -> exercises[row.stableKey]?.let(selector) ?: 0.0 }
-                add(value("${name}PlannedMaximum", daily.maxOrNull() ?: 0.0,
-                    "metadata_weighted_sets", "REVIEWED_EXERCISE_METADATA_RAW_NO_CAP"))
-                add(value("${name}PlannedMean", daily.averageOrZero(),
-                    "metadata_weighted_sets", "REVIEWED_EXERCISE_METADATA_RAW_NO_CAP"))
-                add(value("${name}RecentObservedRaw", observed,
-                    "metadata_weighted_recorded_sets", "RECORDED_HISTORY_RAW_NO_DECAY"))
-            }
-            add(BCoachObjectiveValue("daysOverApprovedRecoveryCap", null, "days",
-                "NO_APPROVED_RECOVERY_CAP", "CAP_AND_DECAY_POLICY_UNAVAILABLE"))
-        }
-    }
-
-    private fun estimateMinutes(items: List<ProgramSkeletonItem>, exercises: Map<String, Exercise>): Double {
-        if (items.isEmpty()) return 0.0
-        var total = 8.0
-        items.forEach { item ->
-            val exercise = exercises[item.exerciseStableKey]
-            val sets = ProgramSetPrescriptionResolver.resolve(item)
-            val setup = if (exercise?.equipment.orEmpty().isBlank()) 1.5 else 2.3
-            val activeSeconds = sets.sumOf { set -> (set.seconds.takeIf { it > 0 } ?: 45).toDouble() }
-            total += setup + activeSeconds / 60.0 +
-                max(0, sets.size - 1) * item.restSeconds.coerceAtLeast(45) / 60.0 + 0.75
-        }
-        return total * 1.12 + 2.0
-    }
-
-    private fun changes(
+    internal fun changes(
         baseline: GeneratedProgramSkeleton,
         candidate: GeneratedProgramSkeleton
     ): List<String> {
@@ -409,113 +291,388 @@ internal object BCoachMultiobjectiveProduction {
             when {
                 old == null -> "ADD:${slot.first}/${slot.second}/${new!!.exerciseStableKey}:${new.setCount}sets"
                 new == null -> "REMOVE:${slot.first}/${slot.second}/${old.exerciseStableKey}:${old.setCount}sets"
-                old.setPrescriptions != new.setPrescriptions ->
+                ProgramSetPrescriptionResolver.resolve(old) != ProgramSetPrescriptionResolver.resolve(new) ->
                     "PRESCRIPTION:${slot.first}/${slot.second}/${old.exerciseStableKey}:" +
-                        "${old.setCount}->${new.setCount}sets"
+                        "${old.setCount}->${new.setCount}sets:" +
+                        "${ProgramSetPrescriptionResolver.resolve(old).map { it.reps }}->" +
+                        ProgramSetPrescriptionResolver.resolve(new).map { it.reps }
                 else -> null
             }
         }
     }
 
-    private fun alternative(
-        status: BCoachProductionStatus,
-        label: String,
+    internal fun fingerprint(skeleton: GeneratedProgramSkeleton): String =
+        canonicalSkeletonFingerprint(skeleton, includeLoad = true, includeDerivedProgression = false)
+
+    /** Manual kg calibration is an independent user action after accepting roster/set/rep changes. */
+    internal fun persistenceStructureFingerprint(skeleton: GeneratedProgramSkeleton): String =
+        canonicalSkeletonFingerprint(skeleton, includeLoad = false, includeDerivedProgression = false)
+
+    /** Compatibility for acceptances written before derived progression was excluded. */
+    private fun legacyPersistenceStructureFingerprint(skeleton: GeneratedProgramSkeleton): String =
+        canonicalSkeletonFingerprint(skeleton, includeLoad = false, includeDerivedProgression = true)
+
+    private fun canonicalSkeletonFingerprint(
         skeleton: GeneratedProgramSkeleton,
-        changes: Int
-    ): BCoachPlanAlternative {
-        val weeks = skeleton.request.durationWeeks.coerceAtLeast(1)
-        val sets = skeleton.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
-        return BCoachPlanAlternative(status, label, sets.toDouble() / weeks, changes)
+        includeLoad: Boolean,
+        includeDerivedProgression: Boolean
+    ): String = sha256(buildString {
+        canonicalField(if (includeLoad) skeleton.suggestedName else "USER_PROGRAM_NAME_ALLOWED")
+        canonicalField(skeleton.durationDays)
+        canonicalField(skeleton.periodizationType.name)
+        val request = skeleton.request
+        canonicalField(if (includeLoad) request.name else "USER_PROGRAM_NAME_ALLOWED")
+        canonicalField(request.goal.name)
+        canonicalField(request.weeklyTrainingDays)
+        canonicalField(request.sessionMinutes)
+        canonicalField(request.availableEquipment.sorted().joinToString(","))
+        canonicalField(request.excludedExerciseText)
+        canonicalField(request.badmintonTransferRatio)
+        canonicalField(request.sportStrengthRatio)
+        canonicalField(request.periodizationType.name)
+        canonicalField(request.durationWeeks)
+        canonicalField(request.badmintonEventProfile.name)
+        canonicalField(request.varietyPreference.name)
+        canonicalField(request.excludedExerciseStableKeys.sorted().joinToString(","))
+        canonicalField(request.preferredExerciseStableKeys.sorted().joinToString(","))
+        skeleton.weekPlans.sortedBy { it.weekIndex }.forEach { canonicalField(it) }
+        val normalizedSchedule = if (includeDerivedProgression) skeleton.weekDaySchedule
+            else skeleton.resolvedWeekDaySchedule()
+        normalizedSchedule.toSortedMap().forEach { (week, days) ->
+            canonicalField(week)
+            canonicalField(days.sorted().joinToString(","))
+        }
+        skeleton.items.sortedWith(compareBy<ProgramSkeletonItem> { it.weekNumber }
+            .thenBy { it.dayOfWeek }.thenBy { it.orderIndex }.thenBy { it.exerciseStableKey }
+            .thenBy { it.localId })
+            .forEach { item ->
+                val normalized = item.copy(
+                    weightKg = if (includeLoad) item.weightKg else 0.0,
+                    weightSource = if (includeLoad) item.weightSource else "MANUAL_LOAD_ALLOWED",
+                    primarySlotCapabilities = item.primarySlotCapabilities.sorted(),
+                    secondarySlotCapabilities = item.secondarySlotCapabilities.sorted(),
+                    weakSlotCapabilities = item.weakSlotCapabilities.sorted(),
+                    slotCapabilityWarnings = item.slotCapabilityWarnings.sorted(),
+                    progressionBinding = if (includeDerivedProgression) item.progressionBinding else null,
+                    setPrescriptions = emptyList()
+                )
+                canonicalField(normalized)
+                ProgramSetPrescriptionResolver.resolve(item).forEach { set ->
+                    canonicalField(if (includeLoad) set else set.copy(
+                        weightKg = 0.0,
+                        loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED,
+                        estimatedLoadKg = null,
+                        loadSource = com.training.trackplanner.data.ProgramLoadSource.CALIBRATION_REQUIRED,
+                        freshRir = null,
+                        expectedRir = null,
+                        relativeIntensity = null,
+                        evidenceVersion = null
+                    ))
+                }
+            }
+        if (includeDerivedProgression) {
+            skeleton.progressionSessions.sortedBy { it.key }.forEach { canonicalField(it) }
+        } else {
+            explicitProgressionIntents(skeleton).forEach { canonicalField(it) }
+        }
+    })
+
+    /** UUIDs and AUTO inference are derived; explicit grouping/mode/rule choices are user structure. */
+    private fun explicitProgressionIntents(skeleton: GeneratedProgramSkeleton): List<String> {
+        val sessions = skeleton.progressionSessions.associateBy { it.key }
+        fun identity(item: ProgramSkeletonItem) =
+            "${item.weekNumber}/${item.dayOfWeek}/${item.orderIndex}/${item.exerciseStableKey}"
+        return skeleton.items.mapNotNull { item ->
+            val binding = item.progressionBinding ?: return@mapNotNull null
+            val session = sessions[binding.sessionKey] ?: return@mapNotNull null
+            val track = session.track
+            val explicit = binding.linkMode != ProgressionLinkMode.AUTO ||
+                track.roleOverride != ProgressionRole.AUTO || track.mode != ProgressionMode.APP ||
+                track.rule != ProgressionRule()
+            if (!explicit) return@mapNotNull null
+            val members = skeleton.items.filter { it.progressionBinding?.sessionKey == binding.sessionKey }
+                .map(::identity).sorted().joinToString(",")
+            "${identity(item)}|link=${binding.linkMode}|members=$members|role=${track.roleOverride}|" +
+                "mode=${track.mode}|rule=${track.rule}"
+        }.distinct().sorted()
     }
 
-    internal fun fingerprint(skeleton: GeneratedProgramSkeleton): String = sha256(buildString {
-        append(skeleton.suggestedName).append('|').append(skeleton.durationDays).append('|')
-        append(skeleton.request.weeklyTrainingDays).append('|').append(skeleton.request.sessionMinutes)
-            .append('|').append(skeleton.request.durationWeeks).append('|')
-        skeleton.items.sortedWith(compareBy<ProgramSkeletonItem> { it.weekNumber }
-            .thenBy { it.dayOfWeek }.thenBy { it.orderIndex }.thenBy { it.exerciseStableKey })
-            .forEach { item ->
-                append(item.weekNumber).append('/').append(item.dayOfWeek).append('/')
-                    .append(item.orderIndex).append('/').append(item.exerciseStableKey).append('/')
-                    .append(item.restSeconds).append(':')
-                ProgramSetPrescriptionResolver.resolve(item).forEach { set ->
-                    append(set.reps).append('@').append(set.weightKg).append('@').append(set.seconds)
-                        .append('@').append(set.targetRpeMin).append('@').append(set.loadState.name).append(',')
-                }
-                append(';')
-            }
-    })
-
-    /** REST/ORDER are preserved by the exact acceptance fingerprint but are not active search levers. */
-    private fun materialFingerprint(skeleton: GeneratedProgramSkeleton): String = sha256(buildString {
-        append(skeleton.durationDays).append('|').append(skeleton.request.weeklyTrainingDays).append('|')
-            .append(skeleton.request.durationWeeks).append('|')
-        skeleton.items.sortedWith(compareBy<ProgramSkeletonItem> { it.weekNumber }
-            .thenBy { it.dayOfWeek }.thenBy { it.exerciseStableKey })
-            .forEach { item ->
-                append(item.weekNumber).append('/').append(item.dayOfWeek).append('/')
-                    .append(item.exerciseStableKey).append(':')
-                ProgramSetPrescriptionResolver.resolve(item).forEach { set ->
-                    append(set.reps).append('@').append(set.weightKg).append('@').append(set.seconds)
-                        .append('@').append(set.targetRpeMin).append('@').append(set.loadState.name).append(',')
-                }
-                append(';')
-            }
-    })
-
-    private fun inputFingerprint(request: V22GenerationRequest, history: List<V22HistoryRow>): String =
+    internal fun inputFingerprint(
+        request: V22GenerationRequest,
+        history: List<V22HistoryRow>,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+    ): String =
         sha256(buildString {
-            append(request.asOf).append('|').append(request.days).append('|').append(request.sessionMinutes)
-                .append('|').append(request.allowedWeekdays?.sorted()).append('|')
-                .append(request.fixedWeekdays?.sorted()).append('|').append(request.bGoalImportance)
-                .append('|').append(request.bShadowPlateOneSideKg).append('|')
-                .append(request.bShadowDumbbellIncrementKg).append('|')
-                .append(request.bShadowMachineIncrementKg).append('|')
+            canonicalField(request.name)
+            canonicalField(request.weeks)
+            canonicalField(request.days)
+            canonicalField(request.mode.name)
+            canonicalField(request.asOf)
+            canonicalField(request.focusStableKey)
+            canonicalField(request.sessionMinutes)
+            canonicalField(request.backupName)
+            canonicalField(request.bGoalImportance)
+            canonicalField(request.bMaxTrainingDays)
+            canonicalField(request.allowedWeekdays?.sorted()?.joinToString(","))
+            canonicalField(request.fixedWeekdays?.sorted()?.joinToString(","))
+            canonicalField(request.availableEquipment?.map(String::trim)?.sorted()?.joinToString(","))
+            canonicalField(request.sourceProgramStableKey)
+            canonicalField(request.linkedDuePlannedSets)
+            canonicalField(request.linkedConfirmedSets)
+            canonicalField(request.linkedEvidenceApplicationId)
+            canonicalField(request.bShadowPlateOneSideKg)
+            canonicalField(request.bShadowDumbbellIncrementKg)
+            canonicalField(request.bShadowMachineIncrementKg)
+            canonicalField(request.planningStartDate)
             request.blockProgram?.let { program ->
-                program.blocks.forEach { block ->
-                    append(block.weeks).append('/').append(block.goal).append('/')
-                        .append(block.pattern).append('/').append(block.adjustment).append('/')
-                        .append(block.amplitude).append('/').append(block.peakTestMode).append('/')
-                        .append(block.customPriority).append('/').append(block.relationToPrevious).append(';')
-                }
-                append(program.recoveryDaysBetween)
-            }
-            append('|')
-            history.asSequence().filter { !it.date.isAfter(request.asOf) }
-                .sortedWith(compareBy<V22HistoryRow> { it.date }.thenBy { it.stableKey }.thenBy { it.setIndex })
-                .forEach { row ->
-                    append(row.date).append('/').append(row.stableKey).append('/').append(row.setIndex)
-                        .append('/').append(row.reps).append('/').append(row.weightKg)
-                        .append('/').append(row.seconds).append('/').append(row.rpe).append(';')
-                }
+                program.blocks.forEach { canonicalField(it) }
+                canonicalField(program.recoveryDaysBetween.joinToString(","))
+            } ?: canonicalField(null)
+            canonicalField(historyFingerprint(history, badmintonHistory))
         })
+
+    internal fun historyFingerprint(
+        history: List<V22HistoryRow>,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+    ): String = sha256(buildString {
+        canonicalField("RESISTANCE_HISTORY")
+        history.sortedWith(compareBy<V22HistoryRow> { it.date }.thenBy { it.stableKey }
+            .thenBy { it.setIndex }.thenBy { it.exerciseName })
+            .forEach { canonicalField(it) }
+        canonicalField("BADMINTON_HISTORY")
+        badmintonHistory.sortedWith(compareBy(V22BadmintonHistorySession::date,
+            V22BadmintonHistorySession::sessionStableKey)).forEach { canonicalField(it) }
+    })
+
+    internal fun exerciseFingerprint(
+        relevantKeys: List<String>,
+        exercises: Map<String, Exercise>
+    ): String = sha256(buildString {
+        relevantKeys.sorted().forEach { key ->
+            canonicalField(key)
+            canonicalField(exercises[key]?.toString() ?: "MISSING")
+        }
+    })
+
+    internal fun linkedEvidenceFingerprint(request: V22GenerationRequest): String =
+        linkedEvidenceFingerprint(
+            request.sourceProgramStableKey,
+            request.linkedEvidenceApplicationId,
+            request.linkedDuePlannedSets,
+            request.linkedConfirmedSets
+        )
+
+    internal fun linkedEvidenceFingerprint(
+        sourceProgramStableKey: String?,
+        applicationId: String?,
+        duePlannedSets: Int?,
+        confirmedSets: Int?
+    ): String = sha256(buildString {
+        canonicalField(sourceProgramStableKey)
+        canonicalField(applicationId)
+        canonicalField(duePlannedSets)
+        canonicalField(confirmedSets)
+    })
+
+    internal fun proposalFingerprint(
+        baselineFingerprint: String,
+        candidateFingerprint: String,
+        inputFingerprint: String,
+        historyFingerprint: String,
+        exerciseFingerprint: String,
+        linkedEvidenceFingerprint: String,
+        engineVersion: String = ENGINE_VERSION,
+        policyVersion: String = POLICY_VERSION,
+        sourceOwner: String = SOURCE_OWNER
+    ): String = sha256(buildString {
+        listOf(
+            engineVersion, policyVersion, sourceOwner, baselineFingerprint, candidateFingerprint,
+            inputFingerprint, historyFingerprint, exerciseFingerprint, linkedEvidenceFingerprint
+        ).forEach { canonicalField(it) }
+    })
+
+    internal data class AcceptedPersistenceSnapshot(
+        val cutoff: java.time.LocalDate,
+        val sourceProgramStableKey: String?,
+        val relevantExerciseKeys: List<String>,
+        val historyFingerprint: String,
+        val exerciseFingerprint: String,
+        val linkedEvidenceFingerprint: String
+    )
+
+    internal fun acceptedPersistenceSnapshot(
+        skeleton: GeneratedProgramSkeleton
+    ): AcceptedPersistenceSnapshot? {
+        val decision = runCatching {
+            JSONObject(skeleton.planningMetadataJson ?: return null)
+                .getJSONObject("bCoachMultiobjectiveDecision")
+        }.getOrNull() ?: return null
+        // v1 accepted plans may already be persisted and lack a replayable snapshot.
+        // Only v2+ transient acceptances are eligible for the new atomic revalidation.
+        if (decision.optInt("acceptanceSchemaVersion", 1) !in 2..3) return null
+        if (decision.optString("proposalAcceptance") != "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW") {
+            return null
+        }
+        val audit = decision.optJSONObject("inputAudit") ?: return null
+        val source = audit.optString("sourceProgramStableKey")
+            .takeUnless { it.isBlank() || it == "UNSET" }
+        return AcceptedPersistenceSnapshot(
+            cutoff = runCatching { java.time.LocalDate.parse(decision.getString("evidenceCutoff")) }
+                .getOrElse { throw IllegalStateException("B_COACH_ACCEPTANCE_INVALID_CUTOFF") },
+            sourceProgramStableKey = source,
+            relevantExerciseKeys = audit.optString("relevantExerciseKeys").split(',')
+                .filter(String::isNotBlank).sorted(),
+            historyFingerprint = decision.getString("historyFingerprint"),
+            exerciseFingerprint = decision.getString("exerciseFingerprint"),
+            linkedEvidenceFingerprint = decision.getString("linkedEvidenceFingerprint")
+        )
+    }
+
+    internal fun validateAcceptedForPersistence(
+        skeleton: GeneratedProgramSkeleton,
+        history: List<V22HistoryRow>,
+        exercises: Map<String, Exercise>,
+        currentLinkedEvidenceFingerprint: String,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+    ) {
+        val root = runCatching { JSONObject(skeleton.planningMetadataJson ?: return) }
+            .getOrElse { throw IllegalStateException("B_COACH_ACCEPTANCE_METADATA_INVALID") }
+        val decision = root.optJSONObject("bCoachMultiobjectiveDecision") ?: return
+        if (decision.optString("proposalAcceptance") != "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW") return
+        val baseline = decision.optString("baselineFingerprint")
+        val candidate = decision.optString("candidateFingerprint")
+        val input = decision.optString("inputFingerprint")
+        val originalHistory = decision.optString("historyFingerprint")
+        val originalExercise = decision.optString("exerciseFingerprint")
+        val originalLinked = decision.optString("linkedEvidenceFingerprint")
+        val proposal = decision.optString("proposalFingerprint")
+        val structure = decision.optString("acceptedStructureFingerprint")
+        val audit = decision.optJSONObject("inputAudit")
+            ?: throw IllegalStateException("B_COACH_ACCEPTANCE_INPUT_AUDIT_MISSING")
+        val relevantKeys = audit.optString("relevantExerciseKeys").split(',')
+            .filter(String::isNotBlank).sorted()
+        if (listOf(baseline, candidate, input, originalHistory, originalExercise, originalLinked,
+                proposal, structure).any(String::isBlank)) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_FINGERPRINT_MISSING")
+        }
+        val expectedProposal = proposalFingerprint(
+            baseline, candidate, input, originalHistory, originalExercise, originalLinked,
+            decision.optString("engineVersion", ENGINE_VERSION),
+            decision.optString("policyVersion", POLICY_VERSION),
+            decision.optString("sourceOwner", SOURCE_OWNER)
+        )
+        if (proposal != expectedProposal) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_PROPOSAL_TAMPERED")
+        }
+        val acceptanceSchemaVersion = decision.optInt("acceptanceSchemaVersion", 1)
+        val currentStructure = if (acceptanceSchemaVersion >= 3) {
+            persistenceStructureFingerprint(skeleton)
+        } else {
+            legacyPersistenceStructureFingerprint(skeleton)
+        }
+        if (currentStructure != structure) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_STRUCTURE_STALE")
+        }
+        if (historyFingerprint(history, badmintonHistory) != originalHistory) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_HISTORY_STALE")
+        }
+        if (exerciseFingerprint(relevantKeys, exercises) != originalExercise) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_EXERCISE_METADATA_STALE")
+        }
+        if (currentLinkedEvidenceFingerprint != originalLinked) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_LINKED_EVIDENCE_STALE")
+        }
+        if (skeleton.items.flatMap(ProgramSetPrescriptionResolver::resolve).any { set ->
+                !set.weightKg.isFinite() || set.weightKg < 0.0 ||
+                    (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && set.weightKg != 0.0)
+            }) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_LOAD_STATE_INVALID")
+        }
+    }
+
+    internal fun markAcceptedAndPersisted(
+        skeleton: GeneratedProgramSkeleton
+    ): GeneratedProgramSkeleton {
+        val root = runCatching { JSONObject(skeleton.planningMetadataJson ?: return skeleton) }
+            .getOrElse { return skeleton }
+        val decision = root.optJSONObject("bCoachMultiobjectiveDecision") ?: return skeleton
+        if (decision.optString("proposalAcceptance") != "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW") {
+            return skeleton
+        }
+        decision.put("proposalAcceptance", "ACCEPTED_AND_PERSISTED")
+        val acceptedCandidate = decision.optString("acceptedCandidateFingerprint").takeIf { it.isNotBlank() }
+        if (acceptedCandidate != null) {
+            val adjusted = fingerprint(skeleton) != acceptedCandidate
+            decision.put("postApprovalLoadAdjusted", adjusted)
+            decision.put("scoresReflectCurrentPrescription", !adjusted)
+            if (adjusted) decision.put("currentPrescriptionFingerprint", fingerprint(skeleton))
+        }
+        return skeleton.copy(planningMetadataJson = root.toString())
+    }
 
     internal fun withDecisionMetadata(
         skeleton: GeneratedProgramSkeleton,
         decision: BCoachMultiobjectiveDecision,
-        acceptance: String
+        acceptance: String,
+        acceptedStructureFingerprint: String? = null,
+        acceptedCandidateFingerprint: String? = null,
+        chosenAlternativeId: String? = decision.recommendedCandidateId,
+        chosenLoadInstructions: Map<String, String> = decision.loadInstructions
     ): GeneratedProgramSkeleton {
         val root = runCatching { JSONObject(skeleton.planningMetadataJson ?: "{}") }
             .getOrElse { JSONObject() }
         val decisionJson = JSONObject()
             .put("engineVersion", decision.engineVersion)
             .put("policyVersion", decision.policyVersion)
+            .put("coefficientSource", decision.coefficientSource)
+            .put("acceptanceSchemaVersion", 3)
             .put("sourceOwner", decision.sourceOwner)
             .put("evidenceCutoff", decision.evidenceCutoff)
             .put("status", decision.status.name)
             .put("proposalAcceptance", acceptance)
             .put("baselineFingerprint", decision.baselineFingerprint)
             .put("candidateFingerprint", decision.candidateFingerprint ?: JSONObject.NULL)
+            .put("proposalFingerprint", decision.proposalFingerprint ?: JSONObject.NULL)
+            .put("acceptedStructureFingerprint", acceptedStructureFingerprint ?: JSONObject.NULL)
+            .put("acceptedCandidateFingerprint", acceptedCandidateFingerprint ?: JSONObject.NULL)
+            .put("baselineAndCandidatesCanonicalHash",
+                decision.baselineAndCandidatesCanonicalHash.ifBlank { JSONObject.NULL })
+            .put("chosenAlternativeId", chosenAlternativeId ?: JSONObject.NULL)
+            .put("userApprovedAt", if (acceptance == "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW")
+                System.currentTimeMillis() else JSONObject.NULL)
             .put("inputFingerprint", decision.inputFingerprint)
+            .put("historyFingerprint", decision.historyFingerprint)
+            .put("exerciseFingerprint", decision.exerciseFingerprint)
+            .put("linkedEvidenceFingerprint", decision.linkedEvidenceFingerprint)
             .put("fallbackReason", decision.fallbackReason ?: JSONObject.NULL)
             .put("mostAdverseModeledScenario", decision.mostAdverseModeledScenario)
+            .put("scenarioFlip", decision.scenarioFlip)
             .put("unknowns", JSONArray(decision.unknowns))
             .put("changes", JSONArray(decision.changes))
+            .put("effectiveSetBreakdown", JSONArray(decision.effectiveSetBreakdown))
+            .put("paretoFrontier", JSONArray(decision.paretoFrontierCandidateIds))
+            .put("loadInstructions", JSONObject().also { loads ->
+                chosenLoadInstructions.forEach { (key, value) -> loads.put(key, value) }
+            })
+            .put("rejectedActionReasons", JSONArray(decision.rejectedActionReasons))
             .put("goalWeights", JSONArray(decision.goalWeights.map { weight ->
                 JSONObject().put("goal", weight.goal.name)
                     .put("explicitImportance", weight.explicitImportance ?: JSONObject.NULL)
+                    .put("effectiveImportance", weight.effectiveImportance)
                     .put("normalizedImportance", weight.normalizedImportance ?: JSONObject.NULL)
                     .put("source", weight.source)
+            }))
+            .put("needEnvelopes", JSONArray(decision.needEnvelopes.map { need ->
+                JSONObject().put("goal", need.goal.name).put("block", need.block)
+                    .put("week", need.week).put("lower", need.lower ?: JSONObject.NULL)
+                    .put("upper", need.upper ?: JSONObject.NULL).put("source", need.source)
+                    .put("taskId", need.taskId).put("center", need.center ?: JSONObject.NULL)
+                    .put("exemptFromNeedScoring", need.exemptFromNeedScoring)
+                    .put("status", need.status.name).put("reasonCodes", JSONArray(need.reasonCodes))
+            }))
+            .put("hardConstraints", JSONArray(decision.hardConstraints.map { constraint ->
+                JSONObject().put("id", constraint.id).put("status", constraint.status.name)
+                    .put("reasonCodes", JSONArray(constraint.reasonCodes))
             }))
             .put("objectiveVector", axesJson(decision.candidateObjectives))
             .put("baselineObjectiveVector", axesJson(decision.baselineObjectives))
@@ -524,21 +681,39 @@ internal object BCoachMultiobjectiveProduction {
                 JSONObject().put("status", alternative.status.name).put("label", alternative.label)
                     .put("weeklySetAverage", alternative.weeklySetAverage)
                     .put("changeCount", alternative.changeCount)
+                    .put("candidateId", alternative.candidateId)
+                    .put("candidateFingerprint", alternative.candidateFingerprint ?: JSONObject.NULL)
+                    .put("recommended", alternative.recommended)
+                    .put("robustRegret", alternative.robustRegret)
+                    .put("paretoFrontier", alternative.paretoFrontier)
+                    .put("reasonCodes", JSONArray(alternative.reasonCodes))
+                    .put("prescriptionSummary", JSONArray(alternative.prescriptionSummary))
+                    .put("axisScores", JSONObject().also { scores ->
+                        alternative.axisScores.forEach { (axis, value) -> scores.put(axis.name, value) }
+                    })
+                    .put("scenarioLosses", JSONObject().also { losses ->
+                        alternative.scenarioLosses.forEach { (scenario, value) -> losses.put(scenario, value) }
+                    })
             }))
             .put("inputAudit", JSONObject().also { audit ->
                 decision.inputAudit.forEach { (key, value) -> audit.put(key, value) }
             })
         root.put("bCoachMultiobjectiveDecision", decisionJson)
-        val warning = when (decision.status) {
-            BCoachProductionStatus.USER_REVIEW_PROPOSED ->
+        val warning = when {
+            acceptance == "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW" ->
+                "사용자가 검토한 B-Coach 후보를 적용했습니다. 미확정 중량은 계속 사용자 보정이 필요합니다."
+            decision.status == BCoachProductionStatus.USER_REVIEW_PROPOSED ->
                 "B-Coach 다목적 후보는 승인 전에는 저장 계획에 반영되지 않습니다."
-            BCoachProductionStatus.HOLD_CALIBRATE ->
+            decision.status == BCoachProductionStatus.HOLD_CALIBRATE ->
                 "B-Coach는 현재 구성을 유지하며 미확정 중량을 사용자 보정으로 남겼습니다."
             else -> null
         }
         return skeleton.copy(
             planningMetadataJson = root.toString(),
-            warnings = (skeleton.warnings + listOfNotNull(warning)).distinct()
+            warnings = (skeleton.warnings.filterNot { it.startsWith("B-Coach 다목적 후보는") ||
+                it.startsWith("B-Coach는 현재 구성을 유지하며") ||
+                it.startsWith("사용자가 검토한 B-Coach 후보를") || it == BCoachV2Policy.DISCLAIMER } +
+                listOf(BCoachV2Policy.DISCLAIMER) + listOfNotNull(warning)).distinct()
         )
     }
 
@@ -547,19 +722,14 @@ internal object BCoachMultiobjectiveProduction {
             JSONObject().put("name", value.name).put("value", value.value ?: JSONObject.NULL)
                 .put("unit", value.unit).put("provenance", value.provenance)
                 .put("missingReason", value.missingReason ?: JSONObject.NULL)
+                .put("status", value.status.name).put("reasonCodes", JSONArray(value.reasonCodes))
         }))
     })
 
-    private fun value(name: String, value: Double, unit: String, provenance: String) =
-        BCoachObjectiveValue(name, value, unit, provenance)
-
-    private fun objective(
-        axes: List<BCoachAxisEvaluation>,
-        axis: BCoachObjectiveAxis,
-        name: String
-    ): Double? = axes.single { it.axis == axis }.values.singleOrNull { it.name == name }?.value
-
-    private fun List<Double>.averageOrZero(): Double = if (isEmpty()) 0.0 else average()
+    private fun StringBuilder.canonicalField(value: Any?) {
+        val encoded = value?.toString() ?: "<NULL>"
+        append(encoded.length).append(':').append(encoded).append('|')
+    }
 
     private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
         .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }

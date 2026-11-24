@@ -28,7 +28,8 @@ internal class ProgramPlanService(
     private val programDao: ProgramDao,
     private val prescriptionNoteFormatter: (String) -> String,
     private val builtInProgramKeys: () -> Set<String>,
-    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null,
+    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository? = null
 ) {
     private val progression = ProgramProgressionService(db)
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -73,7 +74,9 @@ internal class ProgramPlanService(
             items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
                 append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.selectionRole, item.restSeconds, item.prescription, item.taskProtocolSemanticsJson).joinToString("|"))
                 sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
-                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
+                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}:" +
+                        "${set.estimatedLoadKg}:${set.loadSource}:${set.freshRir}:${set.expectedRir}:" +
+                        "${set.relativeIntensity}:${set.evidenceVersion}")
                     set.targetRpeMin?.let { append(':').append(it.canonicalRpeFingerprint()) }
                 }
             }
@@ -301,7 +304,46 @@ internal class ProgramPlanService(
             it.weekNumber < 1 || it.dayOfWeek !in 1..7 ||
                 (it.weekNumber - 1) * 7L + it.dayOfWeek > program.durationDays
         }) throw ProgramApplyException(ProgramApplyFailureReason.INVALID_STRUCTURE)
+        val applicationStart = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
+        val cutoff = com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit
+            .evidenceCutoff(program.planningMetadataJson)
+        val refreshedMetadata = cutoff?.let { evidenceCutoff ->
+            val metadataRepository = canonicalMetadataRepository
+                ?: throw ProgramApplyException(ProgramApplyFailureReason.METADATA_UNAVAILABLE)
+            val badmintonMetadata = runCatching {
+                metadataRepository.badmintonObjectiveCatalog() to metadataRepository.runtimeMetadataCatalog()
+            }.getOrElse {
+                throw ProgramApplyException(ProgramApplyFailureReason.METADATA_UNAVAILABLE)
+            }
+            val recorded = workoutDao.entriesWithSetsUntil(evidenceCutoff.toString())
+            val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+            val history = com.training.trackplanner.data.v22.V22HistoryInput.fromWorkoutHistory(
+                recorded
+            )
+            val badmintonHistory = com.training.trackplanner.data.v22.V22HistoryInput.badmintonFromWorkoutHistory(
+                recorded,
+                exercises,
+                badmintonMetadata.first,
+                badmintonMetadata.second
+            )
+            com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit.refresh(
+                program = program,
+                items = items,
+                storedSets = storedSetsByItemId.values.flatten(),
+                applicationStartDate = applicationStart,
+                cutoff = evidenceCutoff,
+                history = history,
+                exercises = exercises,
+                badmintonHistory = badmintonHistory
+            )
+        }
         db.withTransaction {
+            if (refreshedMetadata != null && refreshedMetadata != program.planningMetadataJson) {
+                programDao.updateProgram(program.copy(
+                    planningMetadataJson = refreshedMetadata,
+                    updatedAt = System.currentTimeMillis()
+                ))
+            }
             if (mode == ProgramApplyMode.Overwrite) {
                 workoutDao.deletePlannedOnlySetsBetween(range.first, range.second)
                 workoutDao.deletePlannedOnlyEntriesBetween(range.first, range.second)
@@ -340,9 +382,15 @@ internal class ProgramPlanService(
                             weightKg = set.weightKg,
                             seconds = set.seconds,
                             confirmed = false,
-                            manualWeight = set.weightKg > 0.0,
+                            manualWeight = set.loadSource == ProgramLoadSource.USER_FIXED,
                             loadState = set.loadState,
-                            targetRpeMin = set.targetRpeMin.validatedTargetRpeMin()
+                            targetRpeMin = set.targetRpeMin.validatedTargetRpeMin(),
+                            estimatedLoadKg = set.estimatedLoadKg,
+                            loadSource = set.loadSource,
+                            freshRir = set.freshRir,
+                            expectedRir = set.expectedRir,
+                            relativeIntensity = set.relativeIntensity,
+                            evidenceVersion = set.evidenceVersion
                         )
                     )
                 }
@@ -492,7 +540,13 @@ private fun ProgramSetPrescription.toEntity(programItemId: Long): TrainingProgra
         weightKg = weightKg,
         seconds = seconds,
         targetRpeMin = targetRpeMin.validatedTargetRpeMin(),
-        loadState = loadState
+        loadState = loadState,
+        estimatedLoadKg = estimatedLoadKg,
+        loadSource = loadSource,
+        freshRir = freshRir,
+        expectedRir = expectedRir,
+        relativeIntensity = relativeIntensity,
+        evidenceVersion = evidenceVersion
     )
 
 internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem {

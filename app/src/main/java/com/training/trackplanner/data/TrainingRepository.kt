@@ -329,6 +329,7 @@ class TrainingRepository internal constructor(
         workoutDao = workoutDao,
         programDao = programDao,
         workoutSourceIdentityProvider = workoutSourceIdentityProvider,
+        canonicalMetadataRepository = canonicalMetadataRepository,
         prescriptionNoteFormatter = ::noteFromPrescription,
         builtInProgramKeys = { SeedData.programs(context).mapTo(mutableSetOf(), ProgramSeed::key) }
     )
@@ -342,11 +343,12 @@ class TrainingRepository internal constructor(
         bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
         userOverrideDao = exerciseMetadataUserOverrideDao,
         progressionDao = db.programProgressionDao(),
-        squatShadowReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
-            strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
+        v2LoadEvidenceReader = com.training.trackplanner.data.v22.BCoachV2LoadEvidenceReader(
+            strengthPosteriorDao, strengthPerformanceRegistry, repetitionCurveRegistry,
+            initialUserProfileDao
         ),
         rirPolicy = rpeRirPolicy,
-        strengthRegistry = strengthPerformanceRegistry
+        repetitionCurves = repetitionCurveRegistry
     )
     private val linkedSquatNextWeekService = com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekService(
         db = db,
@@ -379,8 +381,8 @@ class TrainingRepository internal constructor(
         val now = LocalDate.now()
         val source = workoutDao.findEntryById(sourceEntryId)
             ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
-        if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
-            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+        if (source.exerciseStableKey !in com.training.trackplanner.data.v22.BCoachConfirmedLiftModel.keys) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "UNSUPPORTED_LIFT")
         }
         if (db.programProgressionDao().link(sourceEntryId) == null) {
             return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
@@ -441,7 +443,10 @@ class TrainingRepository internal constructor(
             nextLoadKg = proposal.proposedLoadKg,
             nextReps = proposal.proposedReps,
             nextSets = proposal.proposedSets,
-            selectedAction = proposal.selectedAction
+            selectedAction = proposal.selectedAction,
+            loadsBySetIndex = proposal.loadsBySetIndex,
+            repsBySetIndex = proposal.repsBySetIndex,
+            omittedSetIndex = proposal.omittedSetIndex
         )
     }
 
@@ -1563,12 +1568,17 @@ class TrainingRepository internal constructor(
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton
-    ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
-        programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
-            skeleton.personalizedDecision?.let { decision ->
-                val stableKey = requireNotNull(programPlanService.programStableKey(programId))
-                val fingerprint = personalizedProgramFingerprint(skeleton.request, skeleton.items)
-                personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
+    ): Long {
+        return cloudMutation(CloudMutationScope.PROGRAMS) {
+            // withCloudRevision owns the Room transaction, so stale-evidence validation and
+            // exact accepted-plan persistence cannot observe different database snapshots.
+            val validated = v22ProgramPlanningService.validateAcceptedForPersistence(skeleton)
+            programPlanService.saveGeneratedProgram(existingProgramId, validated).also { programId ->
+                validated.personalizedDecision?.let { decision ->
+                    val stableKey = requireNotNull(programPlanService.programStableKey(programId))
+                    val fingerprint = personalizedProgramFingerprint(validated.request, validated.items)
+                    personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
+                }
             }
         }
     }

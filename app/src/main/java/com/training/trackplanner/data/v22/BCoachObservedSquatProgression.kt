@@ -57,17 +57,18 @@ internal object BCoachObservedSquatProgression {
         prescriptions: List<ProgramPrescriptionSet>,
         plateOneSideKg: Double,
         curve: ResolvedRepetitionCurve,
-        rirPolicy: RpeRirPolicy
+        rirPolicy: RpeRirPolicy,
+        displayedStepKg: Double = plateOneSideKg * 2.0
     ): ProposalEvidence? {
-        if (!plateOneSideKg.isFinite() || plateOneSideKg !in 0.1..25.0) return null
+        if (!displayedStepKg.isFinite() || displayedStepKg <= 0.0) return null
         val targetLink = links.singleOrNull { it.entryId == targetEntryId } ?: return null
         val predecessor = BCoachProgramLinkChain.predecessor(targetLink, links)
         if (!predecessor.found) return null
         val sourceLink = predecessor.link ?: return null
         val source = records.singleOrNull { it.entry.id == sourceLink.entryId } ?: return null
         val target = records.singleOrNull { it.entry.id == targetEntryId } ?: return null
-        if (source.entry.exerciseStableKey != BCoachLinkedSquatWeekPlanner.SQUAT ||
-            target.entry.exerciseStableKey != BCoachLinkedSquatWeekPlanner.SQUAT) return null
+        if (source.entry.exerciseStableKey !in BCoachConfirmedLiftModel.keys ||
+            target.entry.exerciseStableKey != source.entry.exerciseStableKey) return null
         val day = runCatching { LocalDate.parse(source.entry.date) }.getOrNull() ?: return null
         val targetDay = runCatching { LocalDate.parse(target.entry.date) }.getOrNull() ?: return null
         if (day > asOf || targetDay < asOf || targetDay < day) return null
@@ -86,7 +87,9 @@ internal object BCoachObservedSquatProgression {
             }) return null
         val load = done.first().weightKg
         val reps = done.first().reps
-        if (done.any { abs(it.weightKg - load) > EPS || it.reps != reps }) return null
+        val uniformCompleted = done.all {
+            abs(it.weightKg - load) <= EPS && it.reps == reps
+        }
         // A changed/reduced original goal never manufactures a completed program.
         if (sourceOriginal.any { p ->
             !p.originalExists || p.plannedSetIndex == null ||
@@ -97,16 +100,26 @@ internal object BCoachObservedSquatProgression {
                 } != false
         }) return null
 
-        // Only a comparable repetition scheme is automatically eligible.
-        // Deliberate heavy/volume switches require a separate policy.
-        if (targetOriginal.any { !it.originalExists || it.originalReps != reps } ||
-            planned.any { it.reps != reps || it.confirmed } ||
+        // A mixed-load/rep source has one comparable anchor: the first set.
+        // Do not flatten later volume sets or claim their fatigue is modeled.
+        val firstTargetIndex = planned.first().setIndex
+        val firstTarget = targetOriginal.singleOrNull {
+            it.plannedSetIndex == firstTargetIndex
+        } ?: return null
+        val uniformTarget = planned.all { it.reps == planned.first().reps &&
+            abs(it.weightKg - planned.first().weightKg) <= EPS }
+        if (firstTarget.originalReps != reps ||
+            targetOriginal.any { !it.originalExists } ||
+            planned.any { it.confirmed } ||
             targetOriginal.mapNotNull { it.plannedSetIndex }.distinct().size != planned.size
         ) return null
+        val firstOnly = !uniformCompleted || !uniformTarget
+        val affectedIndices = if (firstOnly) listOf(firstTargetIndex)
+            else planned.map { it.setIndex }
 
         val maxRpe = done.maxOf { it.rpe ?: source.entry.rpe!! }
         val rirDistribution = rirPolicy.resolve(maxRpe)
-        val step = BBlockPeriodization.barbellIncrement(plateOneSideKg)
+        val step = displayedStepKg
 
         fun score(candidateKg: Double): Evaluation? {
             val distribution = rirDistribution ?: return null
@@ -158,9 +171,13 @@ internal object BCoachObservedSquatProgression {
             up.lowRirMixtureMass <= MAX_LOW_RIR_MIXTURE_MASS + EPS &&
             up.averageSquaredRirError + EPS < hold.averageSquaredRirError &&
             planned.size <= done.size
-        val chosen = if (increase) checkNotNull(up) else hold
+        val down = if (hold != null && hold.lowRirMixtureMass > MAX_LOW_RIR_MIXTURE_MASS &&
+            step < load && step / load <= MAX_SINGLE_STEP_FRACTION) score(load - step) else null
+        val decrease = down != null && hold != null && down.averageSquaredRirError + EPS < hold.averageSquaredRirError &&
+            down.lowRirMixtureMass < hold.lowRirMixtureMass
+        val chosen = when { increase -> up; decrease -> down; else -> hold }
         val kg = chosen?.loadKg ?: load
-        val action = if (increase) "LOAD_UP_ONE_STEP" else "HOLD"
+        val action = when { increase -> "LOAD_UP_ONE_STEP"; decrease -> "LOAD_DOWN_ONE_STEP"; else -> "HOLD" }
         val anchor = BCoachSquatAnchorSession(
             sessionStableKey = source.entry.sessionStableKey,
             date = day,
@@ -178,11 +195,13 @@ internal object BCoachObservedSquatProgression {
             worstCaseRegret = null,
             weightedCost = chosen?.averageSquaredRirError,
             targetRirMixtureMass = chosen?.targetRirMixtureMass,
-            volumeLoadChange = (kg * reps * planned.size).toDouble() /
-                (load * reps * done.size).toDouble() - 1.0,
+            volumeLoadChange = if (firstOnly) kg / load - 1.0
+                else (kg * reps * planned.size).toDouble() /
+                    (load * reps * done.size).toDouble() - 1.0,
             eligible = true,
             reason = when {
                 increase -> "LINKED_E1RM_CURVE_RIR_ONE_STEP"
+                decrease -> "LINKED_E1RM_CURVE_RIR_REDUCE"
                 hold != null -> "LINKED_E1RM_CURVE_RIR_HOLD"
                 else -> "LINKED_CONFIRMED_HOLD_CURVE_UNSUPPORTED"
             }
@@ -197,9 +216,12 @@ internal object BCoachObservedSquatProgression {
                 historicalE1rmKg = chosen?.expectedE1rmKg,
                 targetRir = TARGET_RIR, doseTargetSets = planned.size,
                 ranked = listOf(candidate),
+                targetSetIndices = affectedIndices,
                 notes = listOf(
                     "확정된 연결 세트, 기존 RPE→RIR 분포, 비선형 반복곡선으로 e1RM 시나리오를 계산했습니다.",
                     "다음 중량은 목표 RIR과 위험 구간을 비교해 결정합니다. 미래 성공률이 아닙니다.",
+                    if (firstOnly) "세트별 중량·반복이 다른 운동이므로 연결된 다음 첫 세트만 검토합니다."
+                        else "동일 중량·반복 세트의 다음 미완료 처방을 검토합니다.",
                     "후속 세트의 누적피로는 별도로 예측하지 않습니다."
                 )
             )

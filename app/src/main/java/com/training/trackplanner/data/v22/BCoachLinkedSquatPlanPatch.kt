@@ -1,5 +1,6 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.WorkoutSet
@@ -7,7 +8,7 @@ import kotlin.math.abs
 
 /**
  * Pure immutable conversion from an explicitly approved Gate G proposal to a change-set.
- * Never changes actual confirmed work and never manufactures/removes sets.
+ * Original prescription rows survive a reduction of the unstarted working sets.
  */
 internal object BCoachLinkedSquatPlanPatch {
     data class Patch(
@@ -24,12 +25,25 @@ internal object BCoachLinkedSquatPlanPatch {
         val kg = proposal.proposedLoadKg ?: return null
         val reps = proposal.proposedReps ?: return null
         val count = proposal.proposedSets ?: return null
+        val omitted = proposal.omittedSetIndex
+        if (omitted != null && (proposal.selectedAction != "REDUCE_LAST_SET" || count < 3 ||
+            omitted != currentSets.maxOfOrNull { it.setIndex } || omitted !in proposal.affectedSetIndices)) return null
         if (!kg.isFinite() || kg <= 0.0 || reps <= 0 || count < 1 ||
-            currentSets.size != count || originalTargets.size != count ||
+            currentSets.size != count + (if (omitted != null) 1 else 0) || originalTargets.size != currentSets.size ||
             currentSets.any { it.confirmed }
         ) return null
         val byIndex = originalTargets.associateBy { it.plannedSetIndex }
-        if (byIndex.size != count || byIndex.containsKey(null)) return null
+        if (byIndex.size != currentSets.size || byIndex.containsKey(null)) return null
+        val affected = proposal.affectedSetIndices.ifEmpty { currentSets.map { it.setIndex } }
+            .distinct()
+        val modified = affected.filterNot { it == omitted }.toSet()
+        if ((omitted != null || proposal.loadsBySetIndex.isNotEmpty()) &&
+            (proposal.loadsBySetIndex.keys != modified ||
+                proposal.loadsBySetIndex.values.any { !it.isFinite() || it <= 0.0 })) return null
+        if (proposal.repsBySetIndex.isNotEmpty() && (proposal.repsBySetIndex.keys != modified ||
+            proposal.repsBySetIndex.values.any { it !in 1..20 })) return null
+        if (affected.isEmpty() || affected.any { it !in currentSets.map(WorkoutSet::setIndex) })
+            return null
         val next = currentSets.sortedBy { it.setIndex }.map { set ->
             val target = byIndex[set.setIndex] ?: return null
             if (!target.originalExists || set.entryId != proposal.targetEntryId ||
@@ -43,19 +57,29 @@ internal object BCoachLinkedSquatPlanPatch {
                 set.seconds != target.plannedSeconds ||
                 set.loadState != target.plannedLoadState
             ) return null
-            val nextSet = set.copy(
-                reps = reps, weightKg = kg,
-                loadState = ProgramLoadState.EXPLICIT_LOAD,
-                manualWeight = true
-            )
-            val nextTarget = target.copy(
-                plannedReps = reps, plannedKg = kg,
-                plannedLoadState = ProgramLoadState.EXPLICIT_LOAD
-            )
-            nextSet to nextTarget
+            if (set.setIndex == omitted) {
+                null to target.copy(plannedSetIndex = null)
+            } else if (set.setIndex !in affected) {
+                set to target
+            } else {
+                val nextKg = proposal.loadsBySetIndex[set.setIndex] ?: kg
+                val nextReps = proposal.repsBySetIndex[set.setIndex] ?: reps
+                val nextSet = set.copy(
+                    reps = nextReps, weightKg = nextKg,
+                    estimatedLoadKg = nextKg, freshRir = null, expectedRir = null, relativeIntensity = null,
+                    loadState = ProgramLoadState.EXPLICIT_LOAD,
+                    manualWeight = proposal.loadsBySetIndex.isEmpty(),
+                    loadSource = if (proposal.loadsBySetIndex.isEmpty()) set.loadSource else ProgramLoadSource.PERSONAL_MODEL
+                )
+                val nextTarget = target.copy(
+                    plannedReps = nextReps, plannedKg = nextKg,
+                    plannedLoadState = ProgramLoadState.EXPLICIT_LOAD
+                )
+                nextSet to nextTarget
+            }
         }
         return Patch(
-            nextSets = next.map { it.first },
+            nextSets = next.mapNotNull { it.first },
             nextPrescriptions = next.map { it.second }
         )
     }

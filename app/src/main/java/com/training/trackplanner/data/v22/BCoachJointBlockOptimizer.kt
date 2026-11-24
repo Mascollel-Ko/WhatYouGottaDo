@@ -60,7 +60,8 @@ internal object BCoachJointBlockOptimizer {
         val evaluated: Int,
         val alternatives: List<Alternative>,
         val changes: List<String>,
-        val status: String
+        val status: String,
+        val candidateDiagnostics: List<String> = emptyList()
     ) {
         val changed: Boolean get() = changes.isNotEmpty()
     }
@@ -158,7 +159,8 @@ internal object BCoachJointBlockOptimizer {
             observations, 0.0, 0.0, 0, emptyList(), emptyList(), status)
         if (baseline.size != request.days || baseline.isEmpty() ||
             baseline.any { it.items.isEmpty() || it.items.any { item ->
-                item.setCount != item.sets.size || item.setCount !in 1..6
+                item.setCount != item.sets.size ||
+                    item.setCount !in 1..BCoachV2Policy.MAX_PER_EXERCISE_SETS
             } }) return unchanged("INVALID_BASELINE")
         val baseDays = baseline.map(V22Session::session)
         if (baseDays.distinct().size != baseDays.size || baseDays.any { it !in 1..7 })
@@ -188,7 +190,8 @@ internal object BCoachJointBlockOptimizer {
             Profile(primary, secondary, core, sport,
                 CanonicalStrengthExposureCapability.movementAnchor(key)?.name,
                 e != null && e.isActive && !e.needsReview && !e.isCustom &&
-                    e.planningEligibility != "HISTORY_ONLY" &&
+                    e.activityKind != "SPORT_SESSION" &&
+                    e.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
                     (primary.isNotEmpty() || core || sport > 0.0))
         }
         val baselineItems = baseline.flatMap(V22Session::items)
@@ -203,15 +206,21 @@ internal object BCoachJointBlockOptimizer {
             .coerceAtLeast(1.0)
         val majorMuscles = listOf("BACK_LATS", "CHEST", "SHOULDERS",
             "QUADRICEPS", "GLUTES", "HAMSTRINGS")
-        val availableEquipment = initialKeys.mapNotNull { exercises[it]?.equipment?.trim() }
-            .filter(String::isNotEmpty).toSet()
+        fun equipmentTokens(value: String): Set<String> = value
+            .split(Regex("[/,;+&]"))
+            .map { it.trim().uppercase() }.filter(String::isNotEmpty).toSet()
+        val availableEquipment = request.availableEquipment
+            ?.flatMap(::equipmentTokens)?.toSet()
         fun permitted(e: Exercise): Boolean {
-            val equipment = e.equipment.trim()
-            return equipment.isBlank() || equipment in availableEquipment ||
-                equipment.equals("BODYWEIGHT", true) || equipment.equals("맨몸", true)
+            val required = equipmentTokens(e.equipment)
+            if (required.isEmpty() || required.all { it == "BODYWEIGHT" || it == "맨몸" }) return true
+            return availableEquipment != null && required.all { it in availableEquipment }
         }
         val eligible = exercises.values.asSequence().filter { profile(it.stableKey).eligible &&
+            !BCoachV2Policy.isTestOnlyExercise(it) &&
             permitted(it) }.sortedBy(Exercise::stableKey).toList()
+        val shortlistedSportKeys = linkedSetOf<String>()
+        val scoredSportKeys = linkedSetOf<String>()
         val muscleUniverse = (baselineItems.flatMap { profile(it.stableKey).primary } +
             majorMuscles.filter { muscle ->
                 eligible.any { muscle in profile(it.stableKey).primary }
@@ -220,9 +229,14 @@ internal object BCoachJointBlockOptimizer {
         val goalWeights = BBalancedGoal.entries.associateWith {
             (request.bGoalImportance.value(it) ?: 3).toDouble()
         }
+        // Every canonical objective is evaluated separately. Summing all transfer
+        // links into one scalar and clipping each exercise at 1.5 destroyed
+        // distinctions between otherwise different badminton exercises.
+        val sportObjectives = badmintonCatalog.allRelations()
+            .map { it.objective.name }.distinct().sorted()
         val weightTotal = goalWeights.values.sum().coerceAtLeast(1.0)
         val duration = request.sessionMinutes
-        val candidateDays = if (request.fixedWeekdays != null) {
+        val rawCandidateDays = if (request.fixedWeekdays != null) {
             listOf(request.fixedWeekdays.sorted())
         } else {
             val allowed = request.allowedWeekdays ?: (1..7).toSet()
@@ -233,6 +247,22 @@ internal object BCoachJointBlockOptimizer {
             combinations(allowed.sorted(), request.days)
         }.filter { it.size == request.days && it.distinct().size == request.days &&
             it.all { d -> d in 1..7 } }
+        fun longestConsecutiveRun(days: List<Int>): Int {
+            val selected = days.toSet()
+            return selected.maxOfOrNull { start ->
+                var count = 0
+                var day = start
+                while (count < 7 && day in selected) {
+                    count++
+                    day = day % 7 + 1
+                }
+                count
+            } ?: 0
+        }
+        val nonClusteredDays = rawCandidateDays.filter { longestConsecutiveRun(it) < 3 }
+        val candidateDays = if (request.fixedWeekdays == null && nonClusteredDays.isNotEmpty()) {
+            nonClusteredDays
+        } else rawCandidateDays
         if (candidateDays.isEmpty()) return unchanged("NO_WEEKDAY_COMBINATION_ALLOWED")
 
         val mainForPeriodization = selectedMains
@@ -255,13 +285,24 @@ internal object BCoachJointBlockOptimizer {
         }
         fun rebuilt(day: V22Session, items: List<V22ExercisePlan>) =
             day.copy(items = items, nominalSets = items.sumOf(V22ExercisePlan::setCount))
+        fun minimumSets(key: String): Int {
+            val exercise = exercises[key]
+            if (exercise?.progressMetricType == "TIME_OR_DISTANCE") return 1
+            val kind = listOf(exercise?.category, exercise?.movementPattern)
+                .joinToString(" ").uppercase()
+            if (listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any(kind::contains)) return 1
+            return if (key in selectedMains) 3 else 2
+        }
         fun valid(sessions: List<V22Session>): Boolean =
             sessions.size == request.days &&
                 sessions.map(V22Session::session).toSet().size == request.days &&
                 sessions.all { day ->
                     day.items.isNotEmpty() &&
                         day.items.map(V22ExercisePlan::stableKey).distinct().size == day.items.size &&
-                        day.items.all { it.setCount in 1..6 && it.setCount == it.sets.size }
+                        day.items.all {
+                            it.setCount in 1..BCoachV2Policy.MAX_PER_EXERCISE_SETS &&
+                                it.setCount == it.sets.size
+                        }
                 } && baselineItems.filter { it.stableKey in locked }
                     .groupingBy(V22ExercisePlan::stableKey).eachCount() ==
                     sessions.flatMap(V22Session::items)
@@ -290,7 +331,7 @@ internal object BCoachJointBlockOptimizer {
                 val muscleDose = linkedMapOf<String, Double>()
                 val strengthDose = linkedMapOf<String, Double>()
                 var coreDose = 0.0
-                var sportDose = 0.0
+                val sportDoseByObjective = linkedMapOf<String, Double>()
                 val patterns = linkedMapOf<String, Double>()
                 for (item in all) {
                     val p = profile(item.stableKey)
@@ -305,7 +346,18 @@ internal object BCoachJointBlockOptimizer {
                         strengthDose[p.anchor] = (strengthDose[p.anchor] ?: 0.0) + item.setCount
                     }
                     if (p.directCore) coreDose += item.setCount
-                    sportDose += item.setCount * p.sport.coerceAtMost(1.5)
+                    badmintonCatalog.relations(item.stableKey).forEach { relation ->
+                        val credit = when (relation.transferLevel) {
+                            BadmintonObjectiveTransferLevel.DIRECT -> 1.0
+                            BadmintonObjectiveTransferLevel.SUPPORTIVE -> 0.55
+                            BadmintonObjectiveTransferLevel.GENERAL -> 0.2
+                            BadmintonObjectiveTransferLevel.LOW -> 0.07
+                            BadmintonObjectiveTransferLevel.NONE -> 0.0
+                        }
+                        val objective = relation.objective.name
+                        sportDoseByObjective[objective] =
+                            (sportDoseByObjective[objective] ?: 0.0) + item.setCount * credit
+                    }
                     val pattern = exercises[item.stableKey]?.movementPattern.orEmpty().uppercase()
                     val className = when {
                         "PULL" in pattern || "ROW" in pattern -> "PULL"
@@ -322,7 +374,14 @@ internal object BCoachJointBlockOptimizer {
                 val strengthUtility = if (anchors.isEmpty()) 0.0 else
                     anchors.map { saturate(strengthDose[it] ?: 0.0, 3.0) }.average()
                 val coreUtility = saturate(coreDose, 4.0)
-                val sportUtility = saturate(sportDose, 6.0)
+                // Preserve the full objective vector: a set contributes only to
+                // relations explicitly reviewed for its own stableKey.
+                // The 6.0 scale is a provisional scheduling heuristic, not a
+                // validated sporting adaptation or a mandatory training target.
+                val sportUtility = if (sportObjectives.isEmpty()) 0.0 else
+                    sportObjectives.map { objective ->
+                        saturate(sportDoseByObjective[objective] ?: 0.0, 6.0)
+                    }.average()
                 val weighted = (
                     goalWeights.getValue(BBalancedGoal.STRENGTH) * strengthUtility +
                     goalWeights.getValue(BBalancedGoal.HYPERTROPHY) * muscleUtility +
@@ -400,8 +459,10 @@ internal object BCoachJointBlockOptimizer {
             }
             val winner = values.maxWithOrNull(compareBy<Pair<Strategy, Double>> { it.second }
                 .thenByDescending { it.first.ordinal })!!
-            val feasible = overtime < EPS && weekly.all { week ->
-                week.all { it.items.isNotEmpty() }
+            val feasible = overtime < EPS && sessions.all { day ->
+                day.items.isNotEmpty() && day.items.all { item ->
+                    item.setCount >= minimumSets(item.stableKey)
+                }
             }
             return Scored(sessions, winner.second, winner.first,
                 values.toMap(), peak, feasible,
@@ -437,12 +498,13 @@ internal object BCoachJointBlockOptimizer {
         for (round in 0 until ROUNDS) {
             if (evaluated >= MAX_EVALUATIONS) break
             val roundCandidates = mutableListOf<Scored>()
-            fun offer(plan: List<V22Session>, from: Scored, label: String) {
-                val candidate = consider(plan, from.changes + label) ?: return
+            fun offer(plan: List<V22Session>, from: Scored, label: String): Boolean {
+                val candidate = consider(plan, from.changes + label) ?: return false
                 roundCandidates += candidate
                 if (candidate.feasible && (best == null || candidate.score > best!!.score + EPS ||
                         (abs(candidate.score - best!!.score) <= EPS &&
                             candidate.signature < best!!.signature))) best = candidate
+                return true
             }
             for (node in beam) {
                 if (evaluated >= MAX_EVALUATIONS) break
@@ -451,7 +513,7 @@ internal object BCoachJointBlockOptimizer {
                 val currentMuscles = plan.flatMap(V22Session::items)
                     .flatMap { item -> profile(item.stableKey).primary.map { it to item.setCount } }
                     .groupBy({ it.first }, { it.second }).mapValues { (_, v) -> v.sum() }
-                val additions = eligible.asSequence().filter { it.stableKey !in used }
+                val rankedGeneral = eligible.asSequence().filter { it.stableKey !in used }
                     .map { e ->
                         e to profile(e.stableKey).primary.sumOf {
                             1.0 / (1.0 + (currentMuscles[it] ?: 0))
@@ -459,6 +521,42 @@ internal object BCoachJointBlockOptimizer {
                             .plus(profile(e.stableKey).sport * 0.15)
                     }.sortedWith(compareByDescending<Pair<Exercise, Double>> { it.second }
                         .thenBy { it.first.stableKey }).take(7).map { it.first }.toList()
+                val sportImportance = request.bGoalImportance.sportSupport ?: 3
+                val sportLimit = when {
+                    sportImportance >= 5 -> 6
+                    sportImportance >= 3 -> 3
+                    else -> 1
+                }
+                val coveredObjectives = used.flatMap { key ->
+                    badmintonCatalog.relations(key).filter { row ->
+                        row.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
+                            row.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
+                    }.map { it.objective.name }
+                }.toSet()
+                fun skillTags(e: Exercise): Set<String> =
+                    e.badmintonSkillTargets.split(Regex("[,|;]"))
+                        .map(String::trim).filter(String::isNotEmpty).toSet()
+                val coveredSkillTags = used.flatMap { key ->
+                    exercises[key]?.let(::skillTags).orEmpty()
+                }.toSet()
+                val rankedSport = eligible.asSequence().filter { e ->
+                    e.stableKey !in used && badmintonCatalog.relations(e.stableKey).any {
+                        it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
+                            it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
+                    }
+                }.sortedWith(compareByDescending<Exercise> { e ->
+                    badmintonCatalog.relations(e.stableKey).count { row ->
+                        row.transferLevel == BadmintonObjectiveTransferLevel.DIRECT &&
+                            row.objective.name !in coveredObjectives
+                    }
+                }.thenByDescending { e -> (skillTags(e) - coveredSkillTags).size }
+                    .thenByDescending { e -> profile(e.stableKey).sport }
+                    .thenBy(Exercise::stableKey)).take(sportLimit).toList()
+                val additions = (rankedSport + rankedGeneral).distinctBy(Exercise::stableKey)
+                shortlistedSportKeys += additions.filter { badmintonCatalog.relations(it.stableKey).any { row ->
+                    row.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
+                        row.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
+                } }.map(Exercise::stableKey)
                 for (i in plan.indices) {
                     val day = plan[i]
                     for (j in day.items.indices) {
@@ -471,7 +569,7 @@ internal object BCoachJointBlockOptimizer {
                             next[i] = rebuilt(day, items)
                             offer(next, node, action)
                         }
-                        if (adjustable && item.setCount < 6) {
+                        if (adjustable && item.setCount < BCoachV2Policy.MAX_PER_EXERCISE_SETS) {
                             val newSet = item.sets.last().copy(
                                 weightKg = null, observedRpe = null,
                                 sourceDate = "", loadStatus = "B_COACH_EXTRA_SET_USER_REVIEW")
@@ -481,7 +579,7 @@ internal object BCoachJointBlockOptimizer {
                             }, "ADD_SET:" + day.session + ":" + key)
                         }
                         if (adjustable &&
-                            item.setCount > (if (key in selectedMains) 2 else 1)) {
+                            item.setCount > minimumSets(key)) {
                             modify(day.items.toMutableList().also {
                                 it[j] = item.copy(setCount = item.setCount - 1,
                                     sets = item.sets.dropLast(1))
@@ -522,26 +620,30 @@ internal object BCoachJointBlockOptimizer {
                             source = "B_COACH_NEW_EXERCISE_USER_REVIEW_REQUIRED",
                             prescriptionAuthority = "B_COACH_USER_CALIBRATION_REQUIRED"
                         )
-                        for (count in 1..3) {
+                        for (count in minimumSets(addition.stableKey)..3) {
                             val next = plan.toMutableList()
                             next[i] = rebuilt(day, day.items + item.copy(setCount = count,
                                 sets = List(count) { item.sets.first().copy() }))
-                            offer(next, node,
-                                "INSERT:" + day.session + ":" + addition.stableKey + ":" + count)
+                            if (offer(next, node,
+                                    "INSERT:" + day.session + ":" + addition.stableKey + ":" + count)) {
+                                scoredSportKeys += addition.stableKey
+                            }
                         }
                         // Composite replace: allows a two/three-set substitution even
                         // when the intermediate removal would lose score.
                         day.items.indices.filter { day.items[it].stableKey !in locked }
                             .take(5).forEach { oldIndex ->
-                                for (count in 2..3) {
+                                for (count in minimumSets(addition.stableKey)..3) {
                                     val next = plan.toMutableList()
                                     next[i] = rebuilt(day, day.items.toMutableList().also { items ->
                                         items[oldIndex] = item.copy(setCount = count,
                                             sets = List(count) { item.sets.first().copy() })
                                     })
-                                    offer(next, node,
-                                        "REPLACE:" + day.items[oldIndex].stableKey +
-                                            "->" + addition.stableKey + ":" + count)
+                                    if (offer(next, node,
+                                            "REPLACE:" + day.items[oldIndex].stableKey +
+                                                "->" + addition.stableKey + ":" + count)) {
+                                        scoredSportKeys += addition.stableKey
+                                    }
                                 }
                             }
                     }
@@ -572,14 +674,50 @@ internal object BCoachJointBlockOptimizer {
                 }
             return bestByStrategy + distinctWeekdays
         }
+        fun candidateDiagnostics(selectedSessions: List<V22Session>): List<String> {
+            val selected = selectedSessions.flatMap(V22Session::items)
+                .mapTo(hashSetOf(), V22ExercisePlan::stableKey)
+            val recruited = badmintonCatalog.allRelations().asSequence().filter {
+                it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
+                    it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
+            }.map { it.exerciseStableKey }.distinct().sorted().toList()
+            return recruited.map { key ->
+                val exercise = exercises[key]
+                val active = exercise?.isActive == true
+                val selectable = exercise != null && exercise.activityKind != "SPORT_SESSION" &&
+                    exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
+                    !exercise.needsReview && !exercise.isCustom
+                val equipment = when {
+                    exercise == null -> "NOT_EVALUATED"
+                    permitted(exercise) -> "ELIGIBLE"
+                    request.availableEquipment == null -> "EQUIPMENT_UNKNOWN"
+                    else -> "EQUIPMENT_UNAVAILABLE(${exercise.equipment})"
+                }
+                val final = when {
+                    exercise == null -> "METADATA_MISSING"
+                    !active -> "DB_INACTIVE"
+                    !selectable -> "PROGRAM_NOT_SELECTABLE"
+                    equipment != "ELIGIBLE" -> equipment
+                    key in selected -> "SELECTED"
+                    key in scoredSportKeys -> "SCORED_NOT_SELECTED"
+                    key in shortlistedSportKeys -> "SHORTLISTED_NOT_SCORED"
+                    else -> "ELIGIBLE_NOT_SHORTLISTED"
+                }
+                "SPORT_CANDIDATE:$key:METADATA=${exercise != null}:DB_ACTIVE=$active:" +
+                    "PROGRAM_SELECTABLE=$selectable:EQUIPMENT=$equipment:RECRUITED=true:" +
+                    "SHORTLIST=${key in shortlistedSportKeys}:SCORED=${key in scoredSportKeys}:FINAL=$final"
+            }
+        }
         if (best == null) return Result(baseline, Strategy.MAINTAIN, observations,
             initial.score, initial.score, evaluated, topAlternatives(),
-            emptyList(), "NO_FEASIBLE_PROGRAM_KEEP_BASELINE_REVIEW_REQUIRED")
+            emptyList(), "NO_FEASIBLE_PROGRAM_KEEP_BASELINE_REVIEW_REQUIRED",
+            candidateDiagnostics(baseline))
         val chosen = best!!
         return Result(chosen.sessions, chosen.strategy, observations,
             initial.score, chosen.score, evaluated, topAlternatives(),
             chosen.changes,
             if (chosen.changes.isEmpty()) "BASELINE_PREFERRED_BY_WHOLE_BLOCK_SCORE"
-            else "COACH_WHOLE_BLOCK_JOINT_OPTIMIZATION_USER_REVIEW")
+            else "COACH_WHOLE_BLOCK_JOINT_OPTIMIZATION_USER_REVIEW",
+            candidateDiagnostics(chosen.sessions))
     }
 }

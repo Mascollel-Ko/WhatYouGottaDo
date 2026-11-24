@@ -211,4 +211,95 @@ class ProgramEffortPersistenceTest {
             context.deleteDatabase(name)
         }
     }
+
+    @Test fun v22AutomaticLoadProvenanceSurvivesReloadCalendarEditAndCsv() = runBlocking {
+        val db = database()
+        val exercise = Exercise("v22-load", "V22 load", "근력운동")
+        db.exerciseDao().insertExercise(exercise)
+        val programId = db.programDao().insertProgram(TrainingProgram(name = "V22", durationDays = 7))
+        val itemId = db.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = exercise.stableKey, exerciseName = exercise.name,
+            category = exercise.category, setCount = 1, reps = 8, weightKg = 80.0
+        ))
+        val original = TrainingProgramItemSet(
+            programItemId = itemId, setIndex = 1, reps = 8, weightKg = 80.0, seconds = 0,
+            targetRpeMin = 7.0, estimatedLoadKg = 80.0,
+            loadSource = ProgramLoadSource.PERSONAL_MODEL,
+            freshRir = 3.4, expectedRir = 2.8, relativeIntensity = 0.72,
+            evidenceVersion = "B_COACH_V2_2_TEST"
+        )
+        db.programDao().insertProgramItemSets(listOf(original))
+
+        val reopened = db.programDao().programItemSetsForProgram(programId).single()
+        assertEquals(ProgramLoadSource.PERSONAL_MODEL, reopened.loadSource)
+        assertEquals(2.8, reopened.expectedRir ?: 0.0, 0.0)
+
+        val service = ProgramPlanService(db, db.exerciseDao(), db.workoutDao(), db.programDao(), { it }, { emptySet() })
+        service.applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
+        val applied = db.workoutDao().allEntriesWithSets().single()
+        val appliedSet = applied.sets.single()
+        assertEquals(false, appliedSet.manualWeight)
+        assertEquals(ProgramLoadSource.PERSONAL_MODEL, appliedSet.loadSource)
+        assertEquals(3.4, appliedSet.freshRir ?: 0.0, 0.0)
+        assertEquals(2.8, appliedSet.expectedRir ?: 0.0, 0.0)
+
+        val edited = appliedSet.copy(weightKg = 82.5, manualWeight = true)
+            .edit(RecordSetField.WEIGHT).applyTo(appliedSet)
+        assertEquals(true, edited.manualWeight)
+        assertEquals(ProgramLoadSource.USER_FIXED, edited.loadSource)
+        assertNull(edited.freshRir)
+        assertNull(edited.expectedRir)
+
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(applied), metrics = emptyList(), exercises = listOf(exercise)
+        )
+        val restored = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        val restoredSet = restored.setRows.single()
+        assertEquals(ProgramLoadSource.PERSONAL_MODEL, restoredSet.loadSource)
+        assertEquals(80.0, restoredSet.estimatedLoadKg ?: 0.0, 0.0)
+        assertEquals(3.4, restoredSet.freshRir ?: 0.0, 0.0)
+        assertEquals(2.8, restoredSet.expectedRir ?: 0.0, 0.0)
+        assertEquals("B_COACH_V2_2_TEST", restoredSet.evidenceVersion)
+
+        val legacy = RecordCsvBackupRestore.parse(
+            """
+            schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,set_index,set_confirmed,reps,weight_kg,seconds
+            1,set,2026-11-16,e1,1,V22 load,근력운동,1,120,1,1,8,80,0
+            """.trimIndent()
+        ) as RecordCsvImportData.Restore
+        assertEquals(null, legacy.setRows.single().loadSource)
+    }
+
+    @Test fun mixedUserFixedAndAutomaticSourcesSurviveRoomAndCalendar() = runBlocking {
+        val db = database()
+        val exercise = Exercise("v221-mixed", "V221 mixed", "근력운동")
+        db.exerciseDao().insertExercise(exercise)
+        val programId = db.programDao().insertProgram(TrainingProgram(name = "V221 mixed", durationDays = 7))
+        val itemId = db.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = exercise.stableKey, exerciseName = exercise.name,
+            category = exercise.category, setCount = 3, reps = 8, weightKg = 0.0,
+            weightSource = "B_COACH_V2_SET_SPECIFIC"
+        ))
+        val sets = listOf(
+            TrainingProgramItemSet(programItemId = itemId, setIndex = 1, reps = 8, weightKg = 100.0,
+                loadSource = ProgramLoadSource.USER_FIXED, freshRir = 3.0, expectedRir = 3.0),
+            TrainingProgramItemSet(programItemId = itemId, setIndex = 2, reps = 8, weightKg = 90.0,
+                loadSource = ProgramLoadSource.PERSONAL_MODEL, freshRir = 4.0, expectedRir = 3.5),
+            TrainingProgramItemSet(programItemId = itemId, setIndex = 3, reps = 8, weightKg = 87.5,
+                loadSource = ProgramLoadSource.DIRECT_HISTORY_ESTIMATE, freshRir = 4.5, expectedRir = 3.7)
+        )
+        db.programDao().insertProgramItemSets(sets)
+        assertEquals(listOf(ProgramLoadSource.USER_FIXED, ProgramLoadSource.PERSONAL_MODEL,
+            ProgramLoadSource.DIRECT_HISTORY_ESTIMATE),
+            db.programDao().programItemSetsForProgram(programId).map { it.loadSource })
+
+        ProgramPlanService(db, db.exerciseDao(), db.workoutDao(), db.programDao(), { it }, { emptySet() })
+            .applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
+        val applied = db.workoutDao().entriesWithSets("2026-11-16").single().sets.sortedBy { it.setIndex }
+        assertEquals(listOf(100.0, 90.0, 87.5), applied.map { it.weightKg })
+        assertEquals(listOf(true, false, false), applied.map { it.manualWeight })
+        assertEquals(sets.map { it.loadSource }, applied.map { it.loadSource })
+    }
 }

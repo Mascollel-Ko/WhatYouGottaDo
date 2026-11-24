@@ -6,7 +6,15 @@ data class ProgramSetPrescription(
     val weightKg: Double,
     val seconds: Int,
     val targetRpeMin: Double? = null,
-    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD
+    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD,
+    val estimatedLoadKg: Double? = null,
+    val loadSource: ProgramLoadSource = ProgramLoadSource.LEGACY_UNKNOWN,
+    /** Fresh-capacity RIR before within-session fatigue. */
+    val freshRir: Double? = null,
+    /** Working RIR shared by dose and recovery evaluation. */
+    val expectedRir: Double? = null,
+    val relativeIntensity: Double? = null,
+    val evidenceVersion: String? = null
 )
 
 internal fun Double?.validatedTargetRpeMin(): Double? = this?.takeIf { it.isFinite() && it in 1.0..10.0 }
@@ -26,7 +34,9 @@ internal object ProgramSetPrescriptionResolver {
             .takeIf(List<TrainingProgramItemSet>::isNotEmpty)
             ?.mapIndexed { index, set ->
                 ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds,
-                    set.targetRpeMin.validatedTargetRpeMin(), set.loadState)
+                    set.targetRpeMin.validatedTargetRpeMin(), set.loadState,
+                    set.estimatedLoadKg, set.loadSource, set.freshRir, set.expectedRir,
+                    set.relativeIntensity, set.evidenceVersion)
             }
             ?: List(item.setCount.coerceAtLeast(1)) { index ->
                 ProgramSetPrescription(index + 1, item.reps, item.weightKg, item.seconds)

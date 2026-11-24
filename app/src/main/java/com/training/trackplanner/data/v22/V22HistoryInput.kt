@@ -1,6 +1,12 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import java.io.PushbackReader
 import java.io.Reader
 import java.time.LocalDate
@@ -29,6 +35,97 @@ object V22HistoryInput {
                     )
                 }
         }
+
+    fun badmintonFromWorkoutHistory(
+        entries: List<WorkoutEntryWithSets>,
+        exercises: Map<String, Exercise>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        runtimeMetadata: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+    ): List<V22BadmintonHistorySession> {
+        val calculator = BadmintonPracticeLoadCalculator(runtimeMetadata)
+        val generic = calculator.entryContributions(entries, exercises).associateBy { it.entryId }
+        val directKeys = badmintonCatalog.allRelations().filter {
+            it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+        }.mapTo(linkedSetOf()) { it.exerciseStableKey }
+        val components = entries.mapNotNull { record ->
+            val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
+                ?: return@mapNotNull null
+            val confirmed = record.sets.filter { it.confirmed }
+            val duration = confirmed.sumOf { it.seconds.coerceAtLeast(0) } / 60.0
+            if (duration <= 0.0) return@mapNotNull null
+            val key = record.entry.exerciseStableKey
+            val exercise = exercises[key] ?: return@mapNotNull null
+            val activityKind = runtimeMetadata.resolve(exercise)?.activityKind
+                ?.takeIf(String::isNotBlank) ?: exercise.activityKind
+            val isGeneric = BadmintonPracticeCatalog.admits(key, activityKind)
+            if (!isGeneric && (key !in directKeys || record.entry.category == "근력운동")) {
+                return@mapNotNull null
+            }
+            val rpe = confirmed.mapNotNull { it.rpe }.takeIf { it.isNotEmpty() }?.average()
+                ?: record.entry.rpe
+            Triple(date, record.entry.sessionStableKey, V22BadmintonHistoryComponent(
+                entryId = record.entry.id,
+                stableKey = key,
+                durationMinutes = duration,
+                practiceLoad = generic[record.entry.id]?.practiceLoad
+                    ?: calculator.practiceLoad(duration, rpe),
+                rpe = rpe
+            ))
+        }
+        return components.groupBy { it.first to it.second }.map { (identity, rows) ->
+            val values = rows.map { it.third }
+            val genericValues = values.filter { it.stableKey in BadmintonPracticeCatalog.stableKeys }
+            val totalLoad = if (genericValues.isNotEmpty()) genericValues.maxOf { it.practiceLoad }
+                else values.sumOf { it.practiceLoad }
+            val totalDuration = if (genericValues.isNotEmpty()) genericValues.maxOf { it.durationMinutes }
+                else values.sumOf { it.durationMinutes }
+            V22BadmintonHistorySession(
+                date = identity.first,
+                sessionStableKey = identity.second,
+                practiceLoad = totalLoad,
+                durationMinutes = totalDuration,
+                components = values.sortedBy(V22BadmintonHistoryComponent::entryId)
+            )
+        }.sortedWith(compareBy(V22BadmintonHistorySession::date, V22BadmintonHistorySession::sessionStableKey))
+    }
+
+    /**
+     * Preserve actual completed sport-drill set exposures for B-Coach SPORT Need.
+     * Repetitions are not converted into fictional minutes or recovery load.
+     * Functional-category drill sets remain on the existing general history path.
+     */
+    fun sportDrillHistory(
+        entries: List<WorkoutEntryWithSets>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog
+    ): List<V22HistoryRow> {
+        val eligibleKeys = badmintonCatalog.allRelations()
+            .filter { it.transferLevel.coefficient > 0.0 }
+            .mapTo(linkedSetOf()) { it.exerciseStableKey } -
+            BadmintonPracticeCatalog.stableKeys
+        return entries.flatMap { record ->
+            val entry = record.entry
+            if (entry.category != "스포츠" || entry.exerciseStableKey !in eligibleKeys) {
+                return@flatMap emptyList()
+            }
+            val date = runCatching { LocalDate.parse(entry.date) }.getOrNull()
+                ?: return@flatMap emptyList()
+            record.sets.filter { set ->
+                set.confirmed && (set.reps > 0 || set.seconds > 0)
+            }.map { set ->
+                V22HistoryRow(
+                    date = date,
+                    exerciseName = entry.exerciseName,
+                    stableKey = entry.exerciseStableKey,
+                    category = entry.category,
+                    setIndex = set.setIndex,
+                    reps = set.reps.takeIf { it > 0 }?.toDouble(),
+                    weightKg = set.weightKg.takeIf { it.isFinite() && it > 0.0 },
+                    seconds = set.seconds.takeIf { it > 0 }?.toDouble(),
+                    rpe = (set.rpe ?: entry.rpe)?.takeIf(Double::isFinite)
+                )
+            }
+        }
+    }
 
     /** Reads the exact backup shape used by the Python reference, including its leading manifest record. */
     fun fromBackupCsv(reader: Reader): List<V22HistoryRow> {

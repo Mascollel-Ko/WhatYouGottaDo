@@ -8,6 +8,11 @@ on:
       - fix/program-delete-error-handling-and-regression-20261114
       - fix/program-delete-canonical-backup-diagnostics-20261114
       - fix/progression-orphan-cleanup-on-start-and-backup-20261114
+      - feat/b-coach-v2-global-optimizer
+      - fix/b-coach-20261121-review-quality
+      - feat/b-coach-squat-shadow-production-bridge-20261121
+      - feat/b-coach-three-lift-shadow-20261122
+      - feat/b-coach-integrated-planning
     tags:
       - 'v*'
   pull_request:

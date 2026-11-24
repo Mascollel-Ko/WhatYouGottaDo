@@ -44,8 +44,8 @@ class CloudBackupDownloadClientTest {
             put("uncompressed_size_bytes", csv.toByteArray().size)
             put("checksum", CloudBackupCodec.sha256Hex(compressed))
             put("checksum_algorithm", "SHA-256")
-            put("backup_format_version", 14)
-            put("schema_version", 13)
+            put("backup_format_version", 15)
+            put("schema_version", 14)
             put("status", "CURRENT")
         }
         val result = client(compressed, metadata).download(session, "backup")

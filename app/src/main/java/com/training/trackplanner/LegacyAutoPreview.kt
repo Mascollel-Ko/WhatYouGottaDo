@@ -304,7 +304,16 @@ private fun ProgramDraftItemDialog(
                             onChange = { value ->
                                 sets = sets.updated(
                                     index,
-                                    set.copy(weightKg = (value.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0))
+                                    set.copy(
+                                        weightKg = (value.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0),
+                                        estimatedLoadKg = (value.toDoubleOrNull() ?: 0.0).takeIf { it > 0.0 },
+                                        loadSource = com.training.trackplanner.data.ProgramLoadSource.USER_FIXED,
+                                        loadState = com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD,
+                                        freshRir = null,
+                                        expectedRir = null,
+                                        relativeIntensity = null,
+                                        evidenceVersion = "USER_WEIGHT_EDIT"
+                                    )
                                 )
                             },
                             suffix = stringResource(R.string.program_unit_kg)

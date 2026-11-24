@@ -12,6 +12,8 @@ import com.training.trackplanner.data.EffectiveMuscleMetadata
 internal class CanonicalMusclePresentation(
     private val catalogue: MetadataDisplayCatalogue
 ) {
+    fun option(code: String) = catalogue.option(MetadataDisplayField.MUSCLE_GROUP, code)
+
     fun optionsForRole(
         metadata: EffectiveMuscleMetadata,
         role: CanonicalMuscleRole

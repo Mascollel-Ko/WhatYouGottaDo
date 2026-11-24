@@ -1,6 +1,8 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.ProgramSkeletonItem
 
 /**
  * Per-exercise *planning* policy for new B blocks. The observed roster can be reused,
@@ -40,7 +42,7 @@ internal object BBlockPurposePrescription {
             // from an absent history record. TIME_OR_DISTANCE uses seconds where
             // the existing observed unit is time; distance remains user-entered.
             val unit = exercise?.progressMetricType
-            val timed = unit == "TIME_OR_DISTANCE" ||
+            val timed = unit in setOf("TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION") ||
                 (item.sets.isNotEmpty() && item.sets.all {
                     (it.seconds ?: 0) > 0 && (it.reps ?: 0) <= 0
                 })
@@ -53,7 +55,15 @@ internal object BBlockPurposePrescription {
                     role == BBlockGoal.SPORT_SUPPORT -> 2
                     else -> 2
                 }
-            } else item.sets.size.coerceAtLeast(1)
+            } else {
+                // Recorded one-set exposures are not sufficient authority to
+                // prescribe one-set normal training. Only explicit peak testing
+                // may reduce the working sets in finishWeek().
+                item.sets.size.coerceAtLeast(
+                    if (role == BBlockGoal.PEAK_EVALUATION && isMain) 2
+                    else if (isMain) 3 else 2
+                )
+            }
             val prototype = item.sets.firstOrNull()
                 ?: V22ObservedSet(null, null, null, null, "", "USER_CALIBRATION_REQUIRED")
             val prescribed = List(sets) { index ->
@@ -103,6 +113,27 @@ internal object BBlockPurposePrescription {
         BBlockGoal.PEAK_EVALUATION -> if (main) 1..3 else 6..10
         BBlockGoal.AUTO, BBlockGoal.BALANCED -> if (main) 4..8 else 8..12
     }
+
+    /** Keep automated resistance assistance inside its block purpose after roster and dose mutations. */
+    fun accessoryPrescription(item: ProgramSkeletonItem, block: BBlockGoal, exercise: Exercise?,
+        mainKeys: Set<String>): ProgramSkeletonItem {
+        val role = item.selectionRole.substringBefore('|').uppercase()
+        if (item.exerciseStableKey in mainKeys || listOf("MAIN", "PEAK", "SPORT", "CORE", "TEST").any(role::contains) ||
+            listOf("ACCESSORY", "ASSIST", "HYPERTROPHY").none(role::contains) ||
+            exercise?.progressMetricType !in resistanceRepMetrics ||
+            BCoachSessionComposition.isFixedInSession(item)) return item
+        if (block == BBlockGoal.PEAK_EVALUATION || block == BBlockGoal.SPORT_SUPPORT) return item
+        val purpose = if ("HYPERTROPHY" in role) BBlockGoal.HYPERTROPHY else purpose(block, false, exercise)
+        if (purpose != BBlockGoal.HYPERTROPHY && purpose != BBlockGoal.STRENGTH) return item
+        val range = repRange(purpose, false)
+        val sets = ProgramSetPrescriptionResolver.resolve(item)
+        if (sets.any { it.seconds > 0 || it.reps <= 0 } || sets.all { it.reps in range }) return item
+        val aligned = sets.map { it.copy(reps = it.reps.coerceIn(range)) }
+        return item.copy(reps = aligned.map { it.reps }.distinct().singleOrNull() ?: 0, setPrescriptions = aligned)
+    }
+
+    private val resistanceRepMetrics = setOf("LOAD_REPS", "MACHINE_LOAD_REPS", "ESTIMATED_1RM", "VOLUME_LOAD",
+        "REPS_AT_LOAD", "LOAD_REPS_OR_REPS", "LOAD_REPS_OR_TIME")
 
     /** Peak/evaluation is a distinct last-week prescription, not a stronger normal week. */
     fun finishWeek(

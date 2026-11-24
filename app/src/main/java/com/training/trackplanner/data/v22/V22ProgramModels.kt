@@ -55,7 +55,11 @@ data class V22GenerationRequest(
     val bShadowPlateOneSideKg: Double? = null,
     /** Ephemeral display-unit increments used only for other-exercise Shadow coverage. */
     val bShadowDumbbellIncrementKg: Double? = null,
-    val bShadowMachineIncrementKg: Double? = null
+    val bShadowMachineIncrementKg: Double? = null,
+    /** Explicit calendar anchor when known; otherwise B-Coach starts on the next Monday. */
+    val planningStartDate: LocalDate? = null,
+    /** Null means unknown; non-bodyweight additions then fail closed. */
+    val availableEquipment: Set<String>? = null
 )
 
 /**
@@ -75,7 +79,8 @@ internal fun newBBalancedGenerationRequest(
     sourceProgramStableKey: String? = null,
     shadowPlateOneSideKg: Double? = null,
     shadowDumbbellIncrementKg: Double? = null,
-    shadowMachineIncrementKg: Double? = null
+    shadowMachineIncrementKg: Double? = null,
+    availableEquipment: Set<String>? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -88,6 +93,7 @@ internal fun newBBalancedGenerationRequest(
     blockProgram = blockProgram,
     allowedWeekdays = allowedWeekdays,
     fixedWeekdays = fixedWeekdays,
+    availableEquipment = availableEquipment,
     sourceProgramStableKey = sourceProgramStableKey,
     bShadowPlateOneSideKg = shadowPlateOneSideKg,
     bShadowDumbbellIncrementKg = shadowDumbbellIncrementKg,
@@ -104,6 +110,22 @@ data class V22HistoryRow(
     val weightKg: Double?,
     val seconds: Double?,
     val rpe: Double?
+)
+
+data class V22BadmintonHistoryComponent(
+    val entryId: Long,
+    val stableKey: String,
+    val durationMinutes: Double,
+    val practiceLoad: Double,
+    val rpe: Double?
+)
+
+data class V22BadmintonHistorySession(
+    val date: LocalDate,
+    val sessionStableKey: String,
+    val practiceLoad: Double,
+    val durationMinutes: Double,
+    val components: List<V22BadmintonHistoryComponent>
 )
 
 data class V22ObservedSet(
@@ -267,10 +289,6 @@ data class V22GeneratedProgram(
     val skeleton: GeneratedProgramSkeleton,
     /** Present only for the live B path. [plan] remains the frozen Python-parity comparator. */
     val balanced12WeekPlan: BBalanced12WeekPlan? = null,
-    /** Transient read-only experiment; never persisted in GeneratedProgramSkeleton. */
-    val squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
-    /** Gate E: other exercise coverage only. Never an approved progression. */
-    val otherExerciseShadowCoverage: List<BCoachExerciseShadowCoverageRow> = emptyList(),
     /** Typed eight-axis decision and authority status for the V22 B production path. */
     val bCoachMultiobjectiveDecision: BCoachMultiobjectiveDecision? = null,
     /** Transient candidate. It can change the saved draft only after fingerprinted acceptance. */

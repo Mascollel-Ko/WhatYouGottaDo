@@ -124,7 +124,7 @@ class ExerciseMetadataFieldRegistryContractTest {
     fun releasePreservesPersistenceAndRevisionInvariants() {
         val revisions = ExerciseMetadataRevisionPolicy.project(context, repository)
         assertEquals(
-            "7815390f6526f6155d2c076aec4a07819cb9ae108ef8e55806d5f6d288b98f72",
+            "1e565ccc03daaca3c0be819c4420febf6c6164be8e38f128ae2108210568e7fa",
             revisions.semanticCanonicalMetadataRevision
         )
         assertEquals(
@@ -132,12 +132,12 @@ class ExerciseMetadataFieldRegistryContractTest {
             revisions.metadataDisplayDictionaryRevision
         )
         assertTrue(
-                Regex("version\\s*=\\s*41").containsMatchIn(
+                Regex("version\\s*=\\s*42").containsMatchIn(
                 File("src/main/java/com/training/trackplanner/data/TrainingDatabase.kt")
                     .readText(Charsets.UTF_8)
             )
         )
-        assertEquals(14, RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION)
-        assertEquals(13, RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION)
+        assertEquals(15, RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION)
+        assertEquals(14, RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION)
     }
 }

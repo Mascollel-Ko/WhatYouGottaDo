@@ -17,13 +17,15 @@ data class BCoachPostConfirmOutcome(
     val nextReps: Int? = null,
     val nextSets: Int? = null,
     val selectedAction: String? = null,
-    val detail: String? = null
+    val detail: String? = null,
+    val loadsBySetIndex: Map<Int, Double> = emptyMap(),
+    val repsBySetIndex: Map<Int, Int> = emptyMap(),
+    val omittedSetIndex: Int? = null
 ) {
     val wasApplied: Boolean get() = status == "NEXT_LINKED_UPDATED"
 }
 
 internal object BCoachPostConfirmLinkResolver {
-    private const val SQUAT = BCoachLinkedSquatWeekPlanner.SQUAT
 
     data class Target(val status: String, val targetEntryId: Long? = null)
 
@@ -34,7 +36,7 @@ internal object BCoachPostConfirmLinkResolver {
         links: List<ProgramWorkoutLink>
     ): Target {
         val source = records.singleOrNull { it.entry.id == sourceEntryId } ?: return Target("SOURCE_MISSING")
-        if (source.entry.exerciseStableKey != SQUAT) return Target("NOT_SQUAT")
+        if (source.entry.exerciseStableKey !in BCoachConfirmedLiftModel.keys) return Target("UNSUPPORTED_LIFT")
         val sourceDate = runCatching { LocalDate.parse(source.entry.date) }.getOrNull()
             ?: return Target("SOURCE_DATE_INVALID")
         if (sourceDate > asOf) return Target("SOURCE_IN_FUTURE")
@@ -50,7 +52,7 @@ internal object BCoachPostConfirmLinkResolver {
         val matchedLink = checkNotNull(matched.link)
         val target = records.singleOrNull { it.entry.id == matchedLink.entryId }
             ?: return Target("TARGET_MISSING")
-        if (target.entry.exerciseStableKey != SQUAT) return Target("TRACK_EXERCISE_MISMATCH")
+        if (target.entry.exerciseStableKey != source.entry.exerciseStableKey) return Target("TRACK_EXERCISE_MISMATCH")
         val targetDate = runCatching { LocalDate.parse(target.entry.date) }.getOrNull()
             ?: return Target("TARGET_DATE_INVALID")
         if (targetDate < asOf || targetDate < sourceDate) return Target("TARGET_DATE_NOT_FUTURE")

@@ -68,6 +68,10 @@ class BadmintonPracticeLoadCalculator(
         exerciseMap: Map<String, Exercise>
     ): Double = contribution(entriesWithSets, exerciseMap).load
 
+    /** Same duration/RPE policy for structured badminton drill evidence. */
+    fun practiceLoad(durationMinutes: Double, rpe: Double?): Double =
+        durationMinutes.coerceAtLeast(0.0) * badmintonIntensityFactor(rpe)
+
     /** Per-entry form of the same policy used by calculateRaw; summing it is lossless. */
     fun entryContributions(
         entriesWithSets: List<WorkoutEntryWithSets>,

@@ -928,6 +928,33 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate41To42AddsV22LoadProvenanceToProgramAndWorkoutSets() {
+        helper.createDatabase(TEST_DB_41_42, 41).close()
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_41_42, 42, true, TrainingDatabase.MIGRATION_41_42
+        ).use { database ->
+            listOf("workout_sets", "training_program_item_sets").forEach { table ->
+                val columns = buildMap<String, String?> {
+                    database.query("PRAGMA table_info(`$table`)").use { cursor ->
+                        val nameIndex = cursor.getColumnIndexOrThrow("name")
+                        val defaultIndex = cursor.getColumnIndexOrThrow("dflt_value")
+                        while (cursor.moveToNext()) put(
+                            cursor.getString(nameIndex),
+                            cursor.getString(defaultIndex)
+                        )
+                    }
+                }
+                check(setOf(
+                    "estimatedLoadKg", "loadSource", "freshRir", "expectedRir",
+                    "relativeIntensity", "evidenceVersion"
+                ).all(columns::containsKey))
+                check(columns["loadSource"]?.contains("LEGACY_UNKNOWN") == true)
+            }
+        }
+    }
+
     private fun SupportSQLiteDatabase.foreignKeyTarget(table: String, column: String): String? =
         query("PRAGMA foreign_key_list(`$table`)").use { cursor ->
             val tableIndex = cursor.getColumnIndexOrThrow("table")
@@ -1023,6 +1050,7 @@ class TrainingDatabaseMigrationTest {
         const val TEST_DB_27_28 = "training-migration-27-28-test"
         const val TEST_DB_28_29 = "training-migration-28-29-test"
         const val TEST_DB_29_30 = "training-migration-29-30-test"
+        const val TEST_DB_41_42 = "training-migration-41-42-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

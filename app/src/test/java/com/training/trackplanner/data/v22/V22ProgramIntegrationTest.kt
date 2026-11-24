@@ -14,10 +14,14 @@ import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingRepository
+import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.skeletonFromProgram
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,6 +44,51 @@ class V22ProgramIntegrationTest {
 
     @After
     fun closeDatabases() = databases.forEach(TrainingDatabase::close)
+
+    @Test
+    fun `profile squat and deadlift PRs are lower priority load priors on the equipment grid`() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build().also(databases::add)
+        db.initialUserProfileDao().upsert(InitialUserProfile(squatKg = 170.0, deadliftKg = 210.0))
+        val registry = StrengthPerformanceRegistry.fromContext(context)
+        val reader = BCoachV2LoadEvidenceReader(
+            db.strengthPosteriorDao(), registry, RepetitionCurveRegistry.fromContext(context),
+            db.initialUserProfileDao()
+        )
+        val squatKey = registry.target(StrengthPerformanceRegistry.BACK_SQUAT)!!.anchorStableKeys.first()
+        val deadliftKey = registry.target(StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT)!!.anchorStableKeys.first()
+        val snapshots = reader.read(LocalDate.of(2026, 11, 15), emptyList(), setOf(squatKey, deadliftKey))
+
+        assertEquals("PROFILE_PR_PRIOR", snapshots.getValue(squatKey).tier)
+        assertEquals(170.0, snapshots.getValue(squatKey).capacityBase, 0.0)
+        assertEquals(210.0, snapshots.getValue(deadliftKey).capacityBase, 0.0)
+        assertTrue(snapshots.values.all { it.sourceVersion.startsWith("PROFILE_PR_PRIOR|") })
+
+        val request = ProgramSkeletonRequest(
+            "profile prior", ProgramGoal.FUNCTIONAL_CONDITIONING, 1, 60, setOf("BARBELL"),
+            "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1
+        )
+        val plan = GeneratedProgramSkeleton(
+            "profile prior", 7, request, ProgramPeriodizationType.AUTO, emptyList(),
+            listOf(ProgramSkeletonItem(
+                "squat", 1, 1, 1, squatKey, "Squat", "Strength", 120, "test",
+                3, 5, 0.0, 0, "test", "USER_CALIBRATION_REQUIRED",
+                setPrescriptions = List(3) { index -> ProgramSetPrescription(
+                    index + 1, 5, 0.0, 0, loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+                ) }
+            )), mapOf(1 to setOf(1))
+        )
+        val resolution = BCoachV2LoadCandidateResolver.resolve(
+            plan,
+            V22GenerationRequest("profile prior", 1, 1, V22Mode.B, LocalDate.of(2026, 11, 15),
+                bShadowPlateOneSideKg = 1.25),
+            emptyList(), mapOf(squatKey to Exercise(
+                stableKey = squatKey, name = "Squat", category = "Strength", equipment = "BARBELL"
+            )), snapshots, setOf(squatKey)
+        )
+        val estimate = requireNotNull(resolution.skeleton.items.single().setPrescriptions.first().estimatedLoadKg)
+        assertEquals(0.0, estimate % 2.5, 1e-9)
+    }
 
     @Test
     fun `generated plan saves and applies through existing program session and progression paths`() = runBlocking {
@@ -158,26 +207,68 @@ class V22ProgramIntegrationTest {
             generationRequest, emptyList(), mapOf(exercise.stableKey to exercise),
             baseline = skeleton(2), candidate = skeleton(3)
         )
-        val accepted = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.candidateFingerprint), outcome.skeleton
+        val proposal = requireNotNull(outcome.proposal)
+        val reviewed = outcome.decision.alternatives.map { alternative ->
+            alternative to requireNotNull(proposal.candidateForReview(alternative.candidateId)).items.single()
+        }.first { (_, item) -> item.dayOfWeek == 1 && item.weekNumber == 1 && item.setCount != 2 }
+        val reviewedSetCount = reviewed.second.setCount
+        val accepted = proposal.accept(
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton, reviewed.first.candidateId
         )
         val acceptedSkeleton = requireNotNull(accepted.skeleton)
-        assertEquals(3, acceptedSkeleton.items.single().setCount)
+        assertEquals(reviewedSetCount, acceptedSkeleton.items.single().setCount)
+        val calibratedSkeleton = acceptedSkeleton.copy(items = acceptedSkeleton.items.map { item ->
+            item.copy(
+                weightKg = 100.0,
+                weightSource = "B_BLOCK_USER_OVERRIDE",
+                setPrescriptions = item.setPrescriptions.map { set ->
+                    set.copy(weightKg = 100.0, loadState = ProgramLoadState.EXPLICIT_LOAD)
+                }
+            )
+        })
 
         val repository = TrainingRepository(db, context)
-        val programId = repository.saveGeneratedProgram(null, acceptedSkeleton)
+        val programId = repository.saveGeneratedProgram(null, calibratedSkeleton)
         val reopened = skeletonFromProgram(repository.programEditorSnapshot(programId))
-        assertEquals(3, reopened.items.single().setCount)
+        assertEquals(reviewedSetCount, reopened.items.single().setCount)
+        assertTrue(reopened.items.single().setPrescriptions.all {
+            it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
+        })
         assertTrue(reopened.planningMetadataJson.orEmpty()
-            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
+            .contains("ACCEPTED_AND_PERSISTED"))
+
+        val staleEntryId = db.workoutDao().insertEntry(WorkoutEntry(
+            date = "2026-11-13", exerciseStableKey = exercise.stableKey,
+            exerciseName = exercise.name, category = exercise.category, completedAt = 2L
+        ))
+        db.workoutDao().insertSet(WorkoutSet(
+            entryId = staleEntryId, setIndex = 1, reps = 5, weightKg = 100.0,
+            rpe = 8.0, confirmed = true, manualWeight = true
+        ))
+        val countBeforeRejectedSave = db.programDao().countPrograms()
+        val staleSave = runCatching { repository.saveGeneratedProgram(null, calibratedSkeleton) }
+            .exceptionOrNull()
+        assertEquals("B_COACH_ACCEPTANCE_HISTORY_STALE", staleSave?.message)
+        assertEquals(countBeforeRejectedSave, db.programDao().countPrograms())
+        repository.saveGeneratedProgram(programId, reopened.copy(
+            suggestedName = "review integration renamed",
+            request = reopened.request.copy(name = "review integration renamed")
+        ))
+        assertEquals("review integration renamed", db.programDao().findProgram(programId)?.name)
 
         repository.applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
         val applied = db.workoutDao().entriesWithSets("2026-11-16").single()
         assertEquals(exercise.stableKey, applied.entry.exerciseStableKey)
-        assertEquals(3, applied.sets.size)
+        assertEquals(reviewedSetCount, applied.sets.size)
         assertTrue(applied.sets.all {
-            !it.confirmed && it.weightKg == 0.0 && it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
+            !it.confirmed && it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
         })
+        val applicationAudit = JSONObject(requireNotNull(
+            db.programDao().findProgram(programId)?.planningMetadataJson
+        )).getJSONObject("bCoachMultiobjectiveDecision").getJSONObject("applicationRecoveryAudit")
+        assertEquals("2026-11-16", applicationAudit.getString("planningStartDate"))
+        assertEquals("RECALCULATED_FOR_APPLICATION_START", applicationAudit.getString("status"))
+        assertTrue(applicationAudit.getJSONObject("scoresByScenario").getDouble("BASE") in 0.0..1.0)
     }
 
     @Test
@@ -326,7 +417,7 @@ class V22ProgramIntegrationTest {
             "Expected the joint whole-block candidate to require explicit review"
         }
         val acceptance = proposal.accept(
-            requireNotNull(generated.bCoachMultiobjectiveDecision?.candidateFingerprint),
+            requireNotNull(generated.bCoachMultiobjectiveDecision?.proposalFingerprint),
             generated.skeleton
         )
         assertTrue(acceptance.accepted)
@@ -388,7 +479,7 @@ class V22ProgramIntegrationTest {
         assertEquals(45, reopened.durationDays)
         assertEquals(7, reopened.weekPlans.size)
         assertTrue(reopened.planningMetadataJson.orEmpty()
-            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
+            .contains("ACCEPTED_AND_PERSISTED"))
         assertTrue(reopened.items.any {
             it.weekNumber == next.weekNumber && it.dayOfWeek == next.dayOfWeek &&
                 it.exerciseStableKey == next.exerciseStableKey &&

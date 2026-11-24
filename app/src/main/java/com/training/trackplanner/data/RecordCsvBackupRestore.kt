@@ -181,7 +181,13 @@ data class RestoreSetRow(
     val secondaryWeightKg: Double? = null,
     val setRestSecondsOverride: Int? = null,
     val setLoadState: ProgramLoadState? = null,
-    val targetRpeMin: Double? = null
+    val targetRpeMin: Double? = null,
+    val estimatedLoadKg: Double? = null,
+    val loadSource: ProgramLoadSource? = null,
+    val freshRir: Double? = null,
+    val expectedRir: Double? = null,
+    val relativeIntensity: Double? = null,
+    val evidenceVersion: String? = null
 )
 
 data class ProgramBackupItem(
@@ -215,7 +221,13 @@ data class ProgramBackupItemSet(
     val weightKg: Double,
     val seconds: Int,
     val targetRpeMin: Double? = null,
-    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD
+    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD,
+    val estimatedLoadKg: Double? = null,
+    val loadSource: ProgramLoadSource = ProgramLoadSource.LEGACY_UNKNOWN,
+    val freshRir: Double? = null,
+    val expectedRir: Double? = null,
+    val relativeIntensity: Double? = null,
+    val evidenceVersion: String? = null
 )
 
 data class RestoreProgramSnapshot(
@@ -245,9 +257,9 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 13
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 14
-    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 5
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 14
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 15
+    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 6
     internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
@@ -276,6 +288,12 @@ object RecordCsvBackupRestore {
         "set_manual_weight",
         "set_rest_seconds_override",
         "set_load_state",
+        "set_estimated_load_kg",
+        "set_load_source",
+        "set_fresh_rir",
+        "set_expected_rir",
+        "set_relative_intensity",
+        "set_evidence_version",
         "reps",
         "weight_kg",
         "secondary_weight_kg",
@@ -409,6 +427,12 @@ object RecordCsvBackupRestore {
         "program_task_protocol_semantics_json",
         "target_rpe_min",
         "program_set_load_state",
+        "program_set_estimated_load_kg",
+        "program_set_load_source",
+        "program_set_fresh_rir",
+        "program_set_expected_rir",
+        "program_set_relative_intensity",
+        "program_set_evidence_version",
         "program_tombstone_deleted_at",
         "program_tombstone_seed_version"
     )
@@ -575,7 +599,13 @@ object RecordCsvBackupRestore {
                         "weight_kg" to set.weightKg.formatNumber(),
                         "seconds" to set.seconds.toString(),
                         "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty(),
-                        "program_set_load_state" to set.loadState.name
+                        "program_set_load_state" to set.loadState.name,
+                        "program_set_estimated_load_kg" to set.estimatedLoadKg?.formatNumber().orEmpty(),
+                        "program_set_load_source" to set.loadSource.name,
+                        "program_set_fresh_rir" to set.freshRir?.formatNumber().orEmpty(),
+                        "program_set_expected_rir" to set.expectedRir?.formatNumber().orEmpty(),
+                        "program_set_relative_intensity" to set.relativeIntensity?.formatNumber().orEmpty(),
+                        "program_set_evidence_version" to set.evidenceVersion.orEmpty()
                     )
                 )
             }
@@ -854,6 +884,12 @@ object RecordCsvBackupRestore {
                                 "set_manual_weight" to set.manualWeight.toCsvBool(),
                                 "set_rest_seconds_override" to set.restSecondsOverride?.toString().orEmpty(),
                                 "set_load_state" to set.loadState.name,
+                                "set_estimated_load_kg" to set.estimatedLoadKg?.formatNumber().orEmpty(),
+                                "set_load_source" to set.loadSource.name,
+                                "set_fresh_rir" to set.freshRir?.formatNumber().orEmpty(),
+                                "set_expected_rir" to set.expectedRir?.formatNumber().orEmpty(),
+                                "set_relative_intensity" to set.relativeIntensity?.formatNumber().orEmpty(),
+                                "set_evidence_version" to set.evidenceVersion.orEmpty(),
                                 "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty(),
                                 "reps" to set.reps.toString(),
                                 "weight_kg" to set.weightKg.formatNumber(),
@@ -1229,7 +1265,15 @@ object RecordCsvBackupRestore {
                         targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin(),
                         loadState = row.value(index, "program_set_load_state").takeIf(String::isNotBlank)
                             ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() }
-                            ?: ProgramLoadState.EXPLICIT_LOAD
+                            ?: ProgramLoadState.EXPLICIT_LOAD,
+                        estimatedLoadKg = row.safeDouble(index, "program_set_estimated_load_kg"),
+                        loadSource = row.value(index, "program_set_load_source").takeIf(String::isNotBlank)
+                            ?.let { runCatching { ProgramLoadSource.valueOf(it) }.getOrNull() }
+                            ?: ProgramLoadSource.LEGACY_UNKNOWN,
+                        freshRir = row.safeDouble(index, "program_set_fresh_rir"),
+                        expectedRir = row.safeDouble(index, "program_set_expected_rir"),
+                        relativeIntensity = row.safeDouble(index, "program_set_relative_intensity"),
+                        evidenceVersion = row.value(index, "program_set_evidence_version").ifBlank { null }
                     )
                     return@forEachIndexed
                 }
@@ -1504,7 +1548,14 @@ object RecordCsvBackupRestore {
                         setRestSecondsOverride = row.safeInt(index, "set_rest_seconds_override"),
                         setLoadState = if (rowLoadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && rowWeight > 0.0)
                             ProgramLoadState.EXPLICIT_LOAD else rowLoadState,
-                        targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin()
+                        targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin(),
+                        estimatedLoadKg = row.safeDouble(index, "set_estimated_load_kg"),
+                        loadSource = row.value(index, "set_load_source").takeIf(String::isNotBlank)
+                            ?.let { runCatching { ProgramLoadSource.valueOf(it) }.getOrNull() },
+                        freshRir = row.safeDouble(index, "set_fresh_rir"),
+                        expectedRir = row.safeDouble(index, "set_expected_rir"),
+                        relativeIntensity = row.safeDouble(index, "set_relative_intensity"),
+                        evidenceVersion = row.value(index, "set_evidence_version").ifBlank { null }
                     )
                 }
                 "check_in" -> {

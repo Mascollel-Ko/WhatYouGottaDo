@@ -1,5 +1,5 @@
 {
-  "authorityWorkbookSha256": "dc1ad7857244e84f7d0cb582033d69ca04f4b6cc3af979804e8b31239920a06b",
+  "authorityWorkbookSha256": "995ec96c9f854bb68549a3a2fec56184ce8194af0ab24efae58a46964f14b15b",
   "counts": {
     "bootstrapRows": 254,
     "displayRows": 1830,
@@ -20,7 +20,7 @@
       ],
       "rowCount": 281,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "b78517c0e423f0ca19d2acf8f1d6fe24038298145136320cf70723822e0c4eca"
+      "sha256": "c3e9f557728a25578429ec4cbd4781ae5a44e3446e7899e5bda12c849ef5a1e1"
     },
     {
       "path": "badminton_relations.csv",
@@ -29,7 +29,7 @@
       ],
       "rowCount": 1872,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "0a1d38aa766a8271e5513678ed9e6903bc207b5baf55792da2bb8f3694fdf77a"
+      "sha256": "f50bb3459149f185369ecab66901e2f33f993899a2ec448559145670b2598fba"
     },
     {
       "path": "core_relations.csv",
@@ -58,7 +58,7 @@
       ],
       "rowCount": 254,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "195b488ec153769093427f6aabaf5de12c92f23f7864f191e0593baa1b150608"
+      "sha256": "901a381ecda0094fe623808516b813a39d0659ca27240a2c66851023a88ba4b7"
     },
     {
       "path": "history_identity.csv",
@@ -188,7 +188,7 @@
       ],
       "rowCount": 254,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "c097b366cba89e7c8bf16e89ba1c68f755e4ca92a8a36418ca33199ba219fd3d"
+      "sha256": "c84bd9926946012e21fa1ec03c1901676388c52a61e2e2331d0ce97bba1838c7"
     },
     {
       "path": "strength_proxy_relations.csv",

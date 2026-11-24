@@ -503,4 +503,8 @@
     <string name="cloud_conflict_completed">Complete. Backup lineage now follows the data you chose.</string>
     <string name="cloud_conflict_error">The operation did not complete. Error: %1$s</string>
     <string name="cloud_continue">Continue</string>
+    <string name="program_show_item_controls">Schedule, order and links</string>
+    <string name="program_close_item_controls">Close controls</string>
+    <string name="program_pair_load">%1$s kg each (%2$s kg total)</string>
+    <string name="program_pair_input">Combined weight</string>
 </resources>

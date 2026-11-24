@@ -757,15 +757,15 @@ internal fun Exercise.matchesMetadataQuery(
     }
     val metadataAliases = catalogue?.let { display ->
         listOf(
-            MetadataDisplayField.FORCE_TYPE to forceType,
-            MetadataDisplayField.MOVEMENT_PATTERN to movementPattern,
-            MetadataDisplayField.MOVEMENT_CATEGORY to movementCategory,
-            MetadataDisplayField.EQUIPMENT to equipment,
-            MetadataDisplayField.MOVEMENT_FAMILY to runtime?.movementFamily.orEmpty(),
-            MetadataDisplayField.PROGRAM_SLOT to runtime?.programSlot.orEmpty()
+            "exercise.forceType" to forceType,
+            "exercise.movementPattern" to movementPattern,
+            "exercise.movementCategory" to movementCategory,
+            "exercise.equipment" to equipment,
+            "runtime.movementFamily" to runtime?.movementFamily.orEmpty(),
+            "runtime.programSlot" to runtime?.programSlot.orEmpty()
         ).flatMap { (field, raw) ->
             raw.split('|', ',', ';').filter(String::isNotBlank)
-                .flatMap { code -> display.option(field, code.trim()).searchAliases }
+                .flatMap { code -> translator.option(field, code.trim()).searchAliases }
         }
     }.orEmpty()
     return ExerciseSearchMatcher.matchesAny(ordinary + muscleAliases + metadataAliases, query)

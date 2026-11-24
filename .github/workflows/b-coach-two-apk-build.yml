@@ -1,0 +1,212 @@
+name: B-Coach Two Signed APKs
+on:
+  push:
+    branches:
+      - feat/b-coach-v2-global-optimizer
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build signed debug and performance APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Stamp CI build start for installed APK
+        run: echo "APP_BUILD_TIMESTAMP_UTC=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Restore CI debug keystore
+        env:
+          ANDROID_CI_KEYSTORE_B64: ${{ secrets.ANDROID_CI_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_CI_KEYSTORE_B64:-}" || {
+            echo "::error::ANDROID_CI_KEYSTORE_B64 is not configured"
+            exit 1
+          }
+          keystore="$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          printf '%s' "$ANDROID_CI_KEYSTORE_B64" | base64 --decode > "$keystore"
+          test -s "$keystore" || {
+            echo "::error::CI debug keystore decode produced an empty file"
+            exit 1
+          }
+          chmod 600 "$keystore"
+
+      - name: Verify CI debug keystore credentials
+        env:
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_CI_KEYSTORE_PASSWORD:-}" || {
+            echo "::error::ANDROID_CI_KEYSTORE_PASSWORD is not configured"
+            exit 1
+          }
+          test -n "${ANDROID_CI_KEY_ALIAS:-}" || {
+            echo "::error::ANDROID_CI_KEY_ALIAS is not configured"
+            exit 1
+          }
+          test -n "${ANDROID_CI_KEY_PASSWORD:-}" || {
+            echo "::error::ANDROID_CI_KEY_PASSWORD is not configured"
+            exit 1
+          }
+          keytool -list -v \
+            -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
+            -alias "$ANDROID_CI_KEY_ALIAS" \
+            '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD > /dev/null
+
+      - name: Verify Google Web Client ID configuration
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${GOOGLE_WEB_CLIENT_ID:-}" || {
+            echo "::error::GOOGLE_WEB_CLIENT_ID repository variable is not configured"
+            exit 1
+          }
+          test -n "${SUPABASE_PUBLISHABLE_KEY:-}" || {
+            echo "::error::SUPABASE_PUBLISHABLE_KEY repository secret is not configured"
+            exit 1
+          }
+          echo "Google Web Client ID configured: yes"
+          echo "Supabase publishable key configured: yes"
+
+      - name: Assemble debug APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew assembleDebug -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify CI debug APK signer
+        env:
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$apk" || {
+            echo "::error::No debug APK was produced"
+            exit 1
+          }
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$apksigner" || {
+            echo "::error::Android apksigner was not found"
+            exit 1
+          }
+          certs="$RUNNER_TEMP/whatyougottado-ci-debug-apksigner.txt"
+          "$apksigner" verify --print-certs "$apk" > "$certs" 2>&1
+          expected="$(keytool -list -v \
+            -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
+            -alias "$ANDROID_CI_KEY_ALIAS" \
+            '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD |
+            awk -F': ' '/SHA1:/{print $2; exit}' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          actual="$(grep -i -m1 'SHA-1 digest:' "$certs" |
+            sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test -n "$expected" || {
+            echo "::error::Could not derive the CI keystore SHA-1"
+            exit 1
+          }
+          test -n "$actual" || {
+            echo "::error::APK signer certificate SHA-1 was not reported"
+            exit 1
+          }
+          test "$expected" = "$actual" || {
+            echo "::error::APK signer SHA-1 does not match the CI keystore"
+            exit 1
+          }
+          {
+            echo "## Android CI debug signing certificate"
+            echo
+            echo "SHA-1: $expected"
+            echo
+            echo "Package: com.whatyougottado.app"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhatYouGottaDo-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      # Build the installable R8-optimized performance variant after successful
+      # tests for every PR, main/tag push, and manual run; do not silently skip
+      # the artifact while reporting a fully green APK workflow. This is signed
+      # with the CI debug certificate, not a production publishing credential.
+
+      - name: Assemble optimized performance APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew :app:assemblePerf -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify optimized performance APK is signed and not debuggable
+        run: |
+          set -euo pipefail
+          perf_apk="$(find app/build/outputs/apk/perf -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          debug_apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$perf_apk" && test -s "$debug_apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          test -x "$apksigner" && test -x "$aapt"
+          "$apksigner" verify --print-certs "$perf_apk" > "$RUNNER_TEMP/perf-certs.txt"
+          "$apksigner" verify --print-certs "$debug_apk" > "$RUNNER_TEMP/debug-certs.txt"
+          digest() {
+            grep -i -m1 'SHA-1 digest:' "$1" |
+              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+              tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]'
+          }
+          perf_digest="$(digest "$RUNNER_TEMP/perf-certs.txt")"
+          debug_digest="$(digest "$RUNNER_TEMP/debug-certs.txt")"
+          test -n "$perf_digest" && test "$perf_digest" = "$debug_digest" || {
+            echo "::error::Optimized and debug APK signatures differ"
+            exit 1
+          }
+          badging="$("$aapt" dump badging "$perf_apk")"
+          echo "$badging" | grep -q "^package: name='com.whatyougottado.app'" || {
+            echo "::error::Performance APK uses the wrong application ID"
+            exit 1
+          }
+          if echo "$badging" | grep -q '^application-debuggable'; then
+            echo "::error::Performance build must not be debuggable"
+            exit 1
+          fi
+          {
+            echo '## Optimized performance APK'
+            echo 'Not debuggable; R8 minification enabled; CI test signing matches the debug APK.'
+            echo 'For scrolling comparison only. Not a publishing artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload optimized performance APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhatYouGottaDo-performance-apk
+          path: app/build/outputs/apk/perf/*.apk
+          if-no-files-found: error

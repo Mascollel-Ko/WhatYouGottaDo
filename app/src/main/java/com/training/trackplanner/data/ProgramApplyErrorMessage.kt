@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteException
 import java.io.IOException
 
 internal enum class ProgramApplyFailureReason {
-    PROGRAM_MISSING, NO_EXERCISES, INVALID_DATE, INVALID_STRUCTURE
+    PROGRAM_MISSING, NO_EXERCISES, INVALID_DATE, INVALID_STRUCTURE, METADATA_UNAVAILABLE
 }
 
 internal class ProgramApplyException(val reason: ProgramApplyFailureReason) :
@@ -24,6 +24,8 @@ internal object ProgramApplyErrorMessage {
                 "시작 날짜 또는 프로그램 기간이 올바르지 않습니다. 날짜를 다시 선택해 주세요."
             ProgramApplyFailureReason.INVALID_STRUCTURE ->
                 "운동의 주차·요일 설정이 프로그램 기간과 맞지 않습니다. 프로그램을 수정한 뒤 다시 시도해 주세요."
+            ProgramApplyFailureReason.METADATA_UNAVAILABLE ->
+                "배드민턴 회복 계산 기준을 읽지 못해 계획을 적용하지 않았습니다. 앱을 다시 열어 시도해 주세요."
             null -> when {
                 generateSequence(error) { it.cause }.any { it is SQLiteFullException } ->
                     "휴대폰 저장 공간이 부족하여 계획을 저장하지 못했습니다. 공간을 확보한 뒤 다시 시도해 주세요."
