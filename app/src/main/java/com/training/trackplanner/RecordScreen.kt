@@ -61,12 +61,21 @@ import kotlinx.coroutines.flow.map
 
 internal enum class RecordDetailOrigin { Normal, Calendar }
 
+internal object RecordTimerAddExercisePolicy {
+    fun available(records: List<WorkoutEntryWithSets>): Boolean =
+        records.isNotEmpty() && records.all { record ->
+            record.sets.isNotEmpty() && record.sets.all { set -> set.confirmed }
+        }
+}
+
 @Composable
 internal fun RecordScreen(
     viewModel: TrainingViewModel,
     restTimerSessionController: RestTimerSessionController,
     target: RestTimerTarget?,
     onOpenPlan: () -> Unit,
+    timerAddExerciseRequest: Int = 0,
+    onTimerAddExerciseAvailabilityChanged: (Boolean) -> Unit = {},
     showOnboardingWorkoutTarget: Boolean = false,
     onWorkoutTargetPositioned: (Rect) -> Unit = {}
 ) {
@@ -112,6 +121,9 @@ internal fun RecordScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.stableKey } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
+    var handledTimerAddExerciseRequest by rememberSaveable {
+        mutableStateOf(timerAddExerciseRequest)
+    }
     var watchImportEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var watchImportAutomatic by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(selectedDate) { watchImportEntryId = null }
@@ -129,6 +141,20 @@ internal fun RecordScreen(
     var pendingAddedAfterConfirmed by rememberSaveable { mutableStateOf(false) }
     val showPermissionHint = timerState.isActive &&
         (timerState.notificationPermissionNeeded || timerState.exactAlarmPermissionNeeded || !timerState.overlayPermissionGranted)
+    val timerAddExerciseAvailable = remember(entries, showCalendar) {
+        !showCalendar && RecordTimerAddExercisePolicy.available(entries)
+    }
+
+    LaunchedEffect(timerAddExerciseAvailable) {
+        onTimerAddExerciseAvailabilityChanged(timerAddExerciseAvailable)
+    }
+
+    LaunchedEffect(timerAddExerciseRequest) {
+        if (timerAddExerciseRequest > handledTimerAddExerciseRequest) {
+            handledTimerAddExerciseRequest = timerAddExerciseRequest
+            showExercisePicker = true
+        }
+    }
 
     LaunchedEffect(showOnboardingWorkoutTarget, sortedEntries, showPermissionHint) {
         if (showOnboardingWorkoutTarget && sortedEntries.isNotEmpty()) {

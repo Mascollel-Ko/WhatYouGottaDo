@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,7 +64,9 @@ internal object RestTimerForegroundBarPolicy {
 internal fun RestTimerForegroundBar(
     state: RestTimerState,
     onOpenTarget: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    showAddExercise: Boolean = false,
+    onAddExercise: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val nextHint = RestTimerPresentation.nextSetHint(context, state)
@@ -114,6 +117,18 @@ internal fun RestTimerForegroundBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+                if (showAddExercise) {
+                    Button(
+                        onClick = onAddExercise,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.record_add_exercise),
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
                 IconButton(
                     modifier = Modifier.size(36.dp),

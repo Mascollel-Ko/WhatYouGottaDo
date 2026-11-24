@@ -132,6 +132,8 @@ internal fun TrainingTrackPlannerApp(
     var recordTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
     var recordTargetRequestId by remember { mutableStateOf(0L) }
     var dismissedTimerIdentity by rememberSaveable { mutableStateOf<String?>(null) }
+    var timerAddExerciseAvailable by remember { mutableStateOf(false) }
+    var timerAddExerciseRequest by rememberSaveable { mutableStateOf(0) }
     var onboardingStep by rememberSaveable { mutableStateOf<OnboardingStep?>(null) }
     var onboardingTarget by remember { mutableStateOf<Pair<OnboardingStep, Rect>?>(null) }
     var tutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
@@ -200,7 +202,9 @@ internal fun TrainingTrackPlannerApp(
                                 onDismiss = {
                                     dismissedTimerIdentity =
                                         RestTimerForegroundBarPolicy.presentationIdentity(timerState)
-                                }
+                                },
+                                showAddExercise = selectedTab == AppTab.Record && timerAddExerciseAvailable,
+                                onAddExercise = { timerAddExerciseRequest += 1 }
                             )
                         }
                         AppBottomNavigation(
@@ -262,6 +266,10 @@ internal fun TrainingTrackPlannerApp(
                             restTimerSessionController = restTimerSessionController,
                             target = recordTarget,
                             onOpenPlan = { selectedTab = AppTab.Plan },
+                            timerAddExerciseRequest = timerAddExerciseRequest,
+                            onTimerAddExerciseAvailabilityChanged = {
+                                timerAddExerciseAvailable = it
+                            },
                             showOnboardingWorkoutTarget =
                                 onboardingStep == OnboardingStep.RECORD_OVERVIEW,
                             onWorkoutTargetPositioned = { bounds ->

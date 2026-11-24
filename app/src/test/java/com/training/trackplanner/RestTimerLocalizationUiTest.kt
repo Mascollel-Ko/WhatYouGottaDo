@@ -7,7 +7,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.performClick
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,6 +46,7 @@ class RestTimerLocalizationUiTest {
         compose.onNodeWithText("Next: EZ-Bar Spider Curl · Set 2 ready").assertIsDisplayed()
         compose.onNodeWithText("Stop").assertIsDisplayed()
         compose.onNodeWithContentDescription("Hide rest timer bar").assertIsDisplayed()
+        compose.onAllNodesWithText("Add exercise").assertCountEquals(0)
     }
 
     @Test
@@ -59,5 +63,30 @@ class RestTimerLocalizationUiTest {
         }
         compose.onNodeWithText("Allow notifications").assertIsDisplayed()
         compose.onNodeWithText("Overlay settings").assertIsDisplayed()
+    }
+
+    @Test
+    fun foregroundTimerCanOpenTheExistingAddExerciseFlow() {
+        var clicked = false
+        var timerOpened = false
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                RestTimerForegroundBar(
+                    state = RestTimerState(
+                        isRunning = true,
+                        remainingSeconds = 30,
+                        totalSeconds = 60
+                    ),
+                    onOpenTarget = { timerOpened = true },
+                    onDismiss = {},
+                    showAddExercise = true,
+                    onAddExercise = { clicked = true }
+                )
+            }
+        }
+
+        compose.onNodeWithText("Add exercise").assertIsDisplayed().performClick()
+        assertTrue(clicked)
+        assertFalse(timerOpened)
     }
 }
