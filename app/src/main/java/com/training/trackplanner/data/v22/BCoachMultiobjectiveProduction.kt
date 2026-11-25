@@ -87,6 +87,44 @@ data class BCoachConstraintResult(
     val reasonCodes: List<String> = emptyList()
 )
 
+/**
+ * A preference still participates in evaluation and repair, but an unresolved
+ * preference alone must never make an otherwise usable program disappear.
+ * Preserve FAIL as evidence; do not relabel a violation as PASS.
+ */
+internal object BCoachConstraintReviewPolicy {
+    val reviewIds = setOf(
+        "SESSION_TIME_LIMIT", "SET_PRESCRIPTION_INTEGRITY", "MAIN_BEFORE_ASSISTANCE",
+        "FIXED_WEEKDAYS", "CONSECUTIVE_TRAINING_DAYS", "ALLOWED_WEEKDAYS"
+    )
+    fun requiresReview(result: BCoachConstraintResult): Boolean =
+        result.status == BCoachConstraintStatus.FAIL && result.id in reviewIds
+
+    fun blocks(result: BCoachConstraintResult): Boolean =
+        result.status == BCoachConstraintStatus.FAIL && result.id !in reviewIds
+
+    fun label(id: String): String = when (id) {
+        "SESSION_TIME_LIMIT" -> "훈련 시간"
+        "SET_PRESCRIPTION_INTEGRITY" -> "운동별 세트 수"
+        "MAIN_BEFORE_ASSISTANCE" -> "메인 운동 순서"
+        "FIXED_WEEKDAYS" -> "고정 요일"
+        "CONSECUTIVE_TRAINING_DAYS" -> "연속 훈련일"
+        "ALLOWED_WEEKDAYS" -> "허용 요일"
+        "SET_DATA_INVALID" -> "유효한 세트 데이터 없음"
+        "MEASURABLE_WORK_INTERVAL" -> "세트별 수행량"
+        "NO_RECREATIONAL_SPORT_SESSION" -> "일반 스포츠 세션"
+        "PROGRAM_BOUNDS" -> "프로그램 범위"
+        "NORMAL_TRAINING_MIN_TWO_SETS" -> "일반 운동 최소 세트"
+        "DUPLICATE_ORDER_SLOT" -> "운동 순서 중복"
+        "DUPLICATE_EXERCISE_SESSION" -> "동일 운동 중복"
+        "SESSION_SIMILAR_VARIANT_LIMIT" -> "유사 운동 중복"
+        "LOAD_STATE_VALID" -> "중량 데이터"
+        "REVIEWED_AUTOMATIC_EXERCISE" -> "자동 추가 운동 검토"
+        "USER_EXERCISE_LOCKS" -> "사용자 지정 운동"
+        else -> id
+    }
+}
+
 data class BCoachSessionTime(
     val warmupMinutes: Double,
     val setupAndTransitionMinutes: Double,
@@ -114,7 +152,9 @@ data class BCoachPlanAlternative(
     /** Structured review uses these codes without parsing the legacy summary text. */
     val changeSummary: List<String> = emptyList(),
     val sessionTimes: Map<Pair<Int, Int>, BCoachSessionTime> = emptyMap(),
-    val weeklyGoalGaps: Map<Int, List<BBalancedGoal>> = emptyMap()
+    val weeklyGoalGaps: Map<Int, List<BBalancedGoal>> = emptyMap(),
+    /** Actual unresolved review conditions for this exact alternative. */
+    val reviewConstraints: List<BCoachConstraintResult> = emptyList()
 )
 
 data class BCoachMultiobjectiveDecision(
@@ -583,6 +623,10 @@ internal object BCoachMultiobjectiveProduction {
         if (currentLinkedEvidenceFingerprint != originalLinked) {
             throw IllegalStateException("B_COACH_ACCEPTANCE_LINKED_EVIDENCE_STALE")
         }
+        if (skeleton.items.any { it.setCount <= 0 ||
+                ProgramSetPrescriptionResolver.resolve(it).size != it.setCount }) {
+            throw IllegalStateException("B_COACH_ACCEPTANCE_SET_DATA_INVALID")
+        }
         if (skeleton.items.flatMap(ProgramSetPrescriptionResolver::resolve).any { set ->
                 !set.weightKg.isFinite() || set.weightKg < 0.0 ||
                     (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && set.weightKg != 0.0)
@@ -667,7 +711,14 @@ internal object BCoachMultiobjectiveProduction {
     ): GeneratedProgramSkeleton {
         val root = runCatching { JSONObject(skeleton.planningMetadataJson ?: "{}") }
             .getOrElse { JSONObject() }
+        val chosenReviews = decision.alternatives.firstOrNull { it.candidateId == chosenAlternativeId }
+            ?.reviewConstraints.orEmpty()
+        fun reviewJson(reviews: List<BCoachConstraintResult>) = JSONArray(reviews.map { result ->
+            JSONObject().put("id", result.id).put("status", result.status.name)
+                .put("reasonCodes", JSONArray(result.reasonCodes))
+        })
         val decisionJson = JSONObject()
+            .put("chosenConstraintReview", reviewJson(chosenReviews))
             .put("engineVersion", decision.engineVersion)
             .put("policyVersion", decision.policyVersion)
             .put("coefficientSource", decision.coefficientSource)
@@ -734,6 +785,7 @@ internal object BCoachMultiobjectiveProduction {
                     .put("paretoFrontier", alternative.paretoFrontier)
                     .put("reasonCodes", JSONArray(alternative.reasonCodes))
                     .put("prescriptionSummary", JSONArray(alternative.prescriptionSummary))
+                    .put("reviewConstraints", reviewJson(alternative.reviewConstraints))
                     .put("axisScores", JSONObject().also { scores ->
                         alternative.axisScores.forEach { (axis, value) -> scores.put(axis.name, value) }
                     })
@@ -758,8 +810,14 @@ internal object BCoachMultiobjectiveProduction {
             planningMetadataJson = root.toString(),
             warnings = (skeleton.warnings.filterNot { it.startsWith("B-Coach 다목적 후보는") ||
                 it.startsWith("B-Coach는 현재 구성을 유지하며") ||
-                it.startsWith("사용자가 검토한 B-Coach 후보를") || it == BCoachV2Policy.DISCLAIMER } +
-                listOf(BCoachV2Policy.DISCLAIMER) + listOfNotNull(warning)).distinct()
+                it.startsWith("사용자가 검토한 B-Coach 후보를") ||
+                it.startsWith("B-Coach 생성 시 재검토 항목:") || it == BCoachV2Policy.DISCLAIMER } +
+                listOf(BCoachV2Policy.DISCLAIMER) + listOfNotNull(warning) +
+                if (chosenReviews.isEmpty()) emptyList() else listOf(
+                    "B-Coach 생성 시 재검토 항목: " + chosenReviews.joinToString(" · ") {
+                        BCoachConstraintReviewPolicy.label(it.id)
+                    }
+                )).distinct()
         )
     }
 

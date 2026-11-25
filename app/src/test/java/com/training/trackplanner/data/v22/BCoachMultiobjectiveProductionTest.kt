@@ -65,14 +65,51 @@ class BCoachMultiobjectiveProductionTest {
         assertEquals(LocalDate.of(2026, 11, 10), rows.single().date)
     }
 
-    @Test fun `T03 fixed weekdays are a hard constraint`() {
+    @Test fun `T03 fixed weekday conflict returns a reviewable candidate`() {
         val outcome = prepare(
             request = request().copy(fixedWeekdays = setOf(2)),
             baseline = skeleton(2, day = 1), candidate = skeleton(3, day = 1)
         )
-        assertEquals(BCoachProductionStatus.INPUT_CONFLICT, outcome.decision.status)
-        assertNull(outcome.proposal)
-        assertTrue(outcome.decision.hardConstraints.any { it.id == "FIXED_WEEKDAYS" })
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, outcome.decision.status)
+        assertTrue(outcome.proposal != null)
+        assertTrue(outcome.decision.alternatives.isNotEmpty())
+        assertTrue(outcome.decision.alternatives.all { alternative ->
+            alternative.reviewConstraints.any { it.id == "FIXED_WEEKDAYS" } ||
+                outcome.decision.hardConstraints.any {
+                    it.id == "FIXED_WEEKDAYS" && it.status == BCoachConstraintStatus.PASS
+                }
+        })
+    }
+
+    @Test fun `only the six named preferences are reviewable`() {
+        val review = setOf("SESSION_TIME_LIMIT", "SET_PRESCRIPTION_INTEGRITY", "MAIN_BEFORE_ASSISTANCE",
+            "FIXED_WEEKDAYS", "CONSECUTIVE_TRAINING_DAYS", "ALLOWED_WEEKDAYS")
+        val blocking = setOf("SET_DATA_INVALID", "PROGRAM_BOUNDS", "MEASURABLE_WORK_INTERVAL",
+            "NORMAL_TRAINING_MIN_TWO_SETS", "DUPLICATE_ORDER_SLOT", "DUPLICATE_EXERCISE_SESSION",
+            "SESSION_SIMILAR_VARIANT_LIMIT", "LOAD_STATE_VALID", "REVIEWED_AUTOMATIC_EXERCISE",
+            "USER_EXERCISE_LOCKS", "NO_RECREATIONAL_SPORT_SESSION")
+        assertEquals(review, BCoachConstraintReviewPolicy.reviewIds)
+        review.forEach { id ->
+            val failed = BCoachConstraintResult(id, BCoachConstraintStatus.FAIL)
+            assertTrue(BCoachConstraintReviewPolicy.requiresReview(failed))
+            assertFalse(BCoachConstraintReviewPolicy.blocks(failed))
+        }
+        blocking.forEach { id ->
+            assertTrue(BCoachConstraintReviewPolicy.blocks(BCoachConstraintResult(id, BCoachConstraintStatus.FAIL)))
+            assertFalse(BCoachConstraintReviewPolicy.requiresReview(BCoachConstraintResult(id, BCoachConstraintStatus.FAIL)))
+        }
+    }
+
+    @Test fun `unavoidable time overflow preserves an original roster candidate for review`() {
+        val outcome = prepare(request = request().copy(sessionMinutes = 1))
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, outcome.decision.status)
+        assertTrue(outcome.proposal != null)
+        assertEquals("EXPLICIT_USER_CONSTRAINT_REVIEW_REQUIRED", outcome.decision.fallbackReason)
+        assertTrue(outcome.decision.alternatives.isNotEmpty())
+        assertTrue(outcome.decision.alternatives.all { alternative ->
+            alternative.reviewConstraints.any { it.id == "SESSION_TIME_LIMIT" }
+        })
+        assertTrue(outcome.decision.hardConstraints.none(BCoachConstraintReviewPolicy::blocks))
     }
 
     @Test fun `T04 every week and day is checked for time overflow`() {
@@ -1784,6 +1821,63 @@ class BCoachMultiobjectiveProductionTest {
         assertTrue(BCoachSessionComposition.neighbors(locked, emptySet(), emptyMap()).isEmpty())
         assertTrue(evaluate(locked).hardConstraints.any { it.id == "SESSION_SIMILAR_VARIANT_LIMIT" &&
             it.status == BCoachConstraintStatus.FAIL })
+    }
+
+    @Test fun `primary muscle swaps compare different families without changing prescriptions`() {
+        val rows = listOf(
+            item("pull-main", 1, 4, 3, 8).copy(orderIndex = 1, movementFamily = "A", redundancyGroup = "A"),
+            item("pull-assist", 1, 4, 2, 8).copy(orderIndex = 2, movementFamily = "B", redundancyGroup = "B"),
+            item("core-main", 1, 6, 4, 10).copy(orderIndex = 1, movementFamily = "C", redundancyGroup = "C"),
+            item("core-assist", 1, 6, 2, 8).copy(orderIndex = 2, movementFamily = "D", redundancyGroup = "D")
+        )
+        val plan = skeleton(2).copy(items = rows)
+        val muscles = listOf(
+            relation("pull-main", "BACK_LATS", "PRIMARY"), relation("pull-assist", "BACK_LATS", "PRIMARY"),
+            relation("core-main", "ANTERIOR_CORE", "PRIMARY"), relation("core-assist", "ANTERIOR_CORE", "PRIMARY")
+        )
+        val mains = setOf("pull-main", "core-main")
+        val options = BCoachSessionComposition.neighbors(plan, mains, emptyMap(), muscleRelations = muscles)
+        val swapped = options.single { it.first.startsWith("SWAP_PRIMARY") }.second
+        assertEquals(6, swapped.items.single { it.exerciseStableKey == "pull-assist" }.dayOfWeek)
+        assertEquals(4, swapped.items.single { it.exerciseStableKey == "core-assist" }.dayOfWeek)
+        assertEquals(rows.associateBy { it.localId }, swapped.items.associate { row ->
+            val old = rows.single { it.localId == row.localId }
+            row.localId to row.copy(dayOfWeek = old.dayOfWeek, orderIndex = old.orderIndex)
+        })
+        assertEquals(rows.groupBy { it.dayOfWeek }.mapValues { (_, day) -> day.sumOf { it.setCount } },
+            swapped.items.groupBy { it.dayOfWeek }.mapValues { (_, day) -> day.sumOf { it.setCount } })
+        assertTrue(BCoachSessionComposition.neighbors(plan, mains, emptyMap(),
+            muscleRelations = muscles.map { it.copy(relationType = "SECONDARY") }).isEmpty())
+        assertTrue(BCoachSessionComposition.neighbors(plan, mains, emptyMap(),
+            muscleRelations = muscles.dropLast(1)).isEmpty())
+        val locked = plan.copy(items = rows.map {
+            if (it.exerciseStableKey == "pull-assist") it.copy(selectionReason = "USER_EXERCISE_LOCK") else it
+        })
+        assertTrue(BCoachSessionComposition.neighbors(locked, mains, emptyMap(),
+            muscleRelations = muscles).isEmpty())
+    }
+
+    @Test fun `primary muscle swaps repeat only within the matching block and week`() {
+        val rows = (1..3).flatMap { week -> listOf(
+            item("pull-main", week, 4, 3, 8).copy(orderIndex = 1),
+            item("pull-assist", week, 4, 2, 8).copy(orderIndex = 2),
+            item("core-main", week, 6, 4, 10).copy(orderIndex = 1),
+            item("core-assist", week, 6, 2, 8).copy(orderIndex = 2)
+        ) }
+        val plan = skeleton(2, weeks = 3).copy(items = rows)
+        val muscles = listOf(
+            relation("pull-main", "BACK_LATS", "PRIMARY"), relation("pull-assist", "BACK_LATS", "PRIMARY"),
+            relation("core-main", "ANTERIOR_CORE", "PRIMARY"), relation("core-assist", "ANTERIOR_CORE", "PRIMARY")
+        )
+        val calendar = BBlockCalendar(BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 2),
+            BBlockDefinition(weeks = 1))))
+        val options = BCoachSessionComposition.neighbors(plan, setOf("pull-main", "core-main"), emptyMap(),
+            calendar, muscles).filter { it.first.startsWith("SWAP_PRIMARY") }
+        assertEquals(2, options.size)
+        val firstBlock = options.single { it.first.startsWith("SWAP_PRIMARY_B0_") }.second
+        assertEquals(listOf(6, 6, 4), firstBlock.items.filter { it.exerciseStableKey == "pull-assist" }
+            .sortedBy { it.weekNumber }.map { it.dayOfWeek })
+        assertEquals(rows.map { it.localId to it.weekNumber }, firstBlock.items.map { it.localId to it.weekNumber })
     }
 
     @Test fun `accessory rep bounds follow the block purpose before resolving loads`() {

@@ -1,5 +1,7 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.CanonicalMetadataRelation
+import com.training.trackplanner.data.CanonicalRelationDomain
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
@@ -65,10 +67,90 @@ internal object BCoachSessionComposition {
         return excess.toDouble() / week.sumOf { it.setCount }.coerceAtLeast(1)
     }
 
+    // PRIMARY/PRIMARY is a distinct fatigue-distribution signal, not a new
+    // movement-family identity, dose discount or hard constraint.
+    internal fun primaryMuscles(relations: List<CanonicalMetadataRelation>): Map<String, Set<String>> =
+        relations.asSequence().filter {
+            it.domain == CanonicalRelationDomain.MUSCLE && it.relationType == "PRIMARY" &&
+                it.relationValue.isNotBlank() && it.relationValue !in missing
+        }.groupBy { it.exerciseStableKey }.mapValues { (_, rows) ->
+            rows.map { it.relationValue }.toSet()
+        }
+
+    private data class SwapPattern(
+        val block: Int, val dayA: Int, val keyA: String, val dayB: Int, val keyB: String
+    )
+    private data class SwapOccurrence(
+        val a: ProgramSkeletonItem, val b: ProgramSkeletonItem, val improvement: Int
+    )
+
+    // Compare complete two-way exchanges before pruning. A repeated pattern is
+    // applied to qualifying occurrences in the same block, never across weeks
+    // or block boundaries. Ranking is a search-budget heuristic only.
+    private fun primarySwapNeighbors(
+        plan: GeneratedProgramSkeleton, mains: Set<String>, calendar: BBlockCalendar?,
+        muscles: Map<String, Set<String>>
+    ): List<Pair<String, GeneratedProgramSkeleton>> {
+        if (muscles.isEmpty()) return emptyList()
+        fun shared(a: ProgramSkeletonItem, b: ProgramSkeletonItem): Int =
+            if (a.exerciseStableKey == b.exerciseStableKey) 0
+            else muscles[a.exerciseStableKey].orEmpty().intersect(muscles[b.exerciseStableKey].orEmpty()).size
+        fun overlap(day: List<ProgramSkeletonItem>): Int = day.indices.sumOf { i ->
+            (i + 1 until day.size).sumOf { j -> shared(day[i], day[j]) }
+        }
+        fun movable(day: List<ProgramSkeletonItem>) = day.filter { row ->
+            !isFixedInSession(row) && priority(row, mains) == 2 &&
+                day.any { other -> other.localId != row.localId && shared(row, other) > 0 }
+        }
+        val patterns = linkedMapOf<SwapPattern, MutableList<SwapOccurrence>>()
+        for ((week, rows) in plan.items.groupBy { it.weekNumber }.toSortedMap()) {
+            val days = rows.groupBy { it.dayOfWeek }.toSortedMap().entries.toList()
+            for (i in days.indices) for (j in i + 1 until days.size) {
+                val (dayA, aRows) = days[i]
+                val (dayB, bRows) = days[j]
+                val block = if (calendar == null) 0 else calendar.blockIndex(week, dayA) ?: continue
+                if (calendar != null && calendar.blockIndex(week, dayB) != block) continue
+                val beforeA = overlap(aRows)
+                val beforeB = overlap(bRows)
+                if (beforeA == 0 || beforeB == 0) continue
+                for (a in movable(aRows)) for (b in movable(bRows)) {
+                    if (a.exerciseStableKey == b.exerciseStableKey ||
+                        aRows.any { it.exerciseStableKey == b.exerciseStableKey } ||
+                        bRows.any { it.exerciseStableKey == a.exerciseStableKey }) continue
+                    val newA = aRows.map { if (it.localId == a.localId) b else it }
+                    val newB = bRows.map { if (it.localId == b.localId) a else it }
+                    val afterA = overlap(newA)
+                    val afterB = overlap(newB)
+                    val improvement = beforeA + beforeB - afterA - afterB
+                    if (improvement <= 0 || afterA > beforeA || afterB > beforeB) continue
+                    val pattern = SwapPattern(block, dayA, a.exerciseStableKey, dayB, b.exerciseStableKey)
+                    patterns.getOrPut(pattern) { mutableListOf() }.add(SwapOccurrence(a, b, improvement))
+                }
+            }
+        }
+        return patterns.entries.sortedWith(
+            compareByDescending<Map.Entry<SwapPattern, MutableList<SwapOccurrence>>> {
+                it.value.sumOf { occurrence -> occurrence.improvement }
+            }.thenByDescending { it.value.size }.thenBy { it.key.block }
+                .thenBy { it.key.dayA }.thenBy { it.key.dayB }
+                .thenBy { it.key.keyA }.thenBy { it.key.keyB }
+        ).take(8).map { (pattern, occurrences) ->
+            val changed = mutableMapOf<String, ProgramSkeletonItem>()
+            for ((a, b) in occurrences) {
+                changed[a.localId] = a.copy(dayOfWeek = b.dayOfWeek, orderIndex = b.orderIndex)
+                changed[b.localId] = b.copy(dayOfWeek = a.dayOfWeek, orderIndex = a.orderIndex)
+            }
+            val layout = plan.copy(items = plan.items.map { changed[it.localId] ?: it })
+            "SWAP_PRIMARY_B${pattern.block}_D${pattern.dayA}_${pattern.keyA}_D${pattern.dayB}_${pattern.keyB}" to layout
+        }
+    }
+
     /** Repair all occurrences in a block before beam pruning. Compare destination and prescription choices. */
     fun neighbors(plan: GeneratedProgramSkeleton, mains: Set<String>, exercises: Map<String, Exercise>,
-        calendar: BBlockCalendar? = null):
+        calendar: BBlockCalendar? = null, muscleRelations: List<CanonicalMetadataRelation> = emptyList()):
         List<Pair<String, GeneratedProgramSkeleton>> = buildList {
+        // Offer swaps even if no exact movement-family duplicates are present.
+        addAll(primarySwapNeighbors(plan, mains, calendar, primaryMuscles(muscleRelations)))
         val sessions = plan.items.groupBy { it.weekNumber to it.dayOfWeek }
         val groups = sessions.values.flatMap(::families)
         val limit = if (groups.any { it.size > MAX_VARIANTS }) MAX_VARIANTS else 1

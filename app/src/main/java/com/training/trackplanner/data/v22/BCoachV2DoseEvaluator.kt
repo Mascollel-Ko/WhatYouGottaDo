@@ -662,10 +662,21 @@ internal object BCoachV2DoseEvaluator {
         add(constraint("PROGRAM_BOUNDS", if (plan.items.all {
                 it.weekNumber in 1..plan.request.durationWeeks && it.dayOfWeek in 1..7
             }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
-        add(constraint("SET_PRESCRIPTION_INTEGRITY", if (plan.items.all { item ->
-                item.setCount > 0 && item.setCount <= BCoachV2Policy.MAX_PER_EXERCISE_SETS &&
-                    ProgramSetPrescriptionResolver.resolve(item).size == item.setCount
-            }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
+        val setReview = plan.items.filter { item ->
+            item.setCount <= 0 || item.setCount > BCoachV2Policy.MAX_PER_EXERCISE_SETS ||
+                ProgramSetPrescriptionResolver.resolve(item).size != item.setCount
+        }
+        add(constraint("SET_PRESCRIPTION_INTEGRITY",
+            if (setReview.isEmpty()) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL,
+            if (setReview.isEmpty()) null else setReview.take(8).joinToString(",") {
+                "W${it.weekNumber}D${it.dayOfWeek}:${it.exerciseStableKey}=${it.setCount}"
+            }))
+        // A prescription count outside the preference is reviewable; nonexistent
+        // or inconsistent actual set data is not a valid executable prescription.
+        if (setReview.any { it.setCount <= 0 ||
+                ProgramSetPrescriptionResolver.resolve(it).size != it.setCount }) {
+            add(constraint("SET_DATA_INVALID", BCoachConstraintStatus.FAIL))
+        }
         val missingDose = plan.items.filter { hasMissingTimedDose(it, exercises[it.exerciseStableKey]) }
         add(constraint("MEASURABLE_WORK_INTERVAL", if (missingDose.isEmpty()) BCoachConstraintStatus.PASS
             else BCoachConstraintStatus.FAIL, missingDose.firstOrNull()?.exerciseStableKey))
