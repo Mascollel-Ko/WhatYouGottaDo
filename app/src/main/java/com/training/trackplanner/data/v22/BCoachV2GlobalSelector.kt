@@ -947,7 +947,8 @@ internal object BCoachV2GlobalSelector {
             }
             if (trimmed != plan.items) add("RECHECK_SESSION_TIME" to plan.copy(items = trimmed))
         }
-        addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises, request.blockProgram?.let(::BBlockCalendar)))
+        addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises,
+            request.blockProgram?.let(::BBlockCalendar), muscleRelations))
         // Offer roster mutations before generic dose tweaks. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,

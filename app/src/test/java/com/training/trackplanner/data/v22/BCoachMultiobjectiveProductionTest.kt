@@ -1823,6 +1823,63 @@ class BCoachMultiobjectiveProductionTest {
             it.status == BCoachConstraintStatus.FAIL })
     }
 
+    @Test fun `primary muscle swaps compare different families without changing prescriptions`() {
+        val rows = listOf(
+            item("pull-main", 1, 4, 3, 8).copy(orderIndex = 1, movementFamily = "A", redundancyGroup = "A"),
+            item("pull-assist", 1, 4, 2, 8).copy(orderIndex = 2, movementFamily = "B", redundancyGroup = "B"),
+            item("core-main", 1, 6, 4, 10).copy(orderIndex = 1, movementFamily = "C", redundancyGroup = "C"),
+            item("core-assist", 1, 6, 2, 8).copy(orderIndex = 2, movementFamily = "D", redundancyGroup = "D")
+        )
+        val plan = skeleton(2).copy(items = rows)
+        val muscles = listOf(
+            relation("pull-main", "BACK_LATS", "PRIMARY"), relation("pull-assist", "BACK_LATS", "PRIMARY"),
+            relation("core-main", "ANTERIOR_CORE", "PRIMARY"), relation("core-assist", "ANTERIOR_CORE", "PRIMARY")
+        )
+        val mains = setOf("pull-main", "core-main")
+        val options = BCoachSessionComposition.neighbors(plan, mains, emptyMap(), muscleRelations = muscles)
+        val swapped = options.single { it.first.startsWith("SWAP_PRIMARY") }.second
+        assertEquals(6, swapped.items.single { it.exerciseStableKey == "pull-assist" }.dayOfWeek)
+        assertEquals(4, swapped.items.single { it.exerciseStableKey == "core-assist" }.dayOfWeek)
+        assertEquals(rows.associateBy { it.localId }, swapped.items.associate { row ->
+            val old = rows.single { it.localId == row.localId }
+            row.localId to row.copy(dayOfWeek = old.dayOfWeek, orderIndex = old.orderIndex)
+        })
+        assertEquals(rows.groupBy { it.dayOfWeek }.mapValues { (_, day) -> day.sumOf { it.setCount } },
+            swapped.items.groupBy { it.dayOfWeek }.mapValues { (_, day) -> day.sumOf { it.setCount } })
+        assertTrue(BCoachSessionComposition.neighbors(plan, mains, emptyMap(),
+            muscleRelations = muscles.map { it.copy(relationType = "SECONDARY") }).isEmpty())
+        assertTrue(BCoachSessionComposition.neighbors(plan, mains, emptyMap(),
+            muscleRelations = muscles.dropLast(1)).isEmpty())
+        val locked = plan.copy(items = rows.map {
+            if (it.exerciseStableKey == "pull-assist") it.copy(selectionReason = "USER_EXERCISE_LOCK") else it
+        })
+        assertTrue(BCoachSessionComposition.neighbors(locked, mains, emptyMap(),
+            muscleRelations = muscles).isEmpty())
+    }
+
+    @Test fun `primary muscle swaps repeat only within the matching block and week`() {
+        val rows = (1..3).flatMap { week -> listOf(
+            item("pull-main", week, 4, 3, 8).copy(orderIndex = 1),
+            item("pull-assist", week, 4, 2, 8).copy(orderIndex = 2),
+            item("core-main", week, 6, 4, 10).copy(orderIndex = 1),
+            item("core-assist", week, 6, 2, 8).copy(orderIndex = 2)
+        ) }
+        val plan = skeleton(2, weeks = 3).copy(items = rows)
+        val muscles = listOf(
+            relation("pull-main", "BACK_LATS", "PRIMARY"), relation("pull-assist", "BACK_LATS", "PRIMARY"),
+            relation("core-main", "ANTERIOR_CORE", "PRIMARY"), relation("core-assist", "ANTERIOR_CORE", "PRIMARY")
+        )
+        val calendar = BBlockCalendar(BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 2),
+            BBlockDefinition(weeks = 1))))
+        val options = BCoachSessionComposition.neighbors(plan, setOf("pull-main", "core-main"), emptyMap(),
+            calendar, muscles).filter { it.first.startsWith("SWAP_PRIMARY") }
+        assertEquals(2, options.size)
+        val firstBlock = options.single { it.first.startsWith("SWAP_PRIMARY_B0_") }.second
+        assertEquals(listOf(6, 6, 4), firstBlock.items.filter { it.exerciseStableKey == "pull-assist" }
+            .sortedBy { it.weekNumber }.map { it.dayOfWeek })
+        assertEquals(rows.map { it.localId to it.weekNumber }, firstBlock.items.map { it.localId to it.weekNumber })
+    }
+
     @Test fun `accessory rep bounds follow the block purpose before resolving loads`() {
         val machine = exercise("ex_1dbee10e", "MACHINE", metric = "MACHINE_LOAD_REPS")
         val assist = item(machine.stableKey, 1, 1, 3, 6).copy(selectionRole = "ACCESSORY|B12_FOCUS_STRENGTH")
