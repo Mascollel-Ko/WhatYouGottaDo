@@ -92,6 +92,7 @@ import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
 import com.training.trackplanner.data.v22.BCoachPlanAlternative
 import com.training.trackplanner.data.v22.BCoachV2Policy
+import com.training.trackplanner.data.v22.BCoachConstraintReviewPolicy
 import com.training.trackplanner.data.v22.BCoachConstraintStatus
 import com.training.trackplanner.data.v22.BCoachProductionStatus
 import com.training.trackplanner.data.v22.BBlockDefinition
@@ -277,7 +278,9 @@ internal fun BCoachProductionReviewDialog(
                   Column {
                 Text(BCoachV2Policy.DISCLAIMER)
                 Text(
-                    "아래 추천안과 대안은 모든 주차의 시간·요일 제약을 통과한 실제 저장 후보입니다. " +
+                    (if (alternatives.any { it.reviewConstraints.isNotEmpty() })
+                        "모든 조건을 동시에 만족하는 후보를 찾지 못했습니다. 재검토 후 남은 조건을 표시합니다. "
+                    else "아래 추천안과 대안은 모든 주차의 조건 검사를 통과한 후보입니다. ") +
                         "선택한 안은 승인 전까지 저장되지 않습니다." +
                         (unreliableExerciseCount.takeIf { it > 0 }
                             ?.let { " 기록 부족 운동 ${it}개가 포함됩니다." } ?: ""),
@@ -318,6 +321,31 @@ internal fun BCoachProductionReviewDialog(
                                 }
                         }
                     }
+                    }
+                }
+                selectedAlternative?.takeIf { it.reviewConstraints.isNotEmpty() }?.let { alternative ->
+                    Column(Modifier.fillMaxWidth().testTag("b_coach_constraint_review"),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("재검토 필요", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error)
+                        alternative.reviewConstraints.forEach { condition ->
+                            Text("• " + BCoachConstraintReviewPolicy.label(condition.id))
+                            if (condition.id == "SESSION_TIME_LIMIT") {
+                                val limit = selectedPlan?.request?.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES
+                                alternative.sessionTimes.entries.filter { it.value.upperMinutes > limit }
+                                    .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+                                    .forEach { (slot, time) ->
+                                        Text("${slot.first}주 ${dayName(slot.second)}요일: " +
+                                            "${"%.1f".format(time.upperMinutes)}분 (설정 ${limit}분)",
+                                            style = MaterialTheme.typography.bodySmall)
+                                    }
+                            } else if (condition.reasonCodes.isNotEmpty()) {
+                                Text(condition.reasonCodes.joinToString(" · "),
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                        Text("초안에서 확인하고 수정할 수 있습니다. 재검토 항목은 통과한 것으로 처리하지 않습니다.",
+                            style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 selectedPlan?.let { plan ->
@@ -440,7 +468,8 @@ internal fun BCoachProductionReviewDialog(
                         modifier = Modifier.fillMaxWidth().testTag("b_coach_review_apply"),
                         enabled = alternatives.isEmpty() || selectedCandidateId != null
                     ) {
-                        Text("선택 후보 적용")
+                        Text(if (selectedAlternative?.reviewConstraints.orEmpty().isEmpty()) "선택 후보 적용"
+                            else "재검토 사항 확인 후 초안 적용")
                     }
                 }
             }
@@ -1077,7 +1106,9 @@ private fun ProgramEditorScreen(
                     context,
                     if (generated.bCoachMultiobjectiveDecision.hardConstraints.any { it.id == "MEASURABLE_WORK_INTERVAL" })
                         "모든 세트의 수행량을 정할 수 있는 조합을 찾지 못했습니다. 시간 운동의 기록이나 선택한 운동을 확인해 주세요."
-                    else "고정 요일·시간·운동 조건을 동시에 만족할 수 없습니다. 입력 조건을 확인해 주세요.",
+                    else "프로그램 생성 불가: " + generated.bCoachMultiobjectiveDecision.hardConstraints
+                        .filter(BCoachConstraintReviewPolicy::blocks)
+                        .joinToString(" · ") { BCoachConstraintReviewPolicy.label(it.id) },
                     Toast.LENGTH_LONG
                 ).show()
                 pendingBReview = null

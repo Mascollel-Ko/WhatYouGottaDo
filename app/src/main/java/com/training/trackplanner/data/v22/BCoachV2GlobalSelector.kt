@@ -98,7 +98,12 @@ internal object BCoachV2GlobalSelector {
             "|referenceCapacity=" + referenceCapacityByStableKey.toSortedMap())
         val blockCalendar = request.blockProgram?.let(::BBlockCalendar)
         fun prepareLayout(raw: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
-            val rows = raw.items.map { item ->
+            val rows = raw.items.map { original ->
+                // Explicit per-set data is authoritative; repair the summary
+                // count without fabricating sets or changing their prescription.
+                val item = if (original.setPrescriptions.isNotEmpty() &&
+                    original.setCount != original.setPrescriptions.size)
+                    original.copy(setCount = original.setPrescriptions.size) else original
                 val enriched = runtimeMetadata.resolveByStableKey(item.exerciseStableKey)?.let { meta ->
                     item.copy(movementFamily = meta.movementFamily, redundancyGroup = meta.redundancyGroup,
                         primaryStressProfile = meta.primaryStressProfile)
@@ -187,8 +192,22 @@ internal object BCoachV2GlobalSelector {
                     .toSet().intersect(baselineSuccessfulAnchors).size
             )
         }
-        val valid = evaluated.filter { candidate ->
+        val strict = evaluated.filter { candidate ->
             candidate.evaluation.hardConstraints.none { it.status == BCoachConstraintStatus.FAIL }
+        }
+        val reviewable = evaluated.filter { candidate ->
+            candidate.evaluation.hardConstraints.none(BCoachConstraintReviewPolicy::blocks)
+        }
+        // Preserve the original recommendation path whenever a strict candidate
+        // exists. Otherwise use the best candidates with the fewest remaining
+        // review conditions, scored against the SAME original baseline.
+        val valid = strict.ifEmpty {
+            val minimum = reviewable.minOfOrNull { candidate ->
+                candidate.evaluation.hardConstraints.count(BCoachConstraintReviewPolicy::requiresReview)
+            }
+            reviewable.filter { candidate ->
+                candidate.evaluation.hardConstraints.count(BCoachConstraintReviewPolicy::requiresReview) == minimum
+            }
         }
         val relevantKeys = rawCandidates.flatMap { it.skeleton.items }
             .map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted()
@@ -199,7 +218,7 @@ internal object BCoachV2GlobalSelector {
         val linkedFingerprint = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request)
         if (valid.isEmpty()) {
             val failed = evaluated.flatMap { it.evaluation.hardConstraints }
-                .filter { it.status == BCoachConstraintStatus.FAIL }.map(BCoachConstraintResult::id)
+                .filter(BCoachConstraintReviewPolicy::blocks).map(BCoachConstraintResult::id)
                 .distinct().sorted()
             val decision = conflictDecision(
                 request, baselineFingerprint, inputFingerprint, historyFingerprint, exerciseFingerprint,
@@ -293,7 +312,9 @@ internal object BCoachV2GlobalSelector {
                 sessionTimes = candidate.skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }
                     .mapValues { (_, items) -> BCoachV2ScheduleLoad.sessionTime(items, exercises) },
                 weeklyGoalGaps = candidate.evaluation.taskWeekDoses.filter { it.scored && it.lower > it.dose }
-                    .groupBy { it.week }.mapValues { (_, rows) -> rows.map { it.goal }.distinct() }
+                    .groupBy { it.week }.mapValues { (_, rows) -> rows.map { it.goal }.distinct() },
+                reviewConstraints = candidate.evaluation.hardConstraints
+                    .filter(BCoachConstraintReviewPolicy::requiresReview)
             )
         }
         val baselineEvaluation = evaluated.firstOrNull { it.label == "SAFE_BASELINE" }?.evaluation
@@ -334,7 +355,8 @@ internal object BCoachV2GlobalSelector {
             ),
             unknowns = selectedLoad.reasonCodes + selected.evaluation.reasonCodes,
             mostAdverseModeledScenario = selected.evaluation.lossesByScenario.maxBy { it.value }.key.name,
-            fallbackReason = "EXPLICIT_USER_APPROVAL_REQUIRED",
+            fallbackReason = if (strict.isEmpty()) "EXPLICIT_USER_CONSTRAINT_REVIEW_REQUIRED"
+                else "EXPLICIT_USER_APPROVAL_REQUIRED",
             coefficientSource = BCoachV2Policy.COEFFICIENT_SOURCE,
             baselineAndCandidatesCanonicalHash = allCandidatesHash,
             effectiveSetBreakdown = selected.evaluation.effectiveSetBreakdown,
@@ -447,24 +469,26 @@ internal object BCoachV2GlobalSelector {
         }
         val baselineState = register("SAFE_BASELINE", baseline)!!
         val jointState = register("JOINT_SEED", joint)
-        if (BCoachV2DoseEvaluator.shouldEnforceNonClusteredSchedule(request) &&
-            cache.values.none { state -> state.evaluation.hardConstraints.none {
+        if (cache.values.none { state -> state.evaluation.hardConstraints.none {
                 it.status == BCoachConstraintStatus.FAIL
             } }) {
-            // A spaced joint seed can fail dose or time checks while the clustered baseline
-            // meets them. Give each clustered seed a chance on a spaced schedule.
+            // Recheck weekday preferences while retaining the exercise roster.
             val allowed = (request.allowedWeekdays ?: (1..7).toSet()).filter { it in 1..7 }.sorted()
+            val fixed = request.fixedWeekdays
+            val preferSpaced = BCoachV2DoseEvaluator.shouldEnforceNonClusteredSchedule(request)
             for (seed in listOf(joint, baseline)) {
                 val patterns = seed.items.groupBy { it.weekNumber }.values
                     .map { rows -> rows.map { it.dayOfWeek }.distinct().sorted() }.distinct()
                 val old = patterns.singleOrNull() ?: continue
-                if (BCoachV2DoseEvaluator.longestConsecutiveRun(old.toSet()) < 3) continue
+                if (old.all { it in allowed } && (fixed == null || old.toSet() == fixed) &&
+                    (!preferSpaced || BCoachV2DoseEvaluator.longestConsecutiveRun(old.toSet()) < 3)) continue
                 val count = old.size
                 val alternatives = (1..127).map { mask ->
                     (1..7).filter { day -> mask and (1 shl (day - 1)) != 0 }
                 }.filter { days ->
                     days.size == count && days.all { it in allowed } &&
-                        BCoachV2DoseEvaluator.longestConsecutiveRun(days.toSet()) < 3
+                        (fixed == null || days.toSet() == fixed) &&
+                        (!preferSpaced || BCoachV2DoseEvaluator.longestConsecutiveRun(days.toSet()) < 3)
                 }
                 alternatives.forEach { days ->
                     val mapping = (old.zip(days) +
@@ -497,8 +521,15 @@ internal object BCoachV2GlobalSelector {
                 .sortedWith(searchComparator())
                 .take(BCoachV2Policy.SEARCH_BEAM_WIDTH)
         }
-        val ranked = cache.values.filter { state ->
+        val strict = cache.values.filter { state ->
             state.evaluation.hardConstraints.none { it.status == BCoachConstraintStatus.FAIL }
+        }
+        // Keep review-only results from the entire bounded search, not just
+        // the two original seeds. Otherwise a successful repair is discarded.
+        val ranked = strict.ifEmpty {
+            cache.values.filter { state ->
+                state.evaluation.hardConstraints.none(BCoachConstraintReviewPolicy::blocks)
+            }
         }.sortedWith(searchComparator())
         return (listOfNotNull(baselineState, jointState) + ranked)
             .distinctBy(SearchState::signature)
@@ -869,7 +900,9 @@ internal object BCoachV2GlobalSelector {
 
     private fun searchComparator(): Comparator<SearchState> =
         compareBy<SearchState> { state ->
-            state.evaluation.hardConstraints.count { it.status == BCoachConstraintStatus.FAIL }
+            state.evaluation.hardConstraints.count(BCoachConstraintReviewPolicy::blocks)
+        }.thenBy { state ->
+            state.evaluation.hardConstraints.count(BCoachConstraintReviewPolicy::requiresReview)
         }.thenBy { it.evaluation.lossesByScenario.values.maxOrNull() ?: Double.POSITIVE_INFINITY }
             .thenBy { it.evaluation.baseLoss }
             .thenBy { it.signature }
@@ -885,6 +918,35 @@ internal object BCoachV2GlobalSelector {
         coreCatalog: CanonicalCoreCatalog,
         goalWeights: List<BCoachGoalWeight>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
+        // Try a small roster-preserving repair before generic roster changes.
+        // Fixed prescriptions and minimum set counts are honored by adjustSets.
+        val timeLimit = request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES
+        if (evaluation.hardConstraints.any {
+                it.id == "SESSION_TIME_LIMIT" && BCoachConstraintReviewPolicy.requiresReview(it)
+            }) {
+            val trimmed = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap { day ->
+                if (BCoachV2ScheduleLoad.sessionTime(day, exercises).upperMinutes <= timeLimit) day
+                else {
+                    val options = day.filterNot(BCoachSessionComposition::isFixedInSession)
+                        .mapNotNull { item ->
+                            val adjusted = adjustSets(item, -1, mainExerciseKeys)
+                            if (adjusted.setCount >= item.setCount) null else item to adjusted
+                        }
+                    val best = options.minWithOrNull(
+                        compareBy<Pair<ProgramSkeletonItem, ProgramSkeletonItem>> {
+                            if (it.first.exerciseStableKey in mainExerciseKeys ||
+                                it.first.selectionRole.contains("MAIN", ignoreCase = true)) 1 else 0
+                        }.thenBy { pair ->
+                            BCoachV2ScheduleLoad.sessionTime(
+                                day.map { if (it.localId == pair.first.localId) pair.second else it }, exercises
+                            ).upperMinutes
+                        }.thenBy { it.first.localId }
+                    )
+                    day.map { if (it.localId == best?.first?.localId) best!!.second else it }
+                }
+            }
+            if (trimmed != plan.items) add("RECHECK_SESSION_TIME" to plan.copy(items = trimmed))
+        }
         addAll(BCoachSessionComposition.neighbors(plan, mainExerciseKeys, exercises, request.blockProgram?.let(::BBlockCalendar)))
         // Offer roster mutations before generic dose tweaks. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
