@@ -1544,6 +1544,44 @@ class BCoachMultiobjectiveProductionTest {
             (1..4).map { BCoachV2DoseEvaluator.stageForWeek(skeleton, wave, it) })
     }
 
+    @Test fun `strength anchors missing from both history and baseline still receive deficit and candidates`() {
+        val dead = exercise("barbell_deadlift", "BARBELL")
+        val bench = exercise("barbell_bench_press", "BARBELL,BENCH")
+        val pull = exercise("ex_e41f4c2b", "DUMBBELL")
+        val front = exercise("ex_c5043892", "BARBELL")
+        val exercises = listOf(squat, dead, bench, pull, front).associateBy { it.stableKey }
+        val importance = BBalancedGoalImportance(5, 3, 3, 3)
+        val req = request(importance).copy(availableEquipment = setOf("BARBELL", "BENCH", "DUMBBELL"),
+            sessionMinutes = 120)
+        val plan = skeleton(3, everyWeek = true)
+        val weights = BCoachV2GlobalSelector.effectiveGoalWeights(importance, false, emptyMap())
+        fun evaluate(candidate: GeneratedProgramSkeleton, request: V22GenerationRequest = req) =
+            BCoachV2DoseEvaluator.evaluate(candidate, plan, request, emptyList(), exercises,
+                emptyList(), CanonicalCoreCatalog.EMPTY, CanonicalBadmintonObjectiveCatalog.EMPTY,
+                setOf(squat.stableKey), weights)
+        val initial = evaluate(plan)
+        val targets = initial.taskWeekDoses.filter { it.week == 1 && it.scored && it.goal == BBalancedGoal.STRENGTH }
+        assertEquals(setOf("SQUAT", "DEADLIFT", "HORIZONTAL_PRESS", "WEIGHTED_VERTICAL_PULL"),
+            targets.map { it.taskId.substringAfterLast(':') }.toSet())
+        assertTrue(targets.filter { !it.taskId.endsWith(":SQUAT") }.all { it.dose == 0.0 && it.lower > 0.0 })
+        assertTrue(initial.taskWeekDoses.any { it.taskId == "STRENGTH:barbell_back_squat" && !it.scored })
+        val neighbors = BCoachV2GlobalSelector.rosterNeighbors(plan, req, exercises,
+            CanonicalBadmintonObjectiveCatalog.EMPTY, setOf(squat.stableKey),
+            taskWeekDoses = initial.taskWeekDoses, goalWeights = weights, explicitlyRequested = importance)
+        listOf(dead, bench, pull).forEach { lift ->
+            val candidate = requireNotNull(neighbors.firstOrNull { it.first == "INSERT_STRENGTH_" + lift.stableKey }).second
+            val added = candidate.items.filter { it.exerciseStableKey == lift.stableKey }
+            assertEquals(2, added.size)
+            assertTrue(added.all { it.setCount == 3 && it.selectionRole.contains("MAIN") &&
+                it.setPrescriptions.all { set -> set.reps == 5 && set.weightKg == 0.0 } })
+        }
+        assertTrue(neighbors.none { it.first == "INSERT_STRENGTH_" + front.stableKey })
+        val limited = evaluate(plan, req.copy(availableEquipment = setOf("BARBELL")))
+        assertEquals(setOf("SQUAT", "DEADLIFT"), limited.taskWeekDoses
+            .filter { it.week == 1 && it.scored && it.goal == BBalancedGoal.STRENGTH }
+            .map { it.taskId.substringAfterLast(':') }.toSet())
+    }
+
     @Test fun `T74 approved strength exposure is independent of main placement slots`() {
         val plan = skeleton(3)
         val result = BCoachV2DoseEvaluator.evaluate(

@@ -156,7 +156,8 @@ internal object BBalanced12WeekEngine {
                 val roster = if (specification?.blocks?.get(index)?.goal == BBlockGoal.BALANCED)
                     trimmed else rebalance(trimmed, focus, contributions, historyCeilings)
                 if (specification == null) roster else BBlockPurposePrescription.prepare(
-                    roster, specification.blocks[index], mainExerciseKeys, exercises, focus
+                    roster, specification.blocks[index],
+                    BCoachJointBlockOptimizer.selectedMainKeys(roster, mainExerciseKeys), exercises, focus
                 )
             }
             if (blocks.any { !structurallyFeasible(it) }) continue
@@ -500,8 +501,9 @@ internal object BBalanced12WeekEngine {
         val chosen = linkedSetOf<String>()
         val selectedStrengthAnchors = linkedSetOf<String>()
         CanonicalStrengthExposureCapability.MovementAnchor.entries.forEach { anchor ->
-            BCoachStrengthCoveragePolicy.preferredKeys(eligible.map(Exercise::stableKey)
-                .filter { it in CanonicalStrengthExposureCapability.approvedStableKeys(anchor) })
+            val keys = eligible.map(Exercise::stableKey)
+                .filter { it in CanonicalStrengthExposureCapability.approvedStableKeys(anchor) }
+            (if (request.blockProgram != null) BCoachStrengthCoveragePolicy.preferredKeys(keys) else keys)
                 .firstOrNull()?.let { key -> eligible.first { it.stableKey == key } }
                 ?.let {
                     chosen += it.stableKey

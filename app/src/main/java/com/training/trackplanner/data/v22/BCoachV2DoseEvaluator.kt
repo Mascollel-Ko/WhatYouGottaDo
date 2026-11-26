@@ -183,7 +183,9 @@ internal object BCoachV2DoseEvaluator {
                     recovery -> BCoachV2Policy.RECOVERY_WEEK_MULTIPLIER
                     else -> BCoachV2Policy.stageMultiplier(stageForWeek(plan, request, week))
                 }
-                val blockWeights = blockGoalWeights(plan, week, weightByGoal)
+                // Use a common block-focus reference; a new MAIN_STRENGTH row must
+                // not change the goal weights used to compare its own candidate.
+                val blockWeights = blockGoalWeights(baseline, week, weightByGoal)
                 tasks.forEach { task ->
                     val dose = plannedDose(
                         plan, week, task, scenario, context,

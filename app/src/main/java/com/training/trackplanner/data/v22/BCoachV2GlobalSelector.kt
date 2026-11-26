@@ -694,9 +694,10 @@ internal object BCoachV2GlobalSelector {
         fun strengthItem(source: ProgramSkeletonItem, candidate: Exercise, order: Int): ProgramSkeletonItem {
             val row = reselectedItem(source, candidate, 3)
             val focus = source.selectionRole.substringAfter('|', "").let { if (it.isBlank()) "" else "|$it" }
+            val blockTag = Regex("B12_BLOCK_\\d+").find(source.selectionReason)?.value ?: "B12_BLOCK_1"
             return row.copy(localId = "B_STRENGTH_W${source.weekNumber}_D${source.dayOfWeek}_${candidate.stableKey}",
                 orderIndex = order, reps = 5, selectionRole = "MAIN_STRENGTH_RESELECTED$focus",
-                selectionReason = source.selectionReason.substringBefore(';') + ";B_COACH_MISSING_STRENGTH_ANCHOR_USER_REVIEW",
+                selectionReason = "$blockTag;B_COACH_MISSING_STRENGTH_ANCHOR_USER_REVIEW",
                 setPrescriptions = row.setPrescriptions.map { it.copy(reps = 5) })
         }
         for ((task, gaps) in strengthGaps.toSortedMap()) {
