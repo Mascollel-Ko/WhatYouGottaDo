@@ -225,7 +225,8 @@ internal object BCoachJointBlockOptimizer {
             majorMuscles.filter { muscle ->
                 eligible.any { muscle in profile(it.stableKey).primary }
             }).distinct()
-        val anchors = selectedMains.mapNotNull { profile(it).anchor }.distinct()
+        val strengthTargetKeys = BCoachStrengthCoveragePolicy.targetKeys(exercises, request.availableEquipment, initialKeys)
+        val strengthTarget = BCoachV2Policy.d0(BBalancedGoal.STRENGTH, request.bGoalImportance.strength ?: 3)
         val goalWeights = BBalancedGoal.entries.associateWith {
             (request.bGoalImportance.value(it) ?: 3).toDouble()
         }
@@ -265,12 +266,13 @@ internal object BCoachJointBlockOptimizer {
         } else rawCandidateDays
         if (candidateDays.isEmpty()) return unchanged("NO_WEEKDAY_COMBINATION_ALLOWED")
 
-        val mainForPeriodization = selectedMains
         val amplitude = BBlockPrescriptionApplicator.resolveAmplitude(
             block, history, request.asOf, baseline
         )
         fun makeWeeks(sessions: List<V22Session>): List<List<V22Session>> =
             BBlockPeriodization.steps(block).mapIndexed { index, stage ->
+                val mainForPeriodization = selectedMains + sessions.flatMap(V22Session::items)
+                    .filter { it.role.contains("MAIN", ignoreCase = true) }.map(V22ExercisePlan::stableKey)
                 sessions.map { day ->
                     val adjusted = BBlockPrescriptionApplicator.apply(day, stage, focus,
                         block, mainForPeriodization, exercises, amplitude)
@@ -291,7 +293,8 @@ internal object BCoachJointBlockOptimizer {
             val kind = listOf(exercise?.category, exercise?.movementPattern)
                 .joinToString(" ").uppercase()
             if (listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any(kind::contains)) return 1
-            return if (key in selectedMains) 3 else 2
+            return if (key in selectedMains || (key !in initialKeys &&
+                CanonicalStrengthExposureCapability.strengthPossible(key))) 3 else 2
         }
         fun valid(sessions: List<V22Session>): Boolean =
             sessions.size == request.days &&
@@ -341,9 +344,9 @@ internal object BCoachJointBlockOptimizer {
                     p.secondary.filter { it !in p.primary }.forEach {
                         muscleDose[it] = (muscleDose[it] ?: 0.0) + 0.35 * item.setCount
                     }
-                    if (p.anchor != null && item.stableKey in selectedMains &&
-                        item.sets.any { (it.reps ?: 0) in 1..6 }) {
-                        strengthDose[p.anchor] = (strengthDose[p.anchor] ?: 0.0) + item.setCount
+                    if (p.anchor != null) {
+                        strengthDose[item.stableKey] = (strengthDose[item.stableKey] ?: 0.0) +
+                            item.sets.count { (it.reps ?: 0) in 1..6 }
                     }
                     if (p.directCore) coreDose += item.setCount
                     badmintonCatalog.relations(item.stableKey).forEach { relation ->
@@ -371,8 +374,8 @@ internal object BCoachJointBlockOptimizer {
                 }
                 val muscleUtility = if (muscleUniverse.isEmpty()) 0.0 else
                     muscleUniverse.map { saturate(muscleDose[it] ?: 0.0, 5.0) }.average()
-                val strengthUtility = if (anchors.isEmpty()) 0.0 else
-                    anchors.map { saturate(strengthDose[it] ?: 0.0, 3.0) }.average()
+                val strengthUtility = BCoachStrengthCoveragePolicy.meanCoverage(strengthTargetKeys,
+                    strengthDose, strengthTarget)
                 val coreUtility = saturate(coreDose, 4.0)
                 // Preserve the full objective vector: a set contributes only to
                 // relations explicitly reviewed for its own stableKey.
@@ -552,7 +555,13 @@ internal object BCoachJointBlockOptimizer {
                 }.thenByDescending { e -> (skillTags(e) - coveredSkillTags).size }
                     .thenByDescending { e -> profile(e.stableKey).sport }
                     .thenBy(Exercise::stableKey)).take(sportLimit).toList()
-                val additions = (rankedSport + rankedGeneral).distinctBy(Exercise::stableKey)
+                val coveredAnchors = BCoachStrengthCoveragePolicy.anchors(used)
+                val rankedStrength = BCoachStrengthCoveragePolicy.preferredKeys(strengthTargetKeys.filter {
+                    it !in used && CanonicalStrengthExposureCapability.movementAnchor(it) !in coveredAnchors &&
+                        exercises[it]?.let { e -> BCoachStrengthCoveragePolicy.selectable(e, request.availableEquipment) } == true
+                }).groupBy { CanonicalStrengthExposureCapability.movementAnchor(it) }.values
+                    .mapNotNull { it.firstOrNull()?.let(exercises::get) }
+                val additions = (rankedStrength + rankedSport + rankedGeneral).distinctBy(Exercise::stableKey)
                 shortlistedSportKeys += additions.filter { badmintonCatalog.relations(it.stableKey).any { row ->
                     row.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
                         row.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
@@ -607,11 +616,14 @@ internal object BCoachJointBlockOptimizer {
                     for (addition in additions) {
                         if (day.items.size >= 12) break
                         val timed = addition.progressMetricType == "TIME_OR_DISTANCE"
-                        val purpose = BBlockPurposePrescription.purpose(block.goal, false, addition)
-                        val range = BBlockPurposePrescription.repRange(purpose, false)
+                        val strengthMain = addition.stableKey in rankedStrength.map(Exercise::stableKey)
+                        val purpose = if (strengthMain) BBlockGoal.STRENGTH else
+                            BBlockPurposePrescription.purpose(block.goal, false, addition)
+                        val range = BBlockPurposePrescription.repRange(purpose, strengthMain)
                         val item = V22ExercisePlan(
                             exercise = addition.name, stableKey = addition.stableKey,
-                            category = addition.category, role = "B_COACH_ACCESSORY_REVIEW",
+                            category = addition.category, role = if (strengthMain) "MAIN_STRENGTH_REVIEW"
+                                else "B_COACH_ACCESSORY_REVIEW",
                             setCount = 1,
                             sets = listOf(V22ObservedSet(null,
                                 if (timed) null else (range.first + range.last) / 2,

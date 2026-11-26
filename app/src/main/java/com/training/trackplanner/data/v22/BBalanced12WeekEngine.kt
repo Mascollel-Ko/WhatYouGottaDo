@@ -121,6 +121,8 @@ internal object BBalanced12WeekEngine {
         val trimmed = placement.sessions
         val targets = targets(rows, request.asOf, request.bGoalImportance, contributions)
         val historyCeilings = historyCeilings(rows, request.asOf)
+        val strengthTargetKeys = if (specification == null) null else
+            BCoachStrengthCoveragePolicy.targetKeys(exercises, request.availableEquipment, incumbentKeys)
 
         var evaluated = 0
         var feasible = 0
@@ -154,12 +156,13 @@ internal object BBalanced12WeekEngine {
                 val roster = if (specification?.blocks?.get(index)?.goal == BBlockGoal.BALANCED)
                     trimmed else rebalance(trimmed, focus, contributions, historyCeilings)
                 if (specification == null) roster else BBlockPurposePrescription.prepare(
-                    roster, specification.blocks[index], mainExerciseKeys, exercises, focus
+                    roster, specification.blocks[index],
+                    BCoachJointBlockOptimizer.selectedMainKeys(roster, mainExerciseKeys), exercises, focus
                 )
             }
             if (blocks.any { !structurallyFeasible(it) }) continue
             feasible++
-            val evaluations = blocks.map { evaluate(it, targets, contributions) }
+            val evaluations = blocks.map { evaluate(it, targets, contributions, strengthTargetKeys) }
             val moves = blocks.indices.sumOf { index -> changedPhysicalSets(trimmed, blocks[index]) }
             val score = score(evaluations, targets, focuses) - moves * 0.002
             val candidate = Candidate(focuses, blocks, evaluations, score, moves)
@@ -252,7 +255,7 @@ internal object BBalanced12WeekEngine {
             val purposeSessions = coach?.sessions ?: joint?.sessions ?: purposeBaseline
             completedSelections += purposeSessions
             val selectedEvaluation = if (specification == null) chosen.evaluations[index]
-                else evaluate(purposeSessions, targets, contributions)
+                else evaluate(purposeSessions, targets, contributions, strengthTargetKeys)
             val startWeek = weekCursor
             val endWeek = weekCursor + (specification?.blocks?.get(index)?.weeks ?: 4) - 1
             weekCursor = endWeek + 1
@@ -498,7 +501,10 @@ internal object BBalanced12WeekEngine {
         val chosen = linkedSetOf<String>()
         val selectedStrengthAnchors = linkedSetOf<String>()
         CanonicalStrengthExposureCapability.MovementAnchor.entries.forEach { anchor ->
-            eligible.firstOrNull { it.stableKey in CanonicalStrengthExposureCapability.approvedStableKeys(anchor) }
+            val keys = eligible.map(Exercise::stableKey)
+                .filter { it in CanonicalStrengthExposureCapability.approvedStableKeys(anchor) }
+            (if (request.blockProgram != null) BCoachStrengthCoveragePolicy.preferredKeys(keys) else keys)
+                .firstOrNull()?.let { key -> eligible.first { it.stableKey == key } }
                 ?.let {
                     chosen += it.stableKey
                     selectedStrengthAnchors += it.stableKey
@@ -824,13 +830,20 @@ internal object BBalanced12WeekEngine {
     private fun evaluate(
         sessions: List<V22Session>,
         targets: List<BBalancedGoalTarget>,
-        contributions: Map<String, Contribution>
+        contributions: Map<String, Contribution>,
+        strengthTargetKeys: Set<String>? = null
     ): List<BBalancedGoalEvaluation> {
         val counts = sessions.flatMap(V22Session::items).groupBy(V22ExercisePlan::stableKey)
             .mapValues { (_, items) -> items.sumOf(V22ExercisePlan::setCount) }
         val doses = dose(counts, contributions)
         return targets.map { target ->
-            val planned = rounded(doses.getValue(target.goal))
+            val planned = if (target.goal == BBalancedGoal.STRENGTH && strengthTargetKeys != null) {
+                val limit = max(target.developmentTarget ?: 0.0, target.maintenanceFloor ?: 0.0)
+                    .takeIf { it > 0.0 } ?: BCoachV2Policy.d0(target.goal, target.importance)
+                val byKey = sessions.flatMap(V22Session::items).groupBy(V22ExercisePlan::stableKey)
+                    .mapValues { (_, items) -> items.sumOf { item -> item.sets.count { (it.reps ?: 0) in 1..6 } }.toDouble() }
+                rounded(limit * BCoachStrengthCoveragePolicy.meanCoverage(strengthTargetKeys, byKey, limit))
+            } else rounded(doses.getValue(target.goal))
             val developmentShortfall = target.developmentTarget?.let { max(0.0, it - planned) }?.let(::rounded)
             val maintenanceShortfall = target.maintenanceFloor?.let { max(0.0, it - planned) }?.let(::rounded)
             BBalancedGoalEvaluation(

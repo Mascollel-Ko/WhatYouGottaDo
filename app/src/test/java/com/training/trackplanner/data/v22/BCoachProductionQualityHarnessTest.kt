@@ -115,7 +115,28 @@ class BCoachProductionQualityHarnessTest {
         ).skeleton)
         val historicalCandidate = historicalDecision.alternatives.single { it.recommended }
         assertEquals(16, historicalCandidate.sessionTimes.size)
-        assertTrue(historicalCandidate.sessionTimes.values.all { it.upperMinutes <= 60.0 })
+        // A dense historical roster can exceed the requested time after all
+        // bounded repairs. Time is now a review condition, not an admission gate.
+        // Keep the ordinary cold-start <=60 assertion above, and independently
+        // require exact correspondence between the returned times and warnings.
+        val timeOverflow = historicalCandidate.sessionTimes.values.any { it.upperMinutes > 60.0 + 1e-9 }
+        val timeReview = historicalCandidate.reviewConstraints.filter { it.id == "SESSION_TIME_LIMIT" }
+        assertEquals("historical time overflow must be disclosed", timeOverflow, timeReview.isNotEmpty())
+        assertTrue(timeReview.all { it.status == BCoachConstraintStatus.FAIL })
+        assertTrue(historicalDecision.hardConstraints.none(BCoachConstraintReviewPolicy::blocks))
+        assertEquals(historicalCandidate.reviewConstraints.map { it.id }.toSet(),
+            historicalDecision.hardConstraints.filter(BCoachConstraintReviewPolicy::requiresReview)
+                .map { it.id }.toSet())
+        if (timeOverflow) {
+            assertEquals("EXPLICIT_USER_CONSTRAINT_REVIEW_REQUIRED", historicalDecision.fallbackReason)
+            assertTrue("review-only failure must not trigger the metadata-roster retry",
+                withHistory.balanced12WeekPlan?.legacyComparatorSchema != "NOT_USED_METADATA_ROSTER_RETRY")
+        }
+        val approval = JSONObject(requireNotNull(accepted.planningMetadataJson))
+            .getJSONObject("bCoachMultiobjectiveDecision")
+        val reviewJson = approval.getJSONArray("chosenConstraintReview")
+        assertEquals(historicalCandidate.reviewConstraints.map { it.id }.toSet(),
+            (0 until reviewJson.length()).map { reviewJson.getJSONObject(it).getString("id") }.toSet())
         val id = repository.saveGeneratedProgram(null, accepted)
         val reopened = skeletonFromProgram(repository.programEditorSnapshot(id))
         assertEquals(accepted.resolvedWeekDaySchedule(), reopened.resolvedWeekDaySchedule())
