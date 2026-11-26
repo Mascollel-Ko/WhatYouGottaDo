@@ -191,6 +191,29 @@ internal fun BCoachProductionReviewDialog(
     val selectedPlan = selectedCandidateId?.let(candidateForReview)
     val recommendedPlan = alternatives.firstOrNull { it.recommended }?.candidateId
         ?.let(candidateForReview)
+    val layoutAudit = remember(recommendedPlan?.planningMetadataJson) {
+        runCatching {
+            org.json.JSONObject(recommendedPlan?.planningMetadataJson ?: "{}")
+                .getJSONObject("bCoachMultiobjectiveDecision").getJSONObject("inputAudit")
+        }.getOrNull()
+    }
+    val layoutSummary = layoutAudit?.let { audit ->
+        val preference = audit.optString("trainingLayoutPreference")
+        val before = audit.optString("trainingLayoutConcentrationBefore").toDoubleOrNull()
+        val after = audit.optString("trainingLayoutConcentrationAfter").toDoubleOrNull()
+        val volume = audit.optString("trainingLayoutComparableVolume").toDoubleOrNull() ?: 0.0
+        val label = when (preference) {
+            "FULL_BODY_DISTRIBUTED" -> "전신 분산형"
+            "BODY_PART_FOCUSED" -> "부위 집중형"
+            else -> null
+        }
+        if (label == null) null
+        else if (volume <= 0.0 || before == null || after == null)
+            "추천안 배치: $label · 비교 가능한 근육 자극 없음"
+        else if (kotlin.math.abs(after - before) < 1e-9)
+            "추천안 배치: $label · 기존 배치 유지"
+        else "추천안 배치: $label · 집중도 ${"%.1f".format(before * 100)} → ${"%.1f".format(after * 100)}%"
+    }
     fun comparedToRecommended(candidateId: String): String {
         val plan = candidateForReview(candidateId) ?: return "후보 세부 정보 없음"
         if (candidateId == alternatives.firstOrNull { it.recommended }?.candidateId)
@@ -288,6 +311,10 @@ internal fun BCoachProductionReviewDialog(
                     modifier = Modifier.padding(top = 8.dp)
                 )
                   }
+                layoutSummary?.let { summary ->
+                    Text(summary, style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth().testTag("b_coach_training_layout_summary"))
+                }
                 if (sportShadowAvailable) Column {
                     OutlinedButton(
                         onClick = onOpenSportShadow,
