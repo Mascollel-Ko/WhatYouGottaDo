@@ -28,7 +28,8 @@ internal data class BCoachV2TaskWeekDose(
     val dose: Double,
     val lower: Double,
     val upper: Double,
-    val scored: Boolean
+    val scored: Boolean,
+    val rawDose: Double = dose
 )
 
 internal data class BCoachV2CandidateEvaluation(
@@ -71,6 +72,7 @@ internal object BCoachV2DoseEvaluator {
         val badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         val mainExerciseKeys: Set<String>,
         val strengthExposureKeys: Set<String>,
+        val strengthTargetKeys: Set<String>,
         val exercises: Map<String, Exercise>,
         val rirPolicy: RpeRirPolicy?,
         val referenceCapacityByStableKey: Map<String, Double>,
@@ -124,13 +126,15 @@ internal object BCoachV2DoseEvaluator {
             badmintonCatalog = badmintonCatalog,
             mainExerciseKeys = mainExerciseKeys,
             strengthExposureKeys = CanonicalStrengthExposureCapability.approvedStableKeys,
+            strengthTargetKeys = BCoachStrengthCoveragePolicy.targetKeys(exercises,
+                request.availableEquipment, baseline.items.map(ProgramSkeletonItem::exerciseStableKey)),
             exercises = exercises,
             rirPolicy = rirPolicy,
             referenceCapacityByStableKey = referenceCapacityByStableKey,
             hypertrophyCredit = repeated.associate { it.localId to 0.8 }
         )
         val tasks = tasks(plan, baseline, historyAtCutoff, request, goalWeights, context)
-        BBalancedGoal.entries.filter { goal -> tasks.none { it.goal == goal } }
+        BBalancedGoal.entries.filter { goal -> tasks.none { it.goal == goal && it.scored } }
             .forEach { reasons += "NO_ELIGIBLE_TASK:${it.name}" }
         val weeks = (1..plan.request.durationWeeks.coerceAtLeast(1)).toList()
         val taskCounts = tasks.filter(Task::scored).groupingBy(Task::goal).eachCount()
@@ -188,11 +192,19 @@ internal object BCoachV2DoseEvaluator {
                     )
                     val interval = if (peak) 0.0 to 0.0
                         else BCoachV2Policy.interval(task.center, multiplier, scenario)
+                    val deficitDose = if (task.id == BCoachStrengthCoveragePolicy.taskId(
+                            CanonicalStrengthExposureCapability.MovementAnchor.SQUAT) &&
+                        BCoachStrengthCoveragePolicy.BACK_SQUAT in context.strengthTargetKeys) {
+                        val front = plannedDose(plan, week, task.copy(id = "STRENGTH:" + BCoachStrengthCoveragePolicy.FRONT_SQUAT),
+                            scenario, context, rirByScenarioAndSet[scenario] ?: baseRirBySetId,
+                            intensityByScenarioAndSet[scenario] ?: baseIntensityBySetId)
+                        BCoachStrengthCoveragePolicy.deficitCredit(dose, front, interval.first, true)
+                    } else dose
                     if (scenario == BCoachV2Scenario.BASE) {
                         if (!peak) {
                             taskWeekDoses += BCoachV2TaskWeekDose(
-                                task.id, task.goal, week, dose, interval.first, interval.second,
-                                task.scored
+                                task.id, task.goal, week, deficitDose, interval.first, interval.second,
+                                task.scored, rawDose = dose
                             )
                         }
                         if (!peak && task.goal == BBalancedGoal.SPORT_SUPPORT &&
@@ -211,18 +223,21 @@ internal object BCoachV2DoseEvaluator {
                             source = "${BCoachV2Policy.POLICY_VERSION}:${task.id}",
                             status = BCoachValueStatus.READY,
                             reasonCodes = listOf(task.evidenceStatus.name) +
-                                if (task.scored) emptyList() else listOf("DIRECTION_ONLY_NO_INFERRED_DEFICIT"),
+                                if (task.scored) emptyList() else if (task.goal == BBalancedGoal.STRENGTH)
+                                    listOf("EXACT_KEY_DIAGNOSTIC_NOT_DOUBLE_SCORED")
+                                else listOf("DIRECTION_ONLY_NO_INFERRED_DEFICIT"),
                             taskId = task.id,
                             center = task.center,
                             exemptFromNeedScoring = peak
                         )
                         breakdown += "${task.id}|w=$week|dose=${canonical(dose)}|L=${canonical(interval.first)}|" +
-                            "U=${canonical(interval.second)}|evidence=${task.evidenceStatus.name}"
+                            "U=${canonical(interval.second)}|evidence=${task.evidenceStatus.name}" +
+                            if (deficitDose != dose) "|deficitCredit=${canonical(deficitDose)}" else ""
                     }
                     if (!peak && task.scored) {
                         val lower = interval.first
                         val upper = interval.second
-                        val gap = (max(0.0, lower - dose) / max(lower, 1.0)).unitInterval()
+                        val gap = (max(0.0, lower - deficitDose) / max(lower, 1.0)).unitInterval()
                         val excess = (max(0.0, dose - upper) / max(upper, 1.0)).pow(2).unitInterval()
                         val taskWeight = blockWeights.getValue(task.goal) / max(1, taskCounts[task.goal] ?: 0)
                         if (task.goal == BBalancedGoal.SPORT_SUPPORT && task.id != "SPORT:GENERAL") {
@@ -388,6 +403,9 @@ internal object BCoachV2DoseEvaluator {
             keys.filter { it in context.strengthExposureKeys }.sorted().forEach {
                 add("STRENGTH:$it" to BBalancedGoal.STRENGTH)
             }
+            BCoachStrengthCoveragePolicy.anchors(context.strengthTargetKeys).sortedBy { it.name }.forEach {
+                add(BCoachStrengthCoveragePolicy.taskId(it) to BBalancedGoal.STRENGTH)
+            }
             defaultHypertrophyMuscles.forEach { add("HYPERTROPHY:$it" to BBalancedGoal.HYPERTROPHY) }
             // Core must be candidate-independent: when a reviewed direct-core exercise
             // exists but the incumbent has none, the missing objective still matters.
@@ -440,7 +458,9 @@ internal object BCoachV2DoseEvaluator {
                     median(weekly) else d0,
                 evidenceStatus = if (weekly.size >= BCoachV2Policy.PERSONAL_VALID_WEEKS_MIN)
                     BCoachEvidenceStatus.OBSERVED else BCoachEvidenceStatus.POLICY_ASSUMED,
-                scored = !isSportDomain || observedSportDomain
+                scored = if (goal == BBalancedGoal.STRENGTH)
+                    BCoachStrengthCoveragePolicy.anchorForTask(id) != null
+                else !isSportDomain || observedSportDomain
             )
         }
     }
@@ -520,7 +540,12 @@ internal object BCoachV2DoseEvaluator {
         scenario: BCoachV2Scenario,
         context: Context
     ): Double = when (goal) {
-        BBalancedGoal.STRENGTH -> if (taskId == "STRENGTH:$stableKey" && stableKey in context.strengthExposureKeys) 1.0 else 0.0
+        BBalancedGoal.STRENGTH -> {
+            val anchor = BCoachStrengthCoveragePolicy.anchorForTask(taskId)
+            if (stableKey in context.strengthExposureKeys && (taskId == "STRENGTH:$stableKey" ||
+                    (anchor != null && CanonicalStrengthExposureCapability.movementAnchor(stableKey) == anchor))) 1.0
+            else 0.0
+        }
         BBalancedGoal.HYPERTROPHY -> {
             val muscle = taskId.removePrefix("HYPERTROPHY:")
             val base = context.muscleCredits[stableKey]?.get(muscle) ?: 0.0

@@ -683,6 +683,63 @@ internal object BCoachV2GlobalSelector {
         }
 
         val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
+        // Dedicated missing-anchor lane before accessory mutations. A new lift receives
+        // its own calibrated prescription and the ordinary complete-plan constraints.
+        val strengthGaps = taskWeekDoses.filter { it.scored && it.lower > it.dose &&
+            BCoachStrengthCoveragePolicy.anchorForTask(it.taskId) != null }.groupBy { it.taskId }
+        val strengthKeys = exercises.values.filter {
+            BCoachStrengthCoveragePolicy.selectable(it, request.availableEquipment)
+        }.map(Exercise::stableKey)
+        val weekItems = plan.items.groupBy(ProgramSkeletonItem::weekNumber)
+        fun strengthItem(source: ProgramSkeletonItem, candidate: Exercise, order: Int): ProgramSkeletonItem {
+            val row = reselectedItem(source, candidate, 3)
+            val focus = source.selectionRole.substringAfter('|', "").let { if (it.isBlank()) "" else "|$it" }
+            return row.copy(localId = "B_STRENGTH_W${source.weekNumber}_D${source.dayOfWeek}_${candidate.stableKey}",
+                orderIndex = order, reps = 5, selectionRole = "MAIN_STRENGTH_RESELECTED$focus",
+                selectionReason = source.selectionReason.substringBefore(';') + ";B_COACH_MISSING_STRENGTH_ANCHOR_USER_REVIEW",
+                setPrescriptions = row.setPrescriptions.map { it.copy(reps = 5) })
+        }
+        for ((task, gaps) in strengthGaps.toSortedMap()) {
+            val anchor = BCoachStrengthCoveragePolicy.anchorForTask(task) ?: continue
+            val keys = BCoachStrengthCoveragePolicy.preferredKeys(strengthKeys.filter {
+                CanonicalStrengthExposureCapability.movementAnchor(it) == anchor
+            })
+            for (key in keys.take(2)) {
+                val candidate = exercises.getValue(key)
+                for (replaceAccessory in listOf(false, true)) {
+                    val proposed = plan.items.toMutableList()
+                    var changed = false
+                    for (week in gaps.map { it.week }.distinct()) {
+                        val rows = weekItems[week].orEmpty()
+                        if (rows.isEmpty() || rows.any { "PEAK" in it.selectionRole } ||
+                            plan.weekPlans.any { it.weekIndex == week && (it.deloadFlag ||
+                                "RECOVERY" in it.weekType || "PEAK" in it.weekType) }) continue
+                        // One missing movement, not a second variant or another squat session.
+                        if (rows.any { CanonicalStrengthExposureCapability.movementAnchor(it.exerciseStableKey) == anchor }) continue
+                        val days = rows.groupBy(ProgramSkeletonItem::dayOfWeek).values.sortedBy {
+                            BCoachV2ScheduleLoad.timeUpper(it, exercises)
+                        }
+                        for (dayRows in days) {
+                            val source = if (replaceAccessory) dayRows.filter { eligibleSource(it) &&
+                                !CanonicalStrengthExposureCapability.strengthPossible(it.exerciseStableKey) }
+                                .maxByOrNull { it.setCount } ?: continue else dayRows.first()
+                            val added = strengthItem(source, candidate,
+                                (dayRows.maxOfOrNull { it.orderIndex } ?: 0) + 1)
+                            val revised = if (replaceAccessory) dayRows.filterNot { it == source } + added
+                                else dayRows + added
+                            if (BCoachV2ScheduleLoad.timeUpper(revised, exercises) >
+                                (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES)) continue
+                            if (replaceAccessory) proposed.remove(source)
+                            proposed += added
+                            changed = true
+                            break
+                        }
+                    }
+                    if (changed) changes += (if (replaceAccessory) "REPLACE_ACCESSORY_WITH_STRENGTH_" else "INSERT_STRENGTH_") + key to
+                        plan.copy(items = proposed)
+                }
+            }
+        }
         val missing = plan.items.filter { item -> eligibleSource(item) &&
             BCoachV2DoseEvaluator.hasMissingTimedDose(item, exercises[item.exerciseStableKey])
         }
@@ -854,7 +911,7 @@ internal object BCoachV2GlobalSelector {
                     row.lower.coerceAtLeast(1.0)
             }.average()
             val excess = rows.map { row ->
-                (row.dose - row.upper).coerceAtLeast(0.0) /
+                (row.rawDose - row.upper).coerceAtLeast(0.0) /
                     row.upper.coerceAtLeast(1.0)
             }.average()
             deficit.coerceIn(0.0, 1.0) to excess.coerceIn(0.0, 1.0)
@@ -868,7 +925,9 @@ internal object BCoachV2GlobalSelector {
             .associateWith { key ->
                 val links = linkedMapOf<String, Pair<BBalancedGoal, Double>>()
                 if (key in CanonicalStrengthExposureCapability.approvedStableKeys) {
-                    links["STRENGTH:$key"] = BBalancedGoal.STRENGTH to 1.0
+                    CanonicalStrengthExposureCapability.movementAnchor(key)?.let { anchor ->
+                        links[BCoachStrengthCoveragePolicy.taskId(anchor)] = BBalancedGoal.STRENGTH to 1.0
+                    }
                 }
                 musclesByKey[key].orEmpty().forEach { relation ->
                     val task = "HYPERTROPHY:${relation.relationValue}"
