@@ -453,6 +453,10 @@ internal object BCoachMultiobjectiveProduction {
             canonicalField(request.sessionMinutes)
             canonicalField(request.backupName)
             canonicalField(request.bGoalImportance)
+            if (request.trainingLayoutPreference != BTrainingLayoutPreference.AUTO_BALANCED) {
+                canonicalField("B_LAYOUT_PREFERENCE_V1")
+                canonicalField(request.trainingLayoutPreference.name)
+            }
             canonicalField(request.bMaxTrainingDays)
             canonicalField(request.allowedWeekdays?.sorted()?.joinToString(","))
             canonicalField(request.fixedWeekdays?.sorted()?.joinToString(","))

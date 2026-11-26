@@ -87,6 +87,7 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoal
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
+import com.training.trackplanner.data.v22.BTrainingLayoutPreference
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
@@ -891,6 +892,13 @@ private fun ProgramEditorScreen(
     }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
     var bAllowFourthDay by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
+    var bTrainingLayoutPreference by rememberSaveable(program?.id ?: 0L, draftId) {
+        mutableStateOf(runCatching {
+            val audit = org.json.JSONObject(staged?.skeleton?.planningMetadataJson ?: "{}")
+                .getJSONObject("bCoachMultiobjectiveDecision").getJSONObject("inputAudit")
+            BTrainingLayoutPreference.valueOf(audit.getString("trainingLayoutPreference"))
+        }.getOrDefault(BTrainingLayoutPreference.AUTO_BALANCED))
+    }
     var bStrengthImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
@@ -1070,6 +1078,7 @@ private fun ProgramEditorScreen(
                 asOf = LocalDate.now(),
                 sessionMinutes = v22SessionMinutes,
                 allowFourthDay = bAllowFourthDay,
+                trainingLayoutPreference = bTrainingLayoutPreference,
                 importance = BBalancedGoalImportance(
                     strength = bStrengthImportance.takeIf { it > 0 },
                     hypertrophy = bHypertrophyImportance.takeIf { it > 0 },
@@ -1466,6 +1475,32 @@ private fun ProgramEditorScreen(
                                 enabled = !generationRunning
                             )
                         }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "운동 배치 선호",
+                                selected = bTrainingLayoutPreference,
+                                options = BTrainingLayoutPreference.entries.toList(),
+                                optionLabel = { preference ->
+                                    when (preference) {
+                                        BTrainingLayoutPreference.AUTO_BALANCED -> "자동 균형형"
+                                        BTrainingLayoutPreference.FULL_BODY_DISTRIBUTED -> "전신 분산형"
+                                        BTrainingLayoutPreference.BODY_PART_FOCUSED -> "부위 집중형"
+                                    }
+                                },
+                                onSelect = { bTrainingLayoutPreference = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        Text(
+                            when (bTrainingLayoutPreference) {
+                                BTrainingLayoutPreference.AUTO_BALANCED -> "기존 목표·시간·회복 평가에 따라 배치합니다."
+                                BTrainingLayoutPreference.FULL_BODY_DISTRIBUTED -> "같은 근육을 사용하는 운동을 가능한 다른 날짜에 나눕니다."
+                                BTrainingLayoutPreference.BODY_PART_FOCUSED -> "관련 근육 운동을 가능한 같은 날짜에 모읍니다."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Text("사용 가능한 운동 장비", style = MaterialTheme.typography.titleSmall)
                         Text(
                             "선택하지 않은 장비가 필요한 새 운동은 후보에서 제외됩니다. 맨몸 운동은 항상 사용할 수 있습니다.",

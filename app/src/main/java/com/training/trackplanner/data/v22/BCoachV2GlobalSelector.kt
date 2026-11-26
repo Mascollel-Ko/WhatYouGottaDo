@@ -124,6 +124,25 @@ internal object BCoachV2GlobalSelector {
         val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
             prepareLayout(baseline), request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
         )
+        fun evaluateResolved(loadData: BCoachV2LoadResolution): ResolvedPlan {
+            val resolvedSkeleton = loadData.skeleton
+            val evaluation = BCoachV2DoseEvaluator.evaluate(
+                plan = resolvedSkeleton, baseline = baselineLoad.skeleton, request = request,
+                history = historyAtCutoff, exercises = exercises, muscleRelations = muscleRelations,
+                coreCatalog = coreCatalog, badmintonCatalog = badmintonCatalog,
+                mainExerciseKeys = mainExerciseKeys, goalWeights = goalWeights,
+                baseRirByLocalId = loadData.baseRirByLocalId,
+                baseIntensityByLocalId = loadData.baseIntensityByLocalId,
+                rirByScenario = loadData.rirByScenario, intensityByScenario = loadData.intensityByScenario,
+                baseRirBySetId = loadData.baseRirBySetId, baseIntensityBySetId = loadData.baseIntensityBySetId,
+                rirByScenarioAndSet = loadData.rirByScenarioAndSet,
+                intensityByScenarioAndSet = loadData.intensityByScenarioAndSet,
+                rirPolicy = rirPolicy, badmintonHistory = badmintonAtCutoff,
+                referenceCapacityByStableKey = referenceCapacityByStableKey
+            )
+            return ResolvedPlan(resolvedSkeleton, evaluation, loadData,
+                BCoachMultiobjectiveProduction.fingerprint(resolvedSkeleton))
+        }
         val evaluationCache = mutableMapOf<String, ResolvedPlan>()
         fun evaluatePlan(rawSkeleton: GeneratedProgramSkeleton): ResolvedPlan {
             val layout = prepareLayout(rawSkeleton)
@@ -135,36 +154,7 @@ internal object BCoachV2GlobalSelector {
                         layout, request, historyAtCutoff, exercises, modelSnapshots,
                         mainExerciseKeys, rirPolicy
                     )
-                val resolvedSkeleton = loadData.skeleton
-                val evaluation = BCoachV2DoseEvaluator.evaluate(
-                    plan = resolvedSkeleton,
-                    baseline = baselineLoad.skeleton,
-                    request = request,
-                    history = historyAtCutoff,
-                    exercises = exercises,
-                    muscleRelations = muscleRelations,
-                    coreCatalog = coreCatalog,
-                    badmintonCatalog = badmintonCatalog,
-                    mainExerciseKeys = mainExerciseKeys,
-                    goalWeights = goalWeights,
-                    baseRirByLocalId = loadData.baseRirByLocalId,
-                    baseIntensityByLocalId = loadData.baseIntensityByLocalId,
-                    rirByScenario = loadData.rirByScenario,
-                    intensityByScenario = loadData.intensityByScenario,
-                    baseRirBySetId = loadData.baseRirBySetId,
-                    baseIntensityBySetId = loadData.baseIntensityBySetId,
-                    rirByScenarioAndSet = loadData.rirByScenarioAndSet,
-                    intensityByScenarioAndSet = loadData.intensityByScenarioAndSet,
-                    rirPolicy = rirPolicy,
-                    badmintonHistory = badmintonAtCutoff,
-                    referenceCapacityByStableKey = referenceCapacityByStableKey
-                )
-                ResolvedPlan(
-                    skeleton = resolvedSkeleton,
-                    evaluation = evaluation,
-                    loadData = loadData,
-                    signature = BCoachMultiobjectiveProduction.fingerprint(resolvedSkeleton)
-                )
+                evaluateResolved(loadData)
             }
         }
         val resolvedBaseline = evaluatePlan(baseline)
@@ -201,7 +191,7 @@ internal object BCoachV2GlobalSelector {
         // Preserve the original recommendation path whenever a strict candidate
         // exists. Otherwise use the best candidates with the fewest remaining
         // review conditions, scored against the SAME original baseline.
-        val valid = strict.ifEmpty {
+        val rosterValid = strict.ifEmpty {
             val minimum = reviewable.minOfOrNull { candidate ->
                 candidate.evaluation.hardConstraints.count(BCoachConstraintReviewPolicy::requiresReview)
             }
@@ -216,7 +206,7 @@ internal object BCoachV2GlobalSelector {
         )
         val exerciseFingerprint = BCoachMultiobjectiveProduction.exerciseFingerprint(relevantKeys, exercises)
         val linkedFingerprint = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request)
-        if (valid.isEmpty()) {
+        if (rosterValid.isEmpty()) {
             val failed = evaluated.flatMap { it.evaluation.hardConstraints }
                 .filter(BCoachConstraintReviewPolicy::blocks).map(BCoachConstraintResult::id)
                 .distinct().sorted()
@@ -232,10 +222,10 @@ internal object BCoachV2GlobalSelector {
                 recommendedCandidateId = null
             )
         }
-        markPareto(valid)
-        val regrets = robustRegrets(valid.associate { it.id to it.evaluation.lossesByScenario })
-        valid.forEach { it.robustRegret = regrets.getValue(it.id) }
-        val frontier = valid.filter(Candidate::pareto).ifEmpty { listOf(valid.minBy(Candidate::signature)) }
+        markPareto(rosterValid)
+        val rosterRegrets = robustRegrets(rosterValid.associate { it.id to it.evaluation.lossesByScenario })
+        rosterValid.forEach { it.robustRegret = rosterRegrets.getValue(it.id) }
+        val rosterFrontier = rosterValid.filter(Candidate::pareto).ifEmpty { listOf(rosterValid.minBy(Candidate::signature)) }
         fun sportCoverageCount(candidate: Candidate): Int =
             candidate.evaluation.sportObjectiveWeeks.groupBy { it.objective }
                 .count { (_, rows) -> rows.any { it.dose > 0.0 } }
@@ -244,7 +234,7 @@ internal object BCoachV2GlobalSelector {
                 .map { rows -> rows.sortedBy { it.objective }
                     .joinToString("|") { "${it.objective}:${it.dose}" } }
                 .distinct().size
-        val conventional = frontier.sortedWith(
+        val conventional = rosterFrontier.sortedWith(
             compareBy<Candidate> { it.robustRegret }
                 .thenBy { it.evaluation.baseLoss }
                 .thenByDescending { it.anchorsMaintained }
@@ -254,7 +244,54 @@ internal object BCoachV2GlobalSelector {
         // One common multiobjective ranking for every importance vector.
         // Nine-domain exposure and weekly roster variety are diagnostics, not
         // substitute objectives that can override strength, recovery or stability.
-        val selected = conventional
+        // The explicit layout preference may only compare permutations of the
+        // already recommended roster. Do not change roster choice to game HHI.
+        val preference = request.trainingLayoutPreference
+        val layoutMuscles = BCoachTrainingLayoutPolicy.coefficients(muscleRelations)
+        val layoutBefore = BCoachTrainingLayoutPolicy.score(conventional.skeleton, blockCalendar, layoutMuscles)
+        var selected = conventional
+        var layoutEvaluated = 0
+        val originalFailed = conventional.evaluation.hardConstraints
+            .filter { it.status == BCoachConstraintStatus.FAIL }.map { it.id }.toSet()
+        fun layoutLoss(candidate: Candidate): Double =
+            (candidate.evaluation.lossesByScenario.values.maxOrNull() ?: candidate.evaluation.baseLoss) +
+                BCoachTrainingLayoutPolicy.PREFERENCE_WEIGHT *
+                BCoachTrainingLayoutPolicy.score(candidate.skeleton, blockCalendar, layoutMuscles).loss(preference)
+        val visitedLayouts = mutableSetOf(conventional.signature)
+        if (preference != BTrainingLayoutPreference.AUTO_BALANCED && layoutBefore.comparableVolume > 0.0) {
+            repeat(BCoachTrainingLayoutPolicy.MAX_ROUNDS) {
+                val current = selected
+                val choices = BCoachTrainingLayoutPolicy.neighbors(current.skeleton, request, exercises,
+                    mainExerciseKeys, layoutMuscles).mapNotNull { (label, layout) ->
+                    if (!BCoachTrainingLayoutPolicy.samePrescription(conventional.skeleton, layout)) return@mapNotNull null
+                    val signature = BCoachMultiobjectiveProduction.fingerprint(layout)
+                    if (!visitedLayouts.add(signature)) return@mapNotNull null
+                    // The original load instructions are keyed by stable localId/setIndex;
+                    // none of those identities, load values, rest or reps were changed.
+                    val resolved = evaluateResolved(conventional.loadData.copy(skeleton = layout))
+                    layoutEvaluated++
+                    val failures = resolved.evaluation.hardConstraints.filter { it.status == BCoachConstraintStatus.FAIL }
+                    if (failures.any(BCoachConstraintReviewPolicy::blocks) ||
+                        failures.any { it.id !in originalFailed }) return@mapNotNull null
+                    Candidate("L_" + resolved.signature.take(12), label, resolved.skeleton,
+                        resolved.evaluation, resolved.loadData, resolved.signature,
+                        BCoachMultiobjectiveProduction.changes(baseline, resolved.skeleton), conventional.anchorsMaintained)
+                }
+                val best = choices.minWithOrNull(compareBy<Candidate> { layoutLoss(it) }
+                    .thenBy { it.evaluation.baseLoss }.thenBy { it.signature })
+                if (best != null && layoutLoss(best) < layoutLoss(current) - BCoachV2Policy.TIE_TOLERANCE)
+                    selected = best
+            }
+        }
+        val layoutAfter = BCoachTrainingLayoutPolicy.score(selected.skeleton, blockCalendar, layoutMuscles)
+        // Keep the selected explicit-preference permutation in the approval set,
+        // even if conventional eight-axis Pareto ranking alone would not prefer it.
+        val valid = (rosterValid + selected).distinctBy { it.signature }
+        selected = valid.first { it.signature == selected.signature }
+        markPareto(valid)
+        val regrets = robustRegrets(valid.associate { it.id to it.evaluation.lossesByScenario })
+        valid.forEach { it.robustRegret = regrets.getValue(it.id) }
+        val frontier = valid.filter(Candidate::pareto).ifEmpty { listOf(valid.minBy(Candidate::signature)) }
         // Candidate IDs and internal fingerprints can differ without a meaningful
         // workout prescription difference. Never expose cosmetic duplicates as A/B/C.
         fun visiblePlanKey(candidate: Candidate): String = candidate.skeleton.items
@@ -348,6 +385,15 @@ internal object BCoachV2GlobalSelector {
                 request, historyAtCutoff, relevantKeys, historyFingerprint, exerciseFingerprint,
                 linkedFingerprint, goalWeights
             ) + mapOf(
+                "trainingLayoutPolicy" to BCoachTrainingLayoutPolicy.VERSION,
+                "trainingLayoutPreferenceWeight" to BCoachTrainingLayoutPolicy.PREFERENCE_WEIGHT.toString(),
+                "trainingLayoutConcentrationBefore" to layoutBefore.concentration.toString(),
+                "trainingLayoutConcentrationAfter" to layoutAfter.concentration.toString(),
+                "trainingLayoutComparableVolume" to layoutBefore.comparableVolume.toString(),
+                "trainingLayoutEvaluatedCandidates" to layoutEvaluated.toString(),
+                "trainingLayoutRosterFingerprint" to conventional.signature,
+                "trainingLayoutUnmappedKeys" to conventional.skeleton.items.map { it.exerciseStableKey }
+                    .distinct().filter { it !in layoutMuscles }.sorted().joinToString(","),
                 "sportObjectivesSelected" to sportCoverageCount(selected).toString(),
                 "sportObjectivesMaxFeasible" to valid.maxOf(::sportCoverageCount).toString(),
                 "sportDosePatternsSelected" to sportDosePatternCount(selected).toString(),
@@ -1276,6 +1322,7 @@ internal object BCoachV2GlobalSelector {
         goalWeights: List<BCoachGoalWeight>
     ): Map<String, String> = linkedMapOf(
         "goalImportanceRaw" to request.bGoalImportance.toString(),
+        "trainingLayoutPreference" to request.trainingLayoutPreference.name,
         "goalImportanceEffective" to goalWeights.joinToString(",") {
             "${it.goal.name}=${it.effectiveImportance}"
         },
