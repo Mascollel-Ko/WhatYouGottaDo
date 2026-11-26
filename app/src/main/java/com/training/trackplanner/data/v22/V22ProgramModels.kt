@@ -5,6 +5,9 @@ import java.time.LocalDate
 
 enum class V22Mode { A, B, C }
 
+/** Session distribution preference; never a roster or load prescription goal. */
+enum class BTrainingLayoutPreference { AUTO_BALANCED, FULL_BODY_DISTRIBUTED, BODY_PART_FOCUSED }
+
 enum class BBalancedGoal { STRENGTH, HYPERTROPHY, CORE, SPORT_SUPPORT }
 
 /** Null means that B should derive a recommendation from the available record. */
@@ -59,7 +62,8 @@ data class V22GenerationRequest(
     /** Explicit calendar anchor when known; otherwise B-Coach starts on the next Monday. */
     val planningStartDate: LocalDate? = null,
     /** Null means unknown; non-bodyweight additions then fail closed. */
-    val availableEquipment: Set<String>? = null
+    val availableEquipment: Set<String>? = null,
+    val trainingLayoutPreference: BTrainingLayoutPreference = BTrainingLayoutPreference.AUTO_BALANCED
 )
 
 /**
@@ -80,7 +84,8 @@ internal fun newBBalancedGenerationRequest(
     shadowPlateOneSideKg: Double? = null,
     shadowDumbbellIncrementKg: Double? = null,
     shadowMachineIncrementKg: Double? = null,
-    availableEquipment: Set<String>? = null
+    availableEquipment: Set<String>? = null,
+    trainingLayoutPreference: BTrainingLayoutPreference = BTrainingLayoutPreference.AUTO_BALANCED
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -94,6 +99,7 @@ internal fun newBBalancedGenerationRequest(
     allowedWeekdays = allowedWeekdays,
     fixedWeekdays = fixedWeekdays,
     availableEquipment = availableEquipment,
+    trainingLayoutPreference = trainingLayoutPreference,
     sourceProgramStableKey = sourceProgramStableKey,
     bShadowPlateOneSideKg = shadowPlateOneSideKg,
     bShadowDumbbellIncrementKg = shadowDumbbellIncrementKg,

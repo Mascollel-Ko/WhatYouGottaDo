@@ -87,11 +87,13 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoal
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
+import com.training.trackplanner.data.v22.BTrainingLayoutPreference
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
 import com.training.trackplanner.data.v22.BCoachPlanAlternative
 import com.training.trackplanner.data.v22.BCoachV2Policy
+import com.training.trackplanner.data.v22.BCoachConstraintReviewPolicy
 import com.training.trackplanner.data.v22.BCoachConstraintStatus
 import com.training.trackplanner.data.v22.BCoachProductionStatus
 import com.training.trackplanner.data.v22.BBlockDefinition
@@ -189,6 +191,29 @@ internal fun BCoachProductionReviewDialog(
     val selectedPlan = selectedCandidateId?.let(candidateForReview)
     val recommendedPlan = alternatives.firstOrNull { it.recommended }?.candidateId
         ?.let(candidateForReview)
+    val layoutAudit = remember(recommendedPlan?.planningMetadataJson) {
+        runCatching {
+            org.json.JSONObject(recommendedPlan?.planningMetadataJson ?: "{}")
+                .getJSONObject("bCoachMultiobjectiveDecision").getJSONObject("inputAudit")
+        }.getOrNull()
+    }
+    val layoutSummary = layoutAudit?.let { audit ->
+        val preference = audit.optString("trainingLayoutPreference")
+        val before = audit.optString("trainingLayoutConcentrationBefore").toDoubleOrNull()
+        val after = audit.optString("trainingLayoutConcentrationAfter").toDoubleOrNull()
+        val volume = audit.optString("trainingLayoutComparableVolume").toDoubleOrNull() ?: 0.0
+        val label = when (preference) {
+            "FULL_BODY_DISTRIBUTED" -> "전신 분산형"
+            "BODY_PART_FOCUSED" -> "부위 집중형"
+            else -> null
+        }
+        if (label == null) null
+        else if (volume <= 0.0 || before == null || after == null)
+            "추천안 배치: $label · 비교 가능한 근육 자극 없음"
+        else if (kotlin.math.abs(after - before) < 1e-9)
+            "추천안 배치: $label · 기존 배치 유지"
+        else "추천안 배치: $label · 집중도 ${"%.1f".format(before * 100)} → ${"%.1f".format(after * 100)}%"
+    }
     fun comparedToRecommended(candidateId: String): String {
         val plan = candidateForReview(candidateId) ?: return "후보 세부 정보 없음"
         if (candidateId == alternatives.firstOrNull { it.recommended }?.candidateId)
@@ -277,13 +302,19 @@ internal fun BCoachProductionReviewDialog(
                   Column {
                 Text(BCoachV2Policy.DISCLAIMER)
                 Text(
-                    "아래 추천안과 대안은 모든 주차의 시간·요일 제약을 통과한 실제 저장 후보입니다. " +
+                    (if (alternatives.any { it.reviewConstraints.isNotEmpty() })
+                        "모든 조건을 동시에 만족하는 후보를 찾지 못했습니다. 재검토 후 남은 조건을 표시합니다. "
+                    else "아래 추천안과 대안은 모든 주차의 조건 검사를 통과한 후보입니다. ") +
                         "선택한 안은 승인 전까지 저장되지 않습니다." +
                         (unreliableExerciseCount.takeIf { it > 0 }
                             ?.let { " 기록 부족 운동 ${it}개가 포함됩니다." } ?: ""),
                     modifier = Modifier.padding(top = 8.dp)
                 )
                   }
+                layoutSummary?.let { summary ->
+                    Text(summary, style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth().testTag("b_coach_training_layout_summary"))
+                }
                 if (sportShadowAvailable) Column {
                     OutlinedButton(
                         onClick = onOpenSportShadow,
@@ -318,6 +349,31 @@ internal fun BCoachProductionReviewDialog(
                                 }
                         }
                     }
+                    }
+                }
+                selectedAlternative?.takeIf { it.reviewConstraints.isNotEmpty() }?.let { alternative ->
+                    Column(Modifier.fillMaxWidth().testTag("b_coach_constraint_review"),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("재검토 필요", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error)
+                        alternative.reviewConstraints.forEach { condition ->
+                            Text("• " + BCoachConstraintReviewPolicy.label(condition.id))
+                            if (condition.id == "SESSION_TIME_LIMIT") {
+                                val limit = selectedPlan?.request?.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES
+                                alternative.sessionTimes.entries.filter { it.value.upperMinutes > limit }
+                                    .sortedWith(compareBy({ it.key.first }, { it.key.second }))
+                                    .forEach { (slot, time) ->
+                                        Text("${slot.first}주 ${dayName(slot.second)}요일: " +
+                                            "${"%.1f".format(time.upperMinutes)}분 (설정 ${limit}분)",
+                                            style = MaterialTheme.typography.bodySmall)
+                                    }
+                            } else if (condition.reasonCodes.isNotEmpty()) {
+                                Text(condition.reasonCodes.joinToString(" · "),
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                        Text("초안에서 확인하고 수정할 수 있습니다. 재검토 항목은 통과한 것으로 처리하지 않습니다.",
+                            style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 selectedPlan?.let { plan ->
@@ -440,7 +496,8 @@ internal fun BCoachProductionReviewDialog(
                         modifier = Modifier.fillMaxWidth().testTag("b_coach_review_apply"),
                         enabled = alternatives.isEmpty() || selectedCandidateId != null
                     ) {
-                        Text("선택 후보 적용")
+                        Text(if (selectedAlternative?.reviewConstraints.orEmpty().isEmpty()) "선택 후보 적용"
+                            else "재검토 사항 확인 후 초안 적용")
                     }
                 }
             }
@@ -862,6 +919,13 @@ private fun ProgramEditorScreen(
     }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
     var bAllowFourthDay by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
+    var bTrainingLayoutPreference by rememberSaveable(program?.id ?: 0L, draftId) {
+        mutableStateOf(runCatching {
+            val audit = org.json.JSONObject(staged?.skeleton?.planningMetadataJson ?: "{}")
+                .getJSONObject("bCoachMultiobjectiveDecision").getJSONObject("inputAudit")
+            BTrainingLayoutPreference.valueOf(audit.getString("trainingLayoutPreference"))
+        }.getOrDefault(BTrainingLayoutPreference.AUTO_BALANCED))
+    }
     var bStrengthImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
@@ -1041,6 +1105,7 @@ private fun ProgramEditorScreen(
                 asOf = LocalDate.now(),
                 sessionMinutes = v22SessionMinutes,
                 allowFourthDay = bAllowFourthDay,
+                trainingLayoutPreference = bTrainingLayoutPreference,
                 importance = BBalancedGoalImportance(
                     strength = bStrengthImportance.takeIf { it > 0 },
                     hypertrophy = bHypertrophyImportance.takeIf { it > 0 },
@@ -1077,7 +1142,9 @@ private fun ProgramEditorScreen(
                     context,
                     if (generated.bCoachMultiobjectiveDecision.hardConstraints.any { it.id == "MEASURABLE_WORK_INTERVAL" })
                         "모든 세트의 수행량을 정할 수 있는 조합을 찾지 못했습니다. 시간 운동의 기록이나 선택한 운동을 확인해 주세요."
-                    else "고정 요일·시간·운동 조건을 동시에 만족할 수 없습니다. 입력 조건을 확인해 주세요.",
+                    else "프로그램 생성 불가: " + generated.bCoachMultiobjectiveDecision.hardConstraints
+                        .filter(BCoachConstraintReviewPolicy::blocks)
+                        .joinToString(" · ") { BCoachConstraintReviewPolicy.label(it.id) },
                     Toast.LENGTH_LONG
                 ).show()
                 pendingBReview = null
@@ -1435,6 +1502,32 @@ private fun ProgramEditorScreen(
                                 enabled = !generationRunning
                             )
                         }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "운동 배치 선호",
+                                selected = bTrainingLayoutPreference,
+                                options = BTrainingLayoutPreference.entries.toList(),
+                                optionLabel = { preference ->
+                                    when (preference) {
+                                        BTrainingLayoutPreference.AUTO_BALANCED -> "자동 균형형"
+                                        BTrainingLayoutPreference.FULL_BODY_DISTRIBUTED -> "전신 분산형"
+                                        BTrainingLayoutPreference.BODY_PART_FOCUSED -> "부위 집중형"
+                                    }
+                                },
+                                onSelect = { bTrainingLayoutPreference = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        Text(
+                            when (bTrainingLayoutPreference) {
+                                BTrainingLayoutPreference.AUTO_BALANCED -> "기존 목표·시간·회복 평가에 따라 배치합니다."
+                                BTrainingLayoutPreference.FULL_BODY_DISTRIBUTED -> "같은 근육을 사용하는 운동을 가능한 다른 날짜에 나눕니다."
+                                BTrainingLayoutPreference.BODY_PART_FOCUSED -> "관련 근육 운동을 가능한 같은 날짜에 모읍니다."
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Text("사용 가능한 운동 장비", style = MaterialTheme.typography.titleSmall)
                         Text(
                             "선택하지 않은 장비가 필요한 새 운동은 후보에서 제외됩니다. 맨몸 운동은 항상 사용할 수 있습니다.",

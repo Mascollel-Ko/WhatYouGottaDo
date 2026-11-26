@@ -9,7 +9,7 @@ import kotlin.math.max
 /** Frozen product policy. Values are selection heuristics, not clinical limits. */
 internal object BCoachV2Policy {
     const val ENGINE_VERSION = "B_COACH_V2_3_COACHING_OPT"
-    const val POLICY_VERSION = "B_COACH_INTEGRATED_V3_SESSION_AND_REP_PURPOSE"
+    const val POLICY_VERSION = "B_COACH_INTEGRATED_V5_EXPERIMENT_TRAINING_LAYOUT"
     const val SOURCE_OWNER = "B_COACH_V2_3_COACHING_OPT"
     const val COEFFICIENT_SOURCE = "PRODUCT_HEURISTIC_NOT_CLINICAL"
     const val DISCLAIMER =
